@@ -1,14 +1,19 @@
 // 📍 In Datei: db.js (GitHub Web-Editor)
 const { Pool } = require("pg");
 
-const ssl =
-  process.env.DATABASE_CA_CERT && process.env.DATABASE_CA_CERT.trim().startsWith("-----BEGIN CERTIFICATE-----")
-    ? { ca: process.env.DATABASE_CA_CERT }
-    : { rejectUnauthorized: false }; // Fallback fürs MVP
+function buildSsl() {
+  const b64 = process.env.DATABASE_CA_B64;
+  if (b64 && b64.length > 0) {
+    const ca = Buffer.from(b64, "base64").toString("utf8");
+    return { ca }; // volle Verifikation
+  }
+  // Fallback (nur DEV/MVP)
+  return { rejectUnauthorized: false };
+}
 
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
-  ssl
+  ssl: buildSsl()
 });
 
 async function pingDb() {
