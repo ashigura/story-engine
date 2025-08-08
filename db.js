@@ -3,9 +3,10 @@ const { Pool } = require("pg");
 
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
-  ssl: process.env.DATABASE_URL?.includes("ondigitalocean.com")
-    ? { rejectUnauthorized: false }
-    : undefined,
+  // DigitalOcean Managed Postgres: self-signed / custom CA
+  // Für MVP erlauben wir SSL ohne Zertifikatsprüfung.
+  // (Später kannst du auf CA-Validierung umstellen.)
+  ssl: { rejectUnauthorized: false }
 });
 
 async function pingDb() {
