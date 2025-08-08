@@ -1,12 +1,14 @@
 // 📍 In Datei: db.js (GitHub Web-Editor)
 const { Pool } = require("pg");
 
+const ssl =
+  process.env.DATABASE_CA_CERT && process.env.DATABASE_CA_CERT.trim().startsWith("-----BEGIN CERTIFICATE-----")
+    ? { ca: process.env.DATABASE_CA_CERT }
+    : { rejectUnauthorized: false }; // Fallback fürs MVP
+
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
-  // DigitalOcean Managed Postgres: self-signed / custom CA
-  // Für MVP erlauben wir SSL ohne Zertifikatsprüfung.
-  // (Später kannst du auf CA-Validierung umstellen.)
-  ssl: { rejectUnauthorized: false }
+  ssl
 });
 
 async function pingDb() {
