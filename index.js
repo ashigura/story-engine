@@ -1,4 +1,5 @@
 const express = require("express");
+const { pingDb } = require("./db");
 const app = express();
 const port = process.env.PORT || 8080;
 
