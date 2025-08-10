@@ -30,25 +30,33 @@ app.get("/db/ping", async (_req, res) => {
 });
 
 // create session (optional body: { startNodeId })
+// 📍 In Datei: index.js (GitHub Web-Editor) – ersetzt /sessions
 app.post("/sessions", async (req, res) => {
   const client = await pool.connect();
   try {
-    await client.query("BEGIN");
+    // Validierung vor BEGIN
     let startNodeId = req.body?.startNodeId ?? null;
-
     if (startNodeId !== null) {
-      const chk = await client.query("select id from node where id=$1", [startNodeId]);
+      const n = Number(startNodeId);
+      if (!Number.isFinite(n)) return res.status(400).json({ error: "invalid startNodeId" });
+      startNodeId = n;
+      const chk = await client.query("select 1 from node where id=$1", [startNodeId]);
       if (chk.rowCount === 0) return res.status(400).json({ error: "invalid startNodeId" });
     }
 
+    await client.query("BEGIN");
     const q = await client.query(
-      `insert into session (current_node_id, state_json, status) values ($1, '{}'::jsonb, 'running') returning id`,
+      `insert into session (current_node_id, state_json, status)
+       values ($1, '{}'::jsonb, 'running') returning id`,
       [startNodeId]
     );
     await client.query("COMMIT");
-    res.json({ id: q.rows[0].id });
+
+    const id = q.rows[0].id;
+    res.setHeader("Location", `/sessions/${id}`);
+    res.status(201).json({ id });
   } catch (e) {
-    await client.query("ROLLBACK");
+    try { await client.query("ROLLBACK"); } catch {}
     console.error(e);
     res.status(500).json({ error: "create_failed", message: String(e) });
   } finally {
@@ -56,10 +64,16 @@ app.post("/sessions", async (req, res) => {
   }
 });
 
+
 // get session (returns node + options)
+
 app.get("/sessions/:id", async (req, res) => {
   const id = Number(req.params.id);
+  if (!Number.isFinite(id)) return res.status(400).json({ error: "invalid_session_id" });
   const s = await pool.query(`select * from session where id=$1`, [id]);
+  ...
+});
+
   if (!s.rowCount) return res.status(404).json({ error: "not_found" });
 
   const session = s.rows[0];
@@ -83,30 +97,46 @@ app.get("/sessions/:id", async (req, res) => {
 });
 
 // apply decision: { edgeId }
+// 📍 In Datei: index.js (GitHub Web-Editor) – ersetzt /sessions/:id/decision
 app.post("/sessions/:id/decision", async (req, res) => {
-  const id = Number(req.params.id);
+  const sessionId = Number(req.params.id);
+  if (!Number.isFinite(sessionId)) return res.status(400).json({ error: "invalid_session_id" });
+
   const edgeId = Number(req.body?.edgeId);
-  if (!edgeId) return res.status(400).json({ error: "edgeId_required" });
+  if (!Number.isFinite(edgeId)) return res.status(400).json({ error: "edgeId_required" });
 
   const client = await pool.connect();
   try {
     await client.query("BEGIN");
-    const s = await client.query(`select * from session where id=$1 for update`, [id]);
-    if (!s.rowCount) return res.status(404).json({ error: "session_not_found" });
+
+    const s = await client.query(`select * from session where id=$1 for update`, [sessionId]);
+    if (!s.rowCount) {
+      await client.query("ROLLBACK");
+      return res.status(404).json({ error: "session_not_found" });
+    }
 
     const session = s.rows[0];
-    if (!session.current_node_id) return res.status(400).json({ error: "no_current_node_set" });
+    if (!session.current_node_id) {
+      await client.query("ROLLBACK");
+      return res.status(400).json({ error: "no_current_node_set" });
+    }
 
     const e = await client.query(`select * from edge where id=$1`, [edgeId]);
-    if (!e.rowCount) return res.status(400).json({ error: "edge_not_found" });
+    if (!e.rowCount) {
+      await client.query("ROLLBACK");
+      return res.status(400).json({ error: "edge_not_found" });
+    }
 
     const edge = e.rows[0];
-    if (edge.from_node_id !== session.current_node_id)
+    if (edge.from_node_id !== session.current_node_id) {
+      await client.query("ROLLBACK");
       return res.status(409).json({ error: "edge_not_from_current_node" });
+    }
 
     // TODO: conditions/effects später
     await client.query(
-      `insert into decision (session_id, node_id, chosen_edge_id) values ($1, $2, $3)`,
+      `insert into decision (session_id, node_id, chosen_edge_id)
+       values ($1, $2, $3)`,
       [session.id, session.current_node_id, edge.id]
     );
     await client.query(
@@ -117,12 +147,13 @@ app.post("/sessions/:id/decision", async (req, res) => {
     await client.query("COMMIT");
     res.json({ ok: true, toNodeId: edge.to_node_id });
   } catch (e) {
-    await client.query("ROLLBACK");
+    try { await client.query("ROLLBACK"); } catch {}
     console.error(e);
     res.status(500).json({ error: "apply_failed", message: String(e) });
   } finally {
     client.release();
   }
 });
+
 
 app.listen(port, () => console.log("Server on :" + port));
