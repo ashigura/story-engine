@@ -6,7 +6,7 @@ const { Pool } = require("pg");
 const pool = new Pool({
   host: "db-postgresql-lst-concept-do-user-22806567-0.g.db.ondigitalocean.com",
   port: 25060,
-  user: doadmin,
+  user: "doadmin",
   password: "AVNS_zO3Crk5VjEai0a5FlYE",
   database: "defaultdb",
   ssl: {
