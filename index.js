@@ -70,30 +70,36 @@ app.post("/sessions", async (req, res) => {
 app.get("/sessions/:id", async (req, res) => {
   const id = Number(req.params.id);
   if (!Number.isFinite(id)) return res.status(400).json({ error: "invalid_session_id" });
-  const s = await pool.query(`select * from session where id=$1`, [id]);
-});
 
-  if (!s.rowCount) return res.status(404).json({ error: "not_found" });
+  try {
+    const s = await pool.query(`select * from session where id=$1`, [id]);
+    if (!s.rowCount) return res.status(404).json({ error: "not_found" });
 
-  const session = s.rows[0];
+    const session = s.rows[0];
 
-  // options: all edges from current_node (if set), otherwise empty
-  let options = [];
-  if (session.current_node_id) {
-    const e = await pool.query(
-      `select id, label, to_node_id from edge where from_node_id=$1 order by id asc`,
-      [session.current_node_id]
-    );
-    options = e.rows;
+    // Optionen sammeln
+    let options = [];
+    if (session.current_node_id) {
+      const e = await pool.query(
+        `select id, label, to_node_id from edge where from_node_id=$1 order by id asc`,
+        [session.current_node_id]
+      );
+      options = e.rows;
+    }
+
+    res.json({
+      id: session.id,
+      status: session.status,
+      currentNodeId: session.current_node_id,
+      state: session.state_json,
+      options,
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "read_failed", message: String(err) });
   }
-  res.json({
-    id: session.id,
-    status: session.status,
-    currentNodeId: session.current_node_id,
-    state: session.state_json,
-    options,
-  });
 });
+
 
 // apply decision: { edgeId }
 // 📍 In Datei: index.js (GitHub Web-Editor) – ersetzt /sessions/:id/decision
