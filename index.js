@@ -71,7 +71,6 @@ app.get("/sessions/:id", async (req, res) => {
   const id = Number(req.params.id);
   if (!Number.isFinite(id)) return res.status(400).json({ error: "invalid_session_id" });
   const s = await pool.query(`select * from session where id=$1`, [id]);
-  ...
 });
 
   if (!s.rowCount) return res.status(404).json({ error: "not_found" });
