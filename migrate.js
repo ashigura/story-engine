@@ -66,3 +66,18 @@ async function migrate() {
 }
 
 migrate();
+
+// Schema-Angleichungen (idempotent)
+await pool.query(`
+  ALTER TABLE edge
+    ADD COLUMN IF NOT EXISTS updated_at timestamptz DEFAULT now(),
+    ADD COLUMN IF NOT EXISTS condition_json jsonb DEFAULT '{}'::jsonb,
+    ADD COLUMN IF NOT EXISTS effect_json    jsonb DEFAULT '{}'::jsonb;
+
+  ALTER TABLE node
+    ADD COLUMN IF NOT EXISTS created_at timestamptz DEFAULT now(),
+    ADD COLUMN IF NOT EXISTS updated_at timestamptz DEFAULT now();
+
+  ALTER TABLE session
+    ADD COLUMN IF NOT EXISTS updated_at timestamptz DEFAULT now();
+`);
