@@ -715,6 +715,10 @@ app.delete("/edges/:edgeId", async (req, res) => {
   }
 });
 
+// Static Admin-UI (serves files from /public)
+const path = require("path");
+app.use("/admin-ui", express.static(path.join(__dirname, "public")));
+
 //////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////
 app.listen(port, () => console.log("Server on :" + port));
