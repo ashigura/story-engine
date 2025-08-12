@@ -1,0 +1,359 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Story Engine – Admin</title>
+  <style>
+    body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; margin: 0; }
+    header { padding: 12px 16px; background:#0f172a; color:#fff; display:flex; align-items:center; gap:12px; }
+    header input { padding:8px; border-radius:8px; border:1px solid #334155; background:#0b1220; color:#e2e8f0; }
+    header button { padding:8px 12px; border-radius:8px; border:0; background:#22c55e; color:#0b1220; cursor:pointer; }
+    main { padding:16px; display:grid; gap:16px; grid-template-columns: 320px 1fr; }
+    section { background:#0b1220; color:#e2e8f0; border:1px solid #1e293b; border-radius:12px; padding:12px; }
+    h2 { margin:0 0 8px; font-size:16px; color:#93c5fd; }
+    label { display:block; margin:8px 0 4px; font-size:13px; color:#a5b4fc; }
+    input, textarea, select { width:100%; padding:8px; border-radius:8px; border:1px solid #334155; background:#0f172a; color:#e2e8f0; }
+    textarea { min-height:84px; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+    .row { display:grid; grid-template-columns: 1fr 1fr; gap:8px; }
+    .btn { margin-top:8px; padding:8px 10px; border-radius:8px; border:0; background:#3b82f6; color:#0b1220; cursor:pointer; }
+    .btn.red { background:#ef4444; color:#fff; }
+    .btn.gray { background:#475569; color:#e2e8f0; }
+    table { width:100%; border-collapse: collapse; }
+    th, td { border-bottom:1px solid #1e293b; padding:6px 8px; font-size:13px; }
+    .muted { color:#94a3b8; }
+    .pill { display:inline-block; padding:2px 6px; border-radius:999px; background:#1f2937; font-size:12px; color:#cbd5e1; }
+    .grid2 { display:grid; grid-template-columns: 1fr 1fr; gap:12px; }
+    .grid3 { display:grid; grid-template-columns: repeat(3, 1fr); gap:12px; }
+    .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; white-space:pre-wrap; }
+    footer { padding:10px 16px; color:#64748b; font-size:12px; }
+  </style>
+</head>
+<body>
+<header>
+  <strong>Story Engine – Admin</strong>
+  <span class="muted">|</span>
+  <label style="margin:0">API Key</label>
+  <input id="apiKey" placeholder="x-api-key" />
+  <button id="saveKey">Speichern</button>
+  <span class="muted" id="baseUrlInfo"></span>
+</header>
+
+<main>
+  <section>
+    <h2>Sitzung</h2>
+    <label>Session-ID</label>
+    <div class="row">
+      <input id="sessionId" placeholder="z. B. 13" />
+      <button class="btn gray" id="btnNewSession">Neue Session</button>
+    </div>
+
+    <div class="grid2">
+      <div>
+        <h2 style="margin-top:12px">Start setzen</h2>
+        <label>Titel</label>
+        <input id="startTitle" placeholder="Start" />
+        <label>Content (JSON)</label>
+        <textarea id="startContent">{ "text": "Das Abenteuer beginnt hier." }</textarea>
+        <button class="btn" id="btnStart">/sessions/:id/start</button>
+      </div>
+
+      <div>
+        <h2 style="margin-top:12px">Option hinzufügen</h2>
+        <label>Label</label>
+        <input id="optLabel" placeholder="Gehe nach Norden" />
+        <label>Ziel-Node</label>
+        <select id="optTargetMode">
+          <option value="new">Neuen Node anlegen</option>
+          <option value="existing">Existierenden Node nutzen</option>
+        </select>
+        <div id="targetNew">
+          <label>Neuer Node: Titel</label>
+          <input id="optNodeTitle" placeholder="Am Flussufer" />
+          <label>Neuer Node: Content (JSON)</label>
+          <textarea id="optNodeContent">{ "text": "Kalter Wind ..." }</textarea>
+        </div>
+        <div id="targetExisting" style="display:none">
+          <label>toNodeId (existiert bereits)</label>
+          <input id="optToNodeId" placeholder="z. B. 32" />
+        </div>
+        <button class="btn" id="btnAddOption">/sessions/:id/add-option</button>
+      </div>
+    </div>
+
+    <div style="margin-top:12px">
+      <h2>Decision & Rewind</h2>
+      <div class="row">
+        <input id="edgeId" placeholder="edgeId zum Ausführen" />
+        <button class="btn" id="btnDecide">/sessions/:id/decision</button>
+      </div>
+      <div class="row" style="margin-top:8px">
+        <input id="rewindSteps" placeholder="Anzahl Schritte zurück (z. B. 1)" />
+        <button class="btn red" id="btnRewind">/sessions/:id/rewind</button>
+      </div>
+    </div>
+
+    <div style="margin-top:12px">
+      <h2>Edges bearbeiten/löschen</h2>
+      <div class="grid3">
+        <div>
+          <label>edgeId</label>
+          <input id="editEdgeId" placeholder="z. B. 24" />
+        </div>
+        <div>
+          <label>Neues Label</label>
+          <input id="editLabel" placeholder="Neues Label..." />
+        </div>
+        <div>
+          <label>Neues toNodeId</label>
+          <input id="editToNodeId" placeholder="z. B. 32" />
+        </div>
+      </div>
+      <label>Condition (JSON)</label>
+      <textarea id="editCondition">{}</textarea>
+      <label>Effect (JSON)</label>
+      <textarea id="editEffect">{}</textarea>
+      <div class="row">
+        <button class="btn" id="btnPatchEdge">PATCH /edges/:edgeId</button>
+        <button class="btn red" id="btnDeleteEdge">DELETE /edges/:edgeId</button>
+      </div>
+    </div>
+
+    <div style="margin-top:12px">
+      <h2>Admin</h2>
+      <div class="row">
+        <button class="btn gray" id="btnListNodes">GET /admin/nodes</button>
+        <button class="btn red" id="btnReset">POST /admin/reset</button>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Session Status</h2>
+    <div class="row">
+      <button class="btn" id="btnLoadSession">GET /sessions/:id</button>
+      <button class="btn" id="btnHistory">GET /sessions/:id/history</button>
+    </div>
+    <div id="status" class="mono" style="margin-top:8px"></div>
+
+    <h2 style="margin-top:16px">Nodes</h2>
+    <div id="nodes" class="mono"></div>
+  </section>
+</main>
+
+<footer>Admin-UI · spricht mit deiner API unter <span id="baseUrlFoot"></span></footer>
+
+<script>
+  const BASE_URL = "https://live-story-teller-gu7wv.ondigitalocean.app";
+  const els = {
+    apiKey: document.getElementById("apiKey"),
+    saveKey: document.getElementById("saveKey"),
+    baseUrlInfo: document.getElementById("baseUrlInfo"),
+    baseUrlFoot: document.getElementById("baseUrlFoot"),
+    sessionId: document.getElementById("sessionId"),
+    btnNewSession: document.getElementById("btnNewSession"),
+    startTitle: document.getElementById("startTitle"),
+    startContent: document.getElementById("startContent"),
+    btnStart: document.getElementById("btnStart"),
+    optLabel: document.getElementById("optLabel"),
+    optTargetMode: document.getElementById("optTargetMode"),
+    targetNew: document.getElementById("targetNew"),
+    targetExisting: document.getElementById("targetExisting"),
+    optNodeTitle: document.getElementById("optNodeTitle"),
+    optNodeContent: document.getElementById("optNodeContent"),
+    optToNodeId: document.getElementById("optToNodeId"),
+    btnAddOption: document.getElementById("btnAddOption"),
+    edgeId: document.getElementById("edgeId"),
+    btnDecide: document.getElementById("btnDecide"),
+    rewindSteps: document.getElementById("rewindSteps"),
+    btnRewind: document.getElementById("btnRewind"),
+    editEdgeId: document.getElementById("editEdgeId"),
+    editLabel: document.getElementById("editLabel"),
+    editToNodeId: document.getElementById("editToNodeId"),
+    editCondition: document.getElementById("editCondition"),
+    editEffect: document.getElementById("editEffect"),
+    btnPatchEdge: document.getElementById("btnPatchEdge"),
+    btnDeleteEdge: document.getElementById("btnDeleteEdge"),
+    btnListNodes: document.getElementById("btnListNodes"),
+    btnReset: document.getElementById("btnReset"),
+    btnLoadSession: document.getElementById("btnLoadSession"),
+    btnHistory: document.getElementById("btnHistory"),
+    status: document.getElementById("status"),
+    nodes: document.getElementById("nodes"),
+  };
+
+  // Persistenter Key
+  els.apiKey.value = localStorage.getItem("xApiKey") || "dev-secret-change-me";
+  els.saveKey.onclick = () => {
+    localStorage.setItem("xApiKey", els.apiKey.value || "");
+    alert("API-Key gespeichert.");
+  };
+  els.baseUrlInfo.textContent = BASE_URL;
+  els.baseUrlFoot.textContent = BASE_URL;
+
+  // Toggle Target Mode
+  els.optTargetMode.onchange = () => {
+    const mode = els.optTargetMode.value;
+    els.targetNew.style.display = mode === "new" ? "block" : "none";
+    els.targetExisting.style.display = mode === "existing" ? "block" : "none";
+  };
+
+  function headers() {
+    const h = { "Content-Type": "application/json" };
+    const key = els.apiKey.value.trim();
+    if (key) h["x-api-key"] = key;
+    return h;
+  }
+  async function api(path, init) {
+    const res = await fetch(BASE_URL + path, init);
+    const txt = await res.text();
+    let data = null;
+    try { data = txt ? JSON.parse(txt) : null; } catch { data = txt; }
+    if (!res.ok) throw data || { error: "http_error", status: res.status };
+    return data;
+  }
+  function showStatus(obj) {
+    els.status.textContent = JSON.stringify(obj, null, 2);
+  }
+  function showNodes(obj) {
+    els.nodes.textContent = JSON.stringify(obj, null, 2);
+  }
+
+  // Session anlegen
+  els.btnNewSession.onclick = async () => {
+    try {
+      const body = { startNodeId: null };
+      const r = await api("/sessions", { method:"POST", headers: headers(), body: JSON.stringify(body) });
+      els.sessionId.value = r.id;
+      await loadSession();
+    } catch (e) { showStatus(e); }
+  };
+
+  // Start setzen
+  els.btnStart.onclick = async () => {
+    try {
+      const sid = Number(els.sessionId.value);
+      const body = {
+        nodeTitle: els.startTitle.value || "Start",
+        nodeContent: safeJSON(els.startContent.value, { text: "Start..." })
+      };
+      const r = await api(`/sessions/${sid}/start`, { method:"POST", headers: headers(), body: JSON.stringify(body) });
+      await loadSession();
+    } catch (e) { showStatus(e); }
+  };
+
+  // Option hinzufügen
+  els.btnAddOption.onclick = async () => {
+    try {
+      const sid = Number(els.sessionId.value);
+      const mode = els.optTargetMode.value;
+      const label = (els.optLabel.value || "").trim();
+      if (!label) return alert("Label fehlt.");
+
+      let body;
+      if (mode === "new") {
+        body = {
+          label,
+          nodeTitle: els.optNodeTitle.value || "Neuer Knoten",
+          nodeContent: safeJSON(els.optNodeContent.value, { text: "" })
+        };
+        await api(`/sessions/${sid}/add-option`, { method:"POST", headers: headers(), body: JSON.stringify(body) });
+      } else {
+        const toNodeId = Number(els.optToNodeId.value);
+        if (!Number.isFinite(toNodeId)) return alert("toNodeId ist ungültig.");
+        // Wir nutzen expand mit toNodeId
+        body = { edges: [{ label, toNodeId }] };
+        await api(`/sessions/${sid}/expand`, { method:"POST", headers: headers(), body: JSON.stringify(body) });
+      }
+      await loadSession();
+    } catch (e) { showStatus(e); }
+  };
+
+  // Entscheidung ausführen
+  els.btnDecide.onclick = async () => {
+    try {
+      const sid = Number(els.sessionId.value);
+      const edgeId = Number(els.edgeId.value);
+      if (!Number.isFinite(edgeId)) return alert("edgeId fehlt/ungültig.");
+      const body = { edgeId };
+      await api(`/sessions/${sid}/decision`, { method:"POST", headers: headers(), body: JSON.stringify(body) });
+      await loadSession();
+    } catch (e) { showStatus(e); }
+  };
+
+  // Rewind
+  els.btnRewind.onclick = async () => {
+    try {
+      const sid = Number(els.sessionId.value);
+      const steps = Number(els.rewindSteps.value || "1");
+      const body = { steps };
+      const r = await api(`/sessions/${sid}/rewind`, { method:"POST", headers: headers(), body: JSON.stringify(body) });
+      await loadSession();
+    } catch (e) { showStatus(e); }
+  };
+
+  // Edge patch
+  els.btnPatchEdge.onclick = async () => {
+    try {
+      const edgeId = Number(els.editEdgeId.value);
+      if (!Number.isFinite(edgeId)) return alert("edgeId fehlt/ungültig.");
+
+      const body = {};
+      if (els.editLabel.value.trim()) body.label = els.editLabel.value.trim();
+      if (els.editToNodeId.value.trim()) {
+        const n = Number(els.editToNodeId.value.trim());
+        if (!Number.isFinite(n)) return alert("toNodeId ungültig.");
+        body.toNodeId = n;
+      }
+      const condTxt = els.editCondition.value.trim();
+      if (condTxt) body.condition = safeJSON(condTxt, {});
+      const effTxt = els.editEffect.value.trim();
+      if (effTxt) body.effect = safeJSON(effTxt, {});
+      await api(`/edges/${edgeId}`, { method:"PATCH", headers: headers(), body: JSON.stringify(body) });
+      await loadSession();
+    } catch (e) { showStatus(e); }
+  };
+
+  // Edge delete
+  els.btnDeleteEdge.onclick = async () => {
+    try {
+      const edgeId = Number(els.editEdgeId.value);
+      if (!Number.isFinite(edgeId)) return alert("edgeId fehlt/ungültig.");
+      await api(`/edges/${edgeId}`, { method:"DELETE", headers: headers() });
+      await loadSession();
+    } catch (e) { showStatus(e); }
+  };
+
+  // Admin
+  els.btnListNodes.onclick = async () => {
+    try {
+      const r = await api(`/admin/nodes`, { headers: headers() });
+      showNodes(r);
+    } catch (e) { showNodes(e); }
+  };
+  els.btnReset.onclick = async () => {
+    try {
+      const r = await api(`/admin/reset`, { method:"POST", headers: headers() });
+      showNodes(r);
+      els.sessionId.value = "";
+      els.status.textContent = "Reset done.";
+    } catch (e) { showNodes(e); }
+  };
+
+  // Loader
+  els.btnLoadSession.onclick = loadSession;
+  async function loadSession() {
+    const sid = Number(els.sessionId.value);
+    if (!Number.isFinite(sid)) return alert("Session-ID fehlt/ungültig.");
+    const r = await api(`/sessions/${sid}`, { headers: headers() });
+    showStatus(r);
+    // Vorschlag: erste Option vorausfüllen
+    if (Array.isArray(r.options) && r.options.length) els.edgeId.value = r.options[0].id;
+  }
+
+  function safeJSON(text, fallback) {
+    try { return JSON.parse(text); } catch { return fallback; }
+  }
+</script>
+</body>
+</html>
