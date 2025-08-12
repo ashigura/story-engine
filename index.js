@@ -1,3 +1,97 @@
+// --- Condition/Effekt: Evaluator ---
+function getAtPath(state, path) {
+  // Pfad wie "inventory.key" oder "flags.visitedNorth"
+  return String(path || "").split(".").filter(Boolean).reduce((acc, k) => (acc ?? {})[k], state);
+}
+function setAtPath(state, path, value) {
+  const parts = String(path || "").split(".").filter(Boolean);
+  let obj = state;
+  for (let i = 0; i < parts.length - 1; i++) {
+    const k = parts[i];
+    if (typeof obj[k] !== "object" || obj[k] === null) obj[k] = {};
+    obj = obj[k];
+  }
+  obj[parts[parts.length - 1]] = value;
+  return state;
+}
+
+function evalSingleCond(state, c) {
+  // Schema: { key, op, value } | { exists, key } | { notExists, key }
+  if (!c) return true;
+  if (c.exists) return getAtPath(state, c.key) !== undefined;
+  if (c.notExists) return getAtPath(state, c.key) === undefined;
+
+  const cur = getAtPath(state, c.key);
+  const v = c.value;
+  switch (c.op) {
+    case "==": return cur === v;
+    case "!=": return cur !== v;
+    case ">":  return typeof cur === "number" && cur >  v;
+    case "<":  return typeof cur === "number" && cur <  v;
+    case ">=": return typeof cur === "number" && cur >= v;
+    case "<=": return typeof cur === "number" && cur <= v;
+    case "in": return Array.isArray(v) && v.includes(cur);
+    case "not-in": return Array.isArray(v) && !v.includes(cur);
+    case "includes":
+      if (Array.isArray(cur)) return cur.includes(v);
+      if (typeof cur === "string") return cur.includes(String(v));
+      return false;
+    default: return true; // unbekannte Ops ignorieren (fail-open)
+  }
+}
+function evalCondition(state, condition = {}) {
+  // condition = { all?: [], any?: [], not?: [] } oder { requires?: [] } (alt)
+  const all = condition.all ?? condition.requires ?? [];
+  const any = condition.any ?? [];
+  const not = condition.not ?? [];
+  const allOk = all.every(c => evalSingleCond(state, c));
+  const anyOk = any.length === 0 ? true : any.some(c => evalSingleCond(state, c));
+  const notOk = not.every(c => !evalSingleCond(state, c));
+  return allOk && anyOk && notOk;
+}
+
+function applyEffect(state, effect = {}) {
+  // effect = { set?: {k:v,...}, add?: {k:num,...}, toggle?: [k,...], push?: {k:val,...}, remove?: [k,...] }
+  const next = JSON.parse(JSON.stringify(state || {}));
+
+  if (effect.set) {
+    for (const [k, v] of Object.entries(effect.set)) setAtPath(next, k, v);
+  }
+  if (effect.add) {
+    for (const [k, n] of Object.entries(effect.add)) {
+      const cur = getAtPath(next, k);
+      setAtPath(next, k, (Number(cur) || 0) + Number(n));
+    }
+  }
+  if (Array.isArray(effect.toggle)) {
+    for (const k of effect.toggle) {
+      const cur = !!getAtPath(next, k);
+      setAtPath(next, k, !cur);
+    }
+  }
+  if (effect.push) {
+    for (const [k, v] of Object.entries(effect.push)) {
+      const cur = getAtPath(next, k);
+      if (Array.isArray(cur)) { cur.push(v); }
+      else { setAtPath(next, k, [v]); }
+    }
+  }
+  if (Array.isArray(effect.remove)) {
+    for (const k of effect.remove) {
+      const parts = String(k).split(".").filter(Boolean);
+      const last = parts.pop();
+      let obj = next;
+      for (const p of parts) { obj = obj?.[p]; }
+      if (obj && Object.prototype.hasOwnProperty.call(obj, last)) delete obj[last];
+    }
+  }
+
+  return next;
+}
+
+
+
+
 // 📍 In Datei: index.js (GitHub Web-Editor)
 const express = require("express");
 const { pingDb, pool } = require("./db");
@@ -78,14 +172,19 @@ app.get("/sessions/:id", async (req, res) => {
     const session = s.rows[0];
 
     // Optionen sammeln
-    let options = [];
-    if (session.current_node_id) {
-      const e = await pool.query(
-        `select id, label, to_node_id from edge where from_node_id=$1 order by id asc`,
-        [session.current_node_id]
-      );
-      options = e.rows;
-    }
+     // Optionen gefiltert nach condition_json
+  let options = [];
+  if (session.current_node_id) {
+    const e = await pool.query(
+      `select id, label, to_node_id, condition_json from edge where from_node_id=$1 order by id asc`,
+      [session.current_node_id]
+    );
+    const st = session.state_json || {};
+    options = e.rows.filter(row => evalCondition(st, row.condition_json));
+    // Für die Antwort brauchen wir condition nicht:
+    options = options.map(({ id, label, to_node_id }) => ({ id, label, to_node_id }));
+  }
+
 
     res.json({
       id: session.id,
@@ -248,16 +347,20 @@ app.post("/sessions/:id/decision", async (req, res) => {
       return res.status(409).json({ error: "edge_not_from_current_node" });
     }
 
-    // TODO: conditions/effects später
+        // Effect anwenden
+    const newState = applyEffect(session.state_json || {}, edge.effect_json || {});
+
+   
     await client.query(
       `insert into decision (session_id, node_id, chosen_edge_id)
        values ($1, $2, $3)`,
       [session.id, session.current_node_id, edge.id]
     );
     await client.query(
-      `update session set current_node_id=$1, updated_at=now() where id=$2`,
-      [edge.to_node_id, session.id]
+      `update session set current_node_id=$1, state_json=$2, updated_at=now() where id=$3`,
+      [edge.to_node_id, newState, session.id]
     );
+
 
     await client.query("COMMIT");
     res.json({ ok: true, toNodeId: edge.to_node_id });
