@@ -287,6 +287,57 @@ app.post("/admin/reset", async (_req, res) => {
   }
 });
 
+// 📍 In Datei: index.js — Startknoten dynamisch setzen
+app.post("/sessions/:id/start", async (req, res) => {
+  const sessionId = Number(req.params.id);
+  const { nodeTitle, nodeContent } = req.body || {};
+
+  if (!Number.isFinite(sessionId)) return res.status(400).json({ error: "invalid_session_id" });
+  if (!nodeTitle || !nodeTitle.trim()) return res.status(400).json({ error: "nodeTitle_required" });
+
+  const client = await pool.connect();
+  try {
+    await client.query("BEGIN");
+
+    // Session prüfen & sperren
+    const s = await client.query(`SELECT * FROM session WHERE id=$1 FOR UPDATE`, [sessionId]);
+    if (!s.rowCount) {
+      await client.query("ROLLBACK");
+      return res.status(404).json({ error: "session_not_found" });
+    }
+    const session = s.rows[0];
+
+    // Falls bereits gesetzt, optional 409 zurück (wir erlauben idempotente Setzung)
+    if (session.current_node_id) {
+      await client.query("ROLLBACK");
+      return res.status(409).json({ error: "already_started", currentNodeId: session.current_node_id });
+    }
+
+    // Neuen Start-Node anlegen
+    const ins = await client.query(
+      `INSERT INTO node (title, content_json) VALUES ($1, $2) RETURNING id, title, content_json`,
+      [String(nodeTitle).trim(), nodeContent || {}]
+    );
+    const newNode = ins.rows[0];
+
+    // Session auf diesen Node setzen
+    await client.query(
+      `UPDATE session SET current_node_id=$1, updated_at=now() WHERE id=$2`,
+      [newNode.id, sessionId]
+    );
+
+    await client.query("COMMIT");
+    res.json({ ok: true, startNode: newNode });
+  } catch (e) {
+    try { await client.query("ROLLBACK"); } catch {}
+    console.error(e);
+    res.status(500).json({ error: "start_failed", message: String(e) });
+  } finally {
+    client.release();
+  }
+});
+
+
 app.post("/sessions/:id/add-option", async (req, res) => {
   const sessionId = Number(req.params.id);
   const { label, nodeTitle, nodeContent } = req.body;
