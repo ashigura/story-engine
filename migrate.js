@@ -1,56 +1,68 @@
-// 📍 In Datei: migrate.js (GitHub Web-Editor)
+// 📍 Datei: migrate.js
 const { pool } = require("./db");
 
 async function migrate() {
-  const sql = `
-  -- Tabellen (idempotent)
-  create table if not exists node(
-    id serial primary key,
-    title text not null,
-    content_json jsonb not null default '{}'::jsonb
-  );
+  console.log("[DB] Migration gestartet...");
 
-  create table if not exists edge(
-    id serial primary key,
-    from_node_id int not null references node(id) on delete cascade,
-    to_node_id int not null references node(id) on delete cascade,
-    label text not null,
-    condition_json jsonb not null default '{}'::jsonb,
-    effect_json jsonb not null default '{}'::jsonb
-  );
+  try {
+    // Tabelle: node
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS node (
+        id SERIAL PRIMARY KEY,
+        title TEXT NOT NULL,
+        content_json JSONB DEFAULT '{}'::jsonb,
+        created_at TIMESTAMP DEFAULT now(),
+        updated_at TIMESTAMP DEFAULT now()
+      );
+    `);
 
-  create table if not exists session(
-    id serial primary key,
-    current_node_id int references node(id),
-    state_json jsonb not null default '{}'::jsonb,
-    status text not null default 'running',
-    created_at timestamptz not null default now(),
-    updated_at timestamptz not null default now()
-  );
+    // Tabelle: edge
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS edge (
+        id SERIAL PRIMARY KEY,
+        from_node_id INT REFERENCES node(id) ON DELETE CASCADE,
+        to_node_id INT REFERENCES node(id) ON DELETE CASCADE,
+        label TEXT NOT NULL,
+        created_at TIMESTAMP DEFAULT now(),
+        updated_at TIMESTAMP DEFAULT now()
+      );
+    `);
 
-  create table if not exists decision(
-    id serial primary key,
-    session_id int not null references session(id) on delete cascade,
-    node_id int not null references node(id),
-    chosen_edge_id int not null references edge(id),
-    created_at timestamptz not null default now()
-  );
+    // Tabelle: session
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS session (
+        id SERIAL PRIMARY KEY,
+        current_node_id INT REFERENCES node(id) ON DELETE SET NULL,
+        state_json JSONB DEFAULT '{}'::jsonb,
+        status TEXT DEFAULT 'running',
+        created_at TIMESTAMP DEFAULT now(),
+        updated_at TIMESTAMP DEFAULT now()
+      );
+    `);
 
-  -- sinnvolle Indexe
-  create index if not exists idx_edge_from on edge(from_node_id);
-  create index if not exists idx_session_status on session(status);
-  create index if not exists idx_decision_session on decision(session_id);
-  `;
+    // Tabelle: decision
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS decision (
+        id SERIAL PRIMARY KEY,
+        session_id INT REFERENCES session(id) ON DELETE CASCADE,
+        node_id INT REFERENCES node(id) ON DELETE CASCADE,
+        chosen_edge_id INT REFERENCES edge(id) ON DELETE CASCADE,
+        created_at TIMESTAMP DEFAULT now()
+      );
+    `);
 
-  await pool.query(sql);
-  console.log("Migration erfolgreich abgeschlossen.");
-  process.exit(0);
+    // 🔹 Eindeutigkeit: gleiche Labels vom selben from_node_id nicht doppelt
+    await pool.query(`
+      CREATE UNIQUE INDEX IF NOT EXISTS ux_edge_from_label
+      ON edge(from_node_id, lower(label));
+    `);
+
+    console.log("[DB] Migration erfolgreich abgeschlossen ✅");
+  } catch (err) {
+    console.error("[DB] Fehler bei Migration ❌", err);
+  } finally {
+    await pool.end();
+  }
 }
 
-migrate().catch((err) => {
-  console.error("Migration fehlgeschlagen:", err);
-  process.exit(1);
-});
-
-create unique index if not exists ux_edge_from_label on edge(from_node_id, lower(label));
-
+migrate();
