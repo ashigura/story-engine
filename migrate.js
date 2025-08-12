@@ -51,3 +51,6 @@ migrate().catch((err) => {
   console.error("Migration fehlgeschlagen:", err);
   process.exit(1);
 });
+
+create unique index if not exists ux_edge_from_label on edge(from_node_id, lower(label));
+
