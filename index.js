@@ -470,6 +470,22 @@ app.patch("/edges/:edgeId", async (req, res) => {
   }
 });
 
+
+// 📍 In Datei: index.js — Edge löschen
+app.delete("/edges/:edgeId", async (req, res) => {
+  const edgeId = Number(req.params.edgeId);
+  if (!Number.isFinite(edgeId)) return res.status(400).json({ error: "invalid_edge_id" });
+
+  try {
+    const del = await pool.query(`delete from edge where id=$1 returning id`, [edgeId]);
+    if (!del.rowCount) return res.status(404).json({ error: "edge_not_found" });
+    res.json({ ok: true, deletedEdgeId: edgeId });
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ error: "edge_delete_failed", message: String(e) });
+  }
+});
+
 //////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////
 app.listen(port, () => console.log("Server on :" + port));
