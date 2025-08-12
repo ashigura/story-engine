@@ -270,5 +270,22 @@ app.post("/sessions/:id/decision", async (req, res) => {
   }
 });
 
+// Admin: Nodes anzeigen
+app.get("/admin/nodes", async (_req, res) => {
+  const nodes = await pool.query("SELECT id, title FROM node ORDER BY id ASC");
+  res.json(nodes.rows);
+});
+
+// Admin: Reset + Seed
+app.post("/admin/reset", async (_req, res) => {
+  try {
+    const seed = require("./seed");
+    const result = await seed();
+    res.json({ ok: true, ...result });
+  } catch (err) {
+    res.status(500).json({ error: "reset_failed", message: String(err) });
+  }
+});
+
 
 app.listen(port, () => console.log("Server on :" + port));
