@@ -388,6 +388,88 @@ app.post("/sessions/:id/add-option", async (req, res) => {
   }
 });
 
+// 📍 In Datei: index.js — Edge bearbeiten (Label / Ziel / Condition / Effect)
+app.patch("/edges/:edgeId", async (req, res) => {
+  const edgeId = Number(req.params.edgeId);
+  if (!Number.isFinite(edgeId)) return res.status(400).json({ error: "invalid_edge_id" });
+
+  const { label, toNodeId, condition, effect } = req.body || {};
+  if (label === undefined && toNodeId === undefined && condition === undefined && effect === undefined) {
+    return res.status(400).json({ error: "no_fields_to_update" });
+  }
+
+  const client = await pool.connect();
+  try {
+    await client.query("BEGIN");
+
+    // aktuelle Edge + from_node holen (für Validierung/Uniqueness)
+    const cur = await client.query(`select * from edge where id=$1 for update`, [edgeId]);
+    if (!cur.rowCount) {
+      await client.query("ROLLBACK");
+      return res.status(404).json({ error: "edge_not_found" });
+    }
+    const edge = cur.rows[0];
+
+    // Validierungen
+    let newLabel = label !== undefined ? String(label).trim() : edge.label;
+    if (!newLabel) {
+      await client.query("ROLLBACK");
+      return res.status(400).json({ error: "label_required" });
+    }
+
+    let newToNodeId = edge.to_node_id;
+    if (toNodeId !== undefined) {
+      const n = Number(toNodeId);
+      if (!Number.isFinite(n)) {
+        await client.query("ROLLBACK");
+        return res.status(400).json({ error: "invalid_toNodeId" });
+      }
+      const chk = await client.query(`select 1 from node where id=$1`, [n]);
+      if (!chk.rowCount) {
+        await client.query("ROLLBACK");
+        return res.status(400).json({ error: "invalid_toNodeId" });
+      }
+      newToNodeId = n;
+    }
+
+    // (optional) Label-Unique je from_node_id absichern
+    if (newLabel && newLabel.toLowerCase() !== String(edge.label).toLowerCase()) {
+      const dup = await client.query(
+        `select 1 from edge where from_node_id=$1 and lower(label)=lower($2) and id<>$3`,
+        [edge.from_node_id, newLabel, edgeId]
+      );
+      if (dup.rowCount) {
+        await client.query("ROLLBACK");
+        return res.status(409).json({ error: "edge_conflict", detail: "label exists for this node" });
+      }
+    }
+
+    const newCondition = condition !== undefined ? condition : edge.condition_json ?? {};
+    const newEffect    = effect    !== undefined ? effect    : edge.effect_json ?? {};
+
+    const upd = await client.query(
+      `update edge
+         set label=$1,
+             to_node_id=$2,
+             condition_json=$3,
+             effect_json=$4,
+             updated_at=now()
+       where id=$5
+       returning id, from_node_id, to_node_id, label, condition_json, effect_json`,
+      [newLabel, newToNodeId, newCondition, newEffect, edgeId]
+    );
+
+    await client.query("COMMIT");
+    res.json({ ok: true, edge: upd.rows[0] });
+  } catch (e) {
+    try { await client.query("ROLLBACK"); } catch {}
+    console.error(e);
+    res.status(500).json({ error: "edge_update_failed", message: String(e) });
+  } finally {
+    client.release();
+  }
+});
+
 //////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////
 app.listen(port, () => console.log("Server on :" + port));
