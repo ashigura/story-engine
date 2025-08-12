@@ -1,35 +1,55 @@
-// 📍 In Datei: seed.js (GitHub Web-Editor)
+// 📍 Datei: seed.js
 const { pool } = require("./db");
 
 async function seed() {
-  // simple check to avoid duplicates
-  const ncount = await pool.query("select count(*)::int as c from node");
-  if (ncount.rows[0].c > 0) {
-    console.log("Nodes already exist, skipping seed.");
-    process.exit(0);
+  console.log("[DB] Seeding gestartet...");
+
+  try {
+    // Vorher alles löschen (optional, nur für Testzwecke)
+    await pool.query("DELETE FROM decision");
+    await pool.query("DELETE FROM session");
+    await pool.query("DELETE FROM edge");
+    await pool.query("DELETE FROM node");
+
+    // 1️⃣ Startnode
+    const startNode = await pool.query(`
+      INSERT INTO node (title, content_json)
+      VALUES ($1, $2)
+      RETURNING id
+    `, ["Startpunkt", { text: "Du befindest dich am Anfang deiner Reise." }]);
+
+    const startNodeId = startNode.rows[0].id;
+
+    // 2️⃣ Zwei neue Nodes
+    const leftNode = await pool.query(`
+      INSERT INTO node (title, content_json)
+      VALUES ($1, $2)
+      RETURNING id
+    `, ["Links gegangen", { text: "Du bist nach links gegangen." }]);
+
+    const rightNode = await pool.query(`
+      INSERT INTO node (title, content_json)
+      VALUES ($1, $2)
+      RETURNING id
+    `, ["Rechts gegangen", { text: "Du bist nach rechts gegangen." }]);
+
+    // 3️⃣ Edges vom Startnode zu den beiden Nodes
+    await pool.query(`
+      INSERT INTO edge (from_node_id, to_node_id, label)
+      VALUES ($1, $2, $3)
+    `, [startNodeId, leftNode.rows[0].id, "links"]);
+
+    await pool.query(`
+      INSERT INTO edge (from_node_id, to_node_id, label)
+      VALUES ($1, $2, $3)
+    `, [startNodeId, rightNode.rows[0].id, "rechts"]);
+
+    console.log("[DB] Seeding erfolgreich abgeschlossen ✅");
+  } catch (err) {
+    console.error("[DB] Fehler beim Seeding ❌", err);
+  } finally {
+    await pool.end();
   }
-
-  const n1 = await pool.query(
-    `insert into node (title, content_json) values ('Start', '{"text":"Du stehst vor dem Tor."}') returning id`
-  );
-  const n2 = await pool.query(
-    `insert into node (title, content_json) values ('Links', '{"text":"Du gehst nach links."}') returning id`
-  );
-  const n3 = await pool.query(
-    `insert into node (title, content_json) values ('Rechts', '{"text":"Du gehst nach rechts."}') returning id`
-  );
-
-  await pool.query(
-    `insert into edge (from_node_id, to_node_id, label) values ($1,$2,'links')`,
-    [n1.rows[0].id, n2.rows[0].id]
-  );
-  await pool.query(
-    `insert into edge (from_node_id, to_node_id, label) values ($1,$2,'rechts')`,
-    [n1.rows[0].id, n3.rows[0].id]
-  );
-
-  console.log("Seed done. startNodeId =", n1.rows[0].id);
-  process.exit(0);
 }
 
-seed().catch(e => { console.error(e); process.exit(1); });
+seed();
