@@ -199,6 +199,132 @@ app.get("/sessions/:id", async (req, res) => {
   }
 });
 
+// 📍 In Datei: index.js — Entscheidungsverlauf einer Session
+app.get("/sessions/:id/history", async (req, res) => {
+  const sessionId = Number(req.params.id);
+  if (!Number.isFinite(sessionId)) return res.status(400).json({ error: "invalid_session_id" });
+
+  try {
+    const q = await pool.query(
+      `
+      SELECT
+        d.id,
+        d.created_at,
+        d.node_id           AS from_node_id,
+        n1.title            AS from_title,
+        e.label             AS edge_label,
+        e.to_node_id        AS to_node_id,
+        n2.title            AS to_title
+      FROM decision d
+      JOIN edge   e  ON e.id = d.chosen_edge_id
+      LEFT JOIN node n1 ON n1.id = d.node_id
+      LEFT JOIN node n2 ON n2.id = e.to_node_id
+      WHERE d.session_id = $1
+      ORDER BY d.created_at ASC, d.id ASC
+      `,
+      [sessionId]
+    );
+    res.json({ sessionId, history: q.rows });
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ error: "history_failed", message: String(e) });
+  }
+});
+
+// 📍 In Datei: index.js — Rewind: letzte n Entscheidungen zurücknehmen
+app.post("/sessions/:id/rewind", async (req, res) => {
+  const sessionId = Number(req.params.id);
+  if (!Number.isFinite(sessionId)) return res.status(400).json({ error: "invalid_session_id" });
+
+  const steps = Number(req.body?.steps);
+  if (!Number.isFinite(steps) || steps < 1) {
+    return res.status(400).json({ error: "invalid_steps", hint: "steps must be >= 1" });
+  }
+
+  const client = await pool.connect();
+  try {
+    await client.query("BEGIN");
+
+    // Alle Entscheidungen inkl. Ziel/Effect holen (chronologisch)
+    const all = await client.query(
+      `
+      SELECT
+        d.id,
+        d.node_id,
+        e.to_node_id,
+        e.effect_json,
+        d.created_at
+      FROM decision d
+      JOIN edge e ON e.id = d.chosen_edge_id
+      WHERE d.session_id = $1
+      ORDER BY d.created_at ASC, d.id ASC
+      `,
+      [sessionId]
+    );
+
+    const count = all.rowCount;
+    if (count === 0) {
+      await client.query("ROLLBACK");
+      return res.status(409).json({ error: "nothing_to_rewind" });
+    }
+    if (steps > count) {
+      await client.query("ROLLBACK");
+      return res.status(400).json({ error: "steps_exceed_history", available: count });
+    }
+
+    const rows = all.rows;
+    const cutoff = count - steps;                // Anzahl verbleibender Entscheidungen
+    const remaining = rows.slice(0, cutoff);     // bleiben
+    const toDelete  = rows.slice(cutoff);        // werden zurückgenommen
+
+    // Entscheidungen löschen (die letzten 'steps')
+    const idsToDelete = toDelete.map(r => r.id);
+    await client.query(`DELETE FROM decision WHERE id = ANY($1::int[])`, [idsToDelete]);
+
+    // State neu aufbauen, indem wir die verbleibenden Decisions re‑playen
+    let newState = {};
+    for (const r of remaining) {
+      const eff = r.effect_json || {};
+      // applyEffect aus deinem Code nutzen:
+      newState = (typeof applyEffect === "function")
+        ? applyEffect(newState, eff)
+        : newState;
+    }
+
+    // Neuen current_node_id bestimmen:
+    // - wenn noch Entscheidungen übrig: letztes remaining -> to_node_id
+    // - sonst: Startknoten = node_id der ersten (ursprünglichen) Entscheidung
+    let newCurrentNodeId;
+    if (remaining.length > 0) {
+      newCurrentNodeId = remaining[remaining.length - 1].to_node_id;
+    } else {
+      // keine verbleibenden Entscheidungen -> zurück auf den Startknoten (erste ursprüngliche node_id)
+      newCurrentNodeId = rows[0].node_id;
+    }
+
+    await client.query(
+      `UPDATE session SET current_node_id=$1, state_json=$2, updated_at=now() WHERE id=$3`,
+      [newCurrentNodeId, newState, sessionId]
+    );
+
+    await client.query("COMMIT");
+    res.json({
+      ok: true,
+      sessionId,
+      steps,
+      newCurrentNodeId,
+      remainingDecisions: remaining.length
+    });
+  } catch (e) {
+    try { await client.query("ROLLBACK"); } catch {}
+    console.error(e);
+    res.status(500).json({ error: "rewind_failed", message: String(e) });
+  } finally {
+    client.release();
+  }
+});
+
+
 // 📍 In Datei: index.js (GitHub Web-Editor) — neue Route: dynamische Edges anlegen
 app.post("/sessions/:id/expand", async (req, res) => {
   const sessionId = Number(req.params.id);
