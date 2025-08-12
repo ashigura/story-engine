@@ -287,5 +287,56 @@ app.post("/admin/reset", async (_req, res) => {
   }
 });
 
+app.post("/sessions/:id/add-option", async (req, res) => {
+  const sessionId = Number(req.params.id);
+  const { label, nodeTitle, nodeContent } = req.body;
 
+  if (!label || !nodeTitle) {
+    return res.status(400).json({ error: "label_and_nodeTitle_required" });
+  }
+
+  const client = await pool.connect();
+  try {
+    await client.query("BEGIN");
+
+    // Session prüfen
+    const s = await client.query(`SELECT * FROM session WHERE id=$1 FOR UPDATE`, [sessionId]);
+    if (!s.rowCount) return res.status(404).json({ error: "session_not_found" });
+    const session = s.rows[0];
+    if (!session.current_node_id) {
+      return res.status(400).json({ error: "no_current_node_set" });
+    }
+
+    // Neuen Node erstellen
+    const newNode = await client.query(
+      `INSERT INTO node (title, content_json) VALUES ($1, $2) RETURNING id, title, content_json`,
+      [nodeTitle, nodeContent || {}]
+    );
+
+    const newNodeId = newNode.rows[0].id;
+
+    // Neue Edge erstellen
+    const newEdge = await client.query(
+      `INSERT INTO edge (from_node_id, to_node_id, label) VALUES ($1, $2, $3) RETURNING id, label, to_node_id`,
+      [session.current_node_id, newNodeId, label]
+    );
+
+    await client.query("COMMIT");
+
+    res.json({
+      ok: true,
+      newNode: newNode.rows[0],
+      newEdge: newEdge.rows[0]
+    });
+  } catch (e) {
+    await client.query("ROLLBACK");
+    console.error(e);
+    res.status(500).json({ error: "add_option_failed", message: String(e) });
+  } finally {
+    client.release();
+  }
+});
+
+//////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////
 app.listen(port, () => console.log("Server on :" + port));
