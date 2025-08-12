@@ -1,83 +1,106 @@
 // 📍 Datei: migrate.js
 const { pool } = require("./db");
 
-async function migrate() {
-  console.log("[DB] Migration gestartet...");
+/**
+ * Führe DB-Migrationen aus.
+ * @param {{ endPool?: boolean }} opts - endPool=true schließt den Pool am Ende (für CLI-Nutzung).
+ */
+async function migrate(opts = {}) {
+  const { endPool = false } = opts;
+  console.log("[DB] Migration gestartet…");
 
   try {
-    // Tabelle: node
+    // -- Tabellen anlegen (idempotent) --------------------------------------
+
+    // node
     await pool.query(`
       CREATE TABLE IF NOT EXISTS node (
         id SERIAL PRIMARY KEY,
         title TEXT NOT NULL,
-        content_json JSONB DEFAULT '{}'::jsonb,
-        created_at TIMESTAMP DEFAULT now(),
-        updated_at TIMESTAMP DEFAULT now()
+        content_json JSONB DEFAULT '{}'::jsonb
       );
     `);
 
-    // Tabelle: edge
+    // edge
     await pool.query(`
       CREATE TABLE IF NOT EXISTS edge (
         id SERIAL PRIMARY KEY,
         from_node_id INT REFERENCES node(id) ON DELETE CASCADE,
-        to_node_id INT REFERENCES node(id) ON DELETE CASCADE,
-        label TEXT NOT NULL,
-        created_at TIMESTAMP DEFAULT now(),
-        updated_at TIMESTAMP DEFAULT now()
+        to_node_id   INT REFERENCES node(id) ON DELETE CASCADE,
+        label TEXT NOT NULL
       );
     `);
 
-    // Tabelle: session
+    // session
     await pool.query(`
       CREATE TABLE IF NOT EXISTS session (
         id SERIAL PRIMARY KEY,
         current_node_id INT REFERENCES node(id) ON DELETE SET NULL,
         state_json JSONB DEFAULT '{}'::jsonb,
         status TEXT DEFAULT 'running',
-        created_at TIMESTAMP DEFAULT now(),
-        updated_at TIMESTAMP DEFAULT now()
+        created_at TIMESTAMPTZ DEFAULT now()
       );
     `);
 
-    // Tabelle: decision
+    // decision
     await pool.query(`
       CREATE TABLE IF NOT EXISTS decision (
         id SERIAL PRIMARY KEY,
         session_id INT REFERENCES session(id) ON DELETE CASCADE,
         node_id INT REFERENCES node(id) ON DELETE CASCADE,
         chosen_edge_id INT REFERENCES edge(id) ON DELETE CASCADE,
-        created_at TIMESTAMP DEFAULT now()
+        created_at TIMESTAMPTZ DEFAULT now()
       );
     `);
 
-    // 🔹 Eindeutigkeit: gleiche Labels vom selben from_node_id nicht doppelt
+    // -- Schema-Angleichungen (Spalten nachziehen, falls älteres Schema) ----
+
+    await pool.query(`
+      ALTER TABLE node
+        ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ DEFAULT now(),
+        ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFAULT now();
+
+      ALTER TABLE edge
+        ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ DEFAULT now(),
+        ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFAULT now(),
+        ADD COLUMN IF NOT EXISTS condition_json JSONB DEFAULT '{}'::jsonb,
+        ADD COLUMN IF NOT EXISTS effect_json    JSONB DEFAULT '{}'::jsonb;
+
+      ALTER TABLE session
+        ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFAULT now();
+    `);
+
+    // -- Indizes -------------------------------------------------------------
+
+    // schnelleres Lookup
+    await pool.query(`
+      CREATE INDEX IF NOT EXISTS idx_edge_from ON edge(from_node_id);
+      CREATE INDEX IF NOT EXISTS idx_session_status ON session(status);
+      CREATE INDEX IF NOT EXISTS idx_decision_session ON decision(session_id);
+    `);
+
+    // Eindeutigkeit: Label je Quelle (case-insensitive)
     await pool.query(`
       CREATE UNIQUE INDEX IF NOT EXISTS ux_edge_from_label
-      ON edge(from_node_id, lower(label));
+      ON edge (from_node_id, lower(label));
     `);
 
     console.log("[DB] Migration erfolgreich abgeschlossen ✅");
   } catch (err) {
     console.error("[DB] Fehler bei Migration ❌", err);
+    throw err;
   } finally {
-    await pool.end();
+    if (endPool) {
+      try { await pool.end(); } catch {}
+    }
   }
 }
 
-migrate();
+module.exports = { migrate };
 
-// Schema-Angleichungen (idempotent)
-await pool.query(`
-  ALTER TABLE edge
-    ADD COLUMN IF NOT EXISTS updated_at timestamptz DEFAULT now(),
-    ADD COLUMN IF NOT EXISTS condition_json jsonb DEFAULT '{}'::jsonb,
-    ADD COLUMN IF NOT EXISTS effect_json    jsonb DEFAULT '{}'::jsonb;
-
-  ALTER TABLE node
-    ADD COLUMN IF NOT EXISTS created_at timestamptz DEFAULT now(),
-    ADD COLUMN IF NOT EXISTS updated_at timestamptz DEFAULT now();
-
-  ALTER TABLE session
-    ADD COLUMN IF NOT EXISTS updated_at timestamptz DEFAULT now();
-`);
+// CLI-Nutzung: `node migrate.js`
+if (require.main === module) {
+  migrate({ endPool: true })
+    .catch(() => process.exit(1))
+    .then(() => process.exit(0));
+}
