@@ -99,13 +99,24 @@ const { pingDb, pool } = require("./db");
 const app = express();
 const port = process.env.PORT || 8080;
 
-// simple API key check
+// simple API key check (Health & Admin-UI sind öffentlich lesbar)
 app.use((req, res, next) => {
-  if (req.path === "/health") return next(); // health ohne key
-  const key = req.header("x-api-key");
-  if (!process.env.API_KEY || key === process.env.API_KEY) return next();
-  res.status(401).json({ error: "unauthorized" });
+  // Public: health + statische Admin-UI
+  if (req.path === "/health" || req.path.startsWith("/admin-ui")) return next();
+
+  // Key aus Header ODER Query (falls mal nötig ?key=...)
+  const key = req.header("x-api-key") || req.query.key;
+  const expected = process.env.API_KEY;
+
+  // Wenn kein erwarteter Key gesetzt ist -> durchlassen
+  if (!expected) return next();
+
+  // Prüfen
+  if (key === expected) return next();
+
+  return res.status(401).json({ error: "unauthorized" });
 });
+
 
 app.use(express.json());
 
