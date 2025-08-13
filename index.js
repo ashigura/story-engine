@@ -840,6 +840,97 @@ app.delete("/sessions/:id/snapshots/:snapId", async (req, res) => {
   }
 });
 
+// Session-State patchen (set/remove mit unserem applyEffect)
+app.patch("/sessions/:id/state", async (req, res) => {
+  const sessionId = Number(req.params.id);
+  if (!Number.isFinite(sessionId)) return res.status(400).json({ error: "invalid_session_id" });
+
+  // Body: { set?: {...}, add?: {...}, toggle?: [...], push?: {...}, remove?: [...] }
+  const effect = {
+    set:    req.body?.set,
+    add:    req.body?.add,
+    toggle: req.body?.toggle,
+    push:   req.body?.push,
+    remove: req.body?.remove
+  };
+
+  const client = await pool.connect();
+  try {
+    await client.query("BEGIN");
+    const s = await client.query(`SELECT id, state_json, current_node_id FROM session WHERE id=$1 FOR UPDATE`, [sessionId]);
+    if (!s.rowCount) { await client.query("ROLLBACK"); return res.status(404).json({ error: "session_not_found" }); }
+
+    const cur = s.rows[0];
+    const nextState = applyEffect(cur.state_json || {}, effect || {});
+    await client.query(
+      `UPDATE session SET state_json=$1, updated_at=now() WHERE id=$2`,
+      [nextState, sessionId]
+    );
+    await client.query("COMMIT");
+    res.json({ ok: true, state: nextState });
+  } catch (e) {
+    try { await client.query("ROLLBACK"); } catch {}
+    console.error(e);
+    res.status(500).json({ error: "state_patch_failed", message: String(e) });
+  } finally {
+    client.release();
+  }
+});
+
+// Graph für eine Session (einfach: kompletter Graph aus DB)
+// Optionaler Query: mode=visited (nur besuchte Knoten + deren Kanten)
+app.get("/sessions/:id/graph", async (req, res) => {
+  const sessionId = Number(req.params.id);
+  const mode = String(req.query.mode || "all").toLowerCase();
+
+  if (!Number.isFinite(sessionId)) return res.status(400).json({ error: "invalid_session_id" });
+
+  try {
+    if (mode === "visited") {
+      // besuchte Knoten/Kanten + aktuelle Position
+      const visited = await pool.query(
+        `
+        WITH decs AS (
+          SELECT d.node_id AS from_id, e.to_node_id AS to_id, d.chosen_edge_id AS edge_id
+          FROM decision d JOIN edge e ON e.id = d.chosen_edge_id
+          WHERE d.session_id = $1
+        ),
+        nodes AS (
+          SELECT from_id AS id FROM decs
+          UNION SELECT to_id AS id FROM decs
+          UNION SELECT current_node_id AS id FROM session WHERE id = $1
+        )
+        SELECT
+          (SELECT json_agg(n) FROM (SELECT id, title FROM node WHERE id IN (SELECT id FROM nodes) ORDER BY id) n) AS nodes,
+          (SELECT json_agg(e) FROM (
+            SELECT id, from_node_id, to_node_id, label
+            FROM edge
+            WHERE from_node_id IN (SELECT id FROM nodes)
+          ) e) AS edges
+        `,
+        [sessionId]
+      );
+      const row = visited.rows[0];
+      res.json({
+        sessionId,
+        nodes: row.nodes || [],
+        edges: row.edges || []
+      });
+      return;
+    }
+
+    // mode = all (ganzer Graph)
+    const [nodes, edges] = await Promise.all([
+      pool.query(`SELECT id, title FROM node ORDER BY id ASC`),
+      pool.query(`SELECT id, from_node_id, to_node_id, label FROM edge ORDER BY id ASC`)
+    ]);
+    res.json({ sessionId, nodes: nodes.rows, edges: edges.rows });
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ error: "graph_failed", message: String(e) });
+  }
+});
+
 
 // Static Admin-UI (serves files from /public)
 const path = require("path");
