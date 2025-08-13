@@ -120,6 +120,8 @@ footer { padding:10px 16px; color:#64748b; font-size:12px; }
       </div>
     </div>
 
+
+
     <!-- Snapshots -->
 <div style="margin-top:12px">
   <h2>Snapshots</h2>
@@ -135,6 +137,29 @@ footer { padding:10px 16px; color:#64748b; font-size:12px; }
   </div>
 </div>
 
+<!-- Voting -->
+<div style="margin-top:12px">
+  <h2>Voting</h2>
+  <div class="row">
+    <input id="voteDuration" placeholder="Dauer in Sekunden (optional)" />
+    <input id="voteOptionsCsv" placeholder="Edge-IDs kommasepariert (leer = sichtbare Optionen)" />
+  </div>
+  <div class="row">
+    <button class="btn" id="btnVoteStart">POST /sessions/:id/vote/start</button>
+    <button class="btn gray" id="btnVoteStatus">GET /sessions/:id/vote</button>
+  </div>
+  <div class="row">
+    <input id="voteEdgeId" placeholder="edgeId zum Abstimmen" />
+    <input id="voteVoterId" placeholder="voterId (optional, z. B. user-1)" />
+  </div>
+  <div class="row">
+    <button class="btn" id="btnVoteCast">POST /sessions/:id/vote/cast</button>
+    <button class="btn red" id="btnVoteClose">POST /sessions/:id/vote/close (apply)</button>
+  </div>
+  <div id="voteBox" class="mono" style="margin-top:8px"></div>
+</div>
+
+    
 
     <div style="margin-top:12px">
       <h2>Edges bearbeiten/löschen</h2>
@@ -259,11 +284,23 @@ footer { padding:10px 16px; color:#64748b; font-size:12px; }
     graphSvg: document.getElementById("graphSvg"),
     btnResetSeed: document.getElementById("btnResetSeed"),
     btnResetNoSeed: document.getElementById("btnResetNoSeed"),
-    btnClear: document.getElementById("btnClear")
+    btnClear: document.getElementById("btnClear"),
+    voteDuration: document.getElementById("voteDuration"),
+    voteOptionsCsv: document.getElementById("voteOptionsCsv"),
+    btnVoteStart: document.getElementById("btnVoteStart"),
+    btnVoteStatus: document.getElementById("btnVoteStatus"),
+    voteEdgeId: document.getElementById("voteEdgeId"),
+    voteVoterId: document.getElementById("voteVoterId"),
+    btnVoteCast: document.getElementById("btnVoteCast"),
+    btnVoteClose: document.getElementById("btnVoteClose"),
+    voteBox: document.getElementById("voteBox")
+
   };
 
   let currentGraphMode = "visited";
-  
+  let currentGraphMode = "visited";      // falls noch nicht vorhanden
+  let currentVoteOptions = new Set();    // für Graph-Highlight der abstimmbaren Edges
+
 
 
   // Persistenter Key
@@ -435,6 +472,75 @@ els.btnDeleteSnap.onclick = async () => {
   } catch (e) { showSnaps(e); }
 };
 
+  // Voting: Start
+els.btnVoteStart.onclick = async () => {
+  const sid = Number(els.sessionId.value);
+  if (!Number.isFinite(sid)) return alert("Session-ID fehlt/ungültig.");
+
+  // Optionen: CSV -> Zahlen
+  const csv = (els.voteOptionsCsv.value || "").trim();
+  const options = csv ? csv.split(",").map(s => Number(s.trim())).filter(Number.isFinite) : undefined;
+
+  const durationSec = Number(els.voteDuration.value || "0");
+  const body = {};
+  if (options) body.options = options;
+  if (Number.isFinite(durationSec) && durationSec > 0) body.durationSec = durationSec;
+
+  try {
+    const r = await api(`/sessions/${sid}/vote/start`, {
+      method: "POST", headers: headers(), body: JSON.stringify(body)
+    });
+    els.voteBox.textContent = JSON.stringify(r, null, 2);
+    // Edge-IDs für Graph-Highlight merken
+    currentVoteOptions = new Set((r.vote?.options || []).map(Number));
+    loadGraph(currentGraphMode);
+  } catch (e) { els.voteBox.textContent = JSON.stringify(e, null, 2); }
+};
+
+// Voting: Status
+els.btnVoteStatus.onclick = async () => {
+  const sid = Number(els.sessionId.value);
+  if (!Number.isFinite(sid)) return alert("Session-ID fehlt/ungültig.");
+  try {
+    const r = await api(`/sessions/${sid}/vote`, { headers: headers() });
+    els.voteBox.textContent = JSON.stringify(r, null, 2);
+    currentVoteOptions = new Set((r.options || []).map(Number));
+    loadGraph(currentGraphMode);
+  } catch (e) { els.voteBox.textContent = JSON.stringify(e, null, 2); }
+};
+
+// Voting: Cast
+els.btnVoteCast.onclick = async () => {
+  const sid = Number(els.sessionId.value);
+  const edgeId = Number(els.voteEdgeId.value);
+  if (!Number.isFinite(sid) || !Number.isFinite(edgeId)) return alert("IDs prüfen.");
+  const voterId = (els.voteVoterId.value || "").trim();
+  const body = voterId ? { edgeId, voterId } : { edgeId };
+  try {
+    const r = await api(`/sessions/${sid}/vote/cast`, {
+      method: "POST", headers: headers(), body: JSON.stringify(body)
+    });
+    els.voteBox.textContent = JSON.stringify(r, null, 2);
+    // Status aktualisieren
+    const st = await api(`/sessions/${sid}/vote`, { headers: headers() });
+    els.voteBox.textContent = JSON.stringify(st, null, 2);
+  } catch (e) { els.voteBox.textContent = JSON.stringify(e, null, 2); }
+};
+
+// Voting: Close (apply winner)
+els.btnVoteClose.onclick = async () => {
+  const sid = Number(els.sessionId.value);
+  if (!Number.isFinite(sid)) return alert("Session-ID fehlt/ungültig.");
+  try {
+    const r = await api(`/sessions/${sid}/vote/close`, {
+      method: "POST", headers: headers(), body: JSON.stringify({ apply: true })
+    });
+    els.voteBox.textContent = JSON.stringify(r, null, 2);
+    currentVoteOptions = new Set(); // Voting beendet
+    await loadSession();            // Ansicht + Graph aktualisieren
+  } catch (e) { els.voteBox.textContent = JSON.stringify(e, null, 2); }
+};
+
   
   // Edge patch
   els.btnPatchEdge.onclick = async () => {
@@ -529,6 +635,11 @@ els.btnClear.onclick = async () => {
     if (!Number.isFinite(sid)) return alert("Session-ID fehlt/ungültig.");
     const r = await api(`/sessions/${sid}`, { headers: headers() });
    showStatus(r);
+    if (Array.isArray(r.options) && r.options.length) {
+  els.edgeId.value = r.options[0].id;     // schon vorhanden
+  els.voteEdgeId.value = r.options[0].id; // neu: Voting-Eingabefeld vorfüllen
+}
+
 els.stateEditor.value = JSON.stringify(r.state || {}, null, 2);
 if (Array.isArray(r.options) && r.options.length) els.edgeId.value = r.options[0].id;
 // Optional: Graph direkt anzeigen (visited)
@@ -611,15 +722,17 @@ function renderGraph(payload) {
   });
 
   edges.forEach(e => {
-    const edgeText = `[${e.id}] ${e.label || ""}`; // ID vor dem Namen
-    g.setEdge(String(e.from_node_id), String(e.to_node_id), {
-      label: edgeText,
-      lineInterpolate: "basis",
-      style: "stroke:#475569;fill:none",
-      arrowheadStyle: "fill:#475569",
-      labelStyle: "fill:#cbd5e1;font-size:12px"
-    });
+  const inVote = currentVoteOptions.has(Number(e.id));
+  const edgeText = `[${e.id}] ${e.label || ""}`;
+  g.setEdge(String(e.from_node_id), String(e.to_node_id), {
+    label: edgeText,
+    lineInterpolate: "basis",
+    style: inVote ? "stroke:#f59e0b;stroke-width:2.2px;fill:none" : "stroke:#475569;fill:none",
+    arrowheadStyle: inVote ? "fill:#f59e0b" : "fill:#475569",
+    labelStyle: "fill:#cbd5e1;font-size:12px"
   });
+});
+
 
   const svg = d3.select(els.graphSvg);
   svg.selectAll("*").remove();
