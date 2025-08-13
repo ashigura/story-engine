@@ -516,16 +516,43 @@ app.get("/admin/nodes", async (_req, res) => {
   res.json(nodes.rows);
 });
 
-// Admin: Reset + Seed
-app.post("/admin/reset", async (_req, res) => {
+// Admin: Reset (optional mit/oder ohne Seed)
+app.post("/admin/reset", async (req, res) => {
+  const doSeed = req.body?.seed !== false; // Standard: true, aber body { "seed": false } = nur leeren
   try {
-    const seed = require("./seed");
-    const result = await seed();
-    res.json({ ok: true, ...result });
+    // DB leeren
+    await pool.query("DELETE FROM decision");
+    await pool.query("DELETE FROM session");
+    await pool.query("DELETE FROM edge");
+    await pool.query("DELETE FROM node");
+
+    let seedInfo = null;
+    if (doSeed) {
+      const seed = require("./seed");
+      seedInfo = await seed(); // legt „Startpunkt + 2 Edges“ an
+    }
+
+    res.json({ ok: true, seeded: doSeed, ...(seedInfo || {}) });
   } catch (err) {
+    console.error(err);
     res.status(500).json({ error: "reset_failed", message: String(err) });
   }
 });
+
+// Admin: Clear (immer ohne Seed)
+app.post("/admin/clear", async (_req, res) => {
+  try {
+    await pool.query("DELETE FROM decision");
+    await pool.query("DELETE FROM session");
+    await pool.query("DELETE FROM edge");
+    await pool.query("DELETE FROM node");
+    res.json({ ok: true, cleared: true });
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ error: "clear_failed", message: String(e) });
+  }
+});
+
 
 // 📍 In Datei: index.js — Startknoten dynamisch setzen
 app.post("/sessions/:id/start", async (req, res) => {
