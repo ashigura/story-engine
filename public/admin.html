@@ -28,6 +28,10 @@
     .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; white-space:pre-wrap; }
     footer { padding:10px 16px; color:#64748b; font-size:12px; }
   </style>
+  <!-- D3 + Dagre-D3 für Graph-Layout (LR) -->
+<script src="https://unpkg.com/d3@5.16.0/dist/d3.min.js"></script>
+<script src="https://unpkg.com/dagre-d3@0.6.4/dist/dagre-d3.min.js"></script>
+
 </head>
 <body>
 <header>
@@ -158,6 +162,21 @@
     <h2 style="margin-top:16px">Snapshots</h2>
     <div id="snaps" class="mono"></div>
 
+    <h2 style="margin-top:16px">State</h2>
+<textarea id="stateEditor" class="mono" style="width:100%;min-height:120px">{}</textarea>
+<div class="row" style="margin-top:6px">
+  <button class="btn" id="btnStateRefresh">State neu laden</button>
+  <button class="btn" id="btnStateApply">State patchen</button>
+</div>
+
+<h2 style="margin-top:16px">Graph (Session)</h2>
+<div class="row">
+  <button class="btn gray" id="btnGraphVisited">Graph: visited</button>
+  <button class="btn gray" id="btnGraphAll">Graph: all</button>
+</div>
+<svg id="graphSvg" width="100%" height="420" style="background:#0b1220;border:1px solid #1e293b;border-radius:12px;margin-top:8px"></svg>
+
+
   </section>
 </main>
 
@@ -201,12 +220,19 @@
     status: document.getElementById("status"),
     nodes: document.getElementById("nodes"),
     snapLabel: document.getElementById("snapLabel"),
-btnMakeSnap: document.getElementById("btnMakeSnap"),
-btnListSnaps: document.getElementById("btnListSnaps"),
-snapId: document.getElementById("snapId"),
-btnRestoreSnap: document.getElementById("btnRestoreSnap"),
-btnDeleteSnap: document.getElementById("btnDeleteSnap"),
-snaps: document.getElementById("snaps")
+    btnMakeSnap: document.getElementById("btnMakeSnap"),
+    btnListSnaps: document.getElementById("btnListSnaps"),
+    snapId: document.getElementById("snapId"),
+    btnRestoreSnap: document.getElementById("btnRestoreSnap"),
+    btnDeleteSnap: document.getElementById("btnDeleteSnap"),
+    snaps: document.getElementById("snaps"),
+    stateEditor: document.getElementById("stateEditor"),
+    btnStateRefresh: document.getElementById("btnStateRefresh"),
+    btnStateApply: document.getElementById("btnStateApply"),
+    btnGraphVisited: document.getElementById("btnGraphVisited"),
+    btnGraphAll: document.getElementById("btnGraphAll"),
+    graphSvg: document.getElementById("graphSvg")
+
 
   };
 
@@ -434,8 +460,12 @@ els.btnDeleteSnap.onclick = async () => {
     const sid = Number(els.sessionId.value);
     if (!Number.isFinite(sid)) return alert("Session-ID fehlt/ungültig.");
     const r = await api(`/sessions/${sid}`, { headers: headers() });
-    showStatus(r);
+   showStatus(r);
+els.stateEditor.value = JSON.stringify(r.state || {}, null, 2);
 if (Array.isArray(r.options) && r.options.length) els.edgeId.value = r.options[0].id;
+// Optional: Graph direkt anzeigen (visited)
+loadGraph("visited");
+
 await listSnaps(); // Snapshots parallel anzeigen
 
   }
@@ -450,6 +480,86 @@ els.btnHistory.onclick = async () => {
     showStatus(e);
   }
 };
+  // State neu laden (aus GET /sessions/:id)
+els.btnStateRefresh.onclick = async () => {
+  const sid = Number(els.sessionId.value);
+  if (!Number.isFinite(sid)) return alert("Session-ID fehlt/ungültig.");
+  try {
+    const r = await api(`/sessions/${sid}`, { headers: headers() });
+    els.stateEditor.value = JSON.stringify(r.state || {}, null, 2);
+    showStatus(r);
+  } catch (e) { showStatus(e); }
+};
+
+// State patchen (PATCH /sessions/:id/state)
+els.btnStateApply.onclick = async () => {
+  const sid = Number(els.sessionId.value);
+  if (!Number.isFinite(sid)) return alert("Session-ID fehlt/ungültig.");
+  let body = {};
+  try { body = JSON.parse(els.stateEditor.value || "{}"); } catch { return alert("Ungültiges JSON."); }
+  try {
+    const r = await api(`/sessions/${sid}/state`, {
+      method: "PATCH", headers: headers(), body: JSON.stringify(body)
+    });
+    els.stateEditor.value = JSON.stringify(r.state || {}, null, 2);
+    await loadSession();
+  } catch (e) { showStatus(e); }
+};
+
+  async function loadGraph(mode) {
+  const sid = Number(els.sessionId.value);
+  if (!Number.isFinite(sid)) return alert("Session-ID fehlt/ungültig.");
+  try {
+    const data = await api(`/sessions/${sid}/graph?mode=${mode}`, { headers: headers() });
+    renderGraph(data);
+  } catch (e) { showStatus(e); }
+}
+els.btnGraphVisited.onclick = () => loadGraph("visited");
+els.btnGraphAll.onclick = () => loadGraph("all");
+
+function renderGraph({ nodes = [], edges = [] }) {
+  const g = new dagreD3.graphlib.Graph().setGraph({ rankdir: "LR", nodesep: 30, ranksep: 60 });
+
+  nodes.forEach(n => {
+    const label = `${n.id}\n${n.title || ""}`;
+    g.setNode(String(n.id), {
+      label,
+      rx: 6, ry: 6,
+      style: "fill:#0f172a;stroke:#334155;color:#e2e8f0",
+      labelStyle: "fill:#e2e8f0"
+    });
+  });
+
+  edges.forEach(e => {
+    g.setEdge(String(e.from_node_id), String(e.to_node_id), {
+      label: e.label || "",
+      lineInterpolate: "basis",
+      style: "stroke:#475569;fill:none",
+      arrowheadStyle: "fill:#475569",
+      labelStyle: "fill:#cbd5e1"
+    });
+  });
+
+  const svg = d3.select(els.graphSvg);
+  svg.selectAll("*").remove();
+  const inner = svg.append("g");
+  const render = new dagreD3.render();
+  render(inner, g);
+
+  // Auto-Zoom/Center
+  const { width, height } = g.graph();
+  const svgWidth = els.graphSvg.clientWidth || 800;
+  const svgHeight = els.graphSvg.clientHeight || 420;
+  const scale = Math.min(
+    (svgWidth - 40) / (width || 1),
+    (svgHeight - 40) / (height || 1),
+    1.2
+  );
+  const x = (svgWidth - (width * scale)) / 2;
+  const y = (svgHeight - (height * scale)) / 2;
+  inner.attr("transform", `translate(${x},${y}) scale(${scale})`);
+}
+
   
 
 
