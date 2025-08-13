@@ -241,7 +241,6 @@ footer { padding:10px 16px; color:#64748b; font-size:12px; }
     btnPatchEdge: document.getElementById("btnPatchEdge"),
     btnDeleteEdge: document.getElementById("btnDeleteEdge"),
     btnListNodes: document.getElementById("btnListNodes"),
-    btnReset: document.getElementById("btnReset"),
     btnLoadSession: document.getElementById("btnLoadSession"),
     btnHistory: document.getElementById("btnHistory"),
     status: document.getElementById("status"),
@@ -477,14 +476,7 @@ els.btnDeleteSnap.onclick = async () => {
       showNodes(r);
     } catch (e) { showNodes(e); }
   };
-  els.btnReset.onclick = async () => {
-    try {
-      const r = await api(`/admin/reset`, { method:"POST", headers: headers() });
-      showNodes(r);
-      els.sessionId.value = "";
-      els.status.textContent = "Reset done.";
-    } catch (e) { showNodes(e); }
-  };
+
 
   // Reset mit Seed
 els.btnResetSeed.onclick = async () => {
