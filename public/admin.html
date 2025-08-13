@@ -29,10 +29,11 @@ textarea { min-height:84px; font-family: ui-monospace, SFMono-Regular, Menlo, Co
 
 .row {
   display: grid;
-  grid-template-columns: 1fr auto;
+  grid-template-columns: 1fr auto; /* Eingabe links, Button rechts */
   gap: 8px;
-  align-items: center; /* mittige Ausrichtung */
+  align-items: start; /* alle Elemente am oberen Rand ausrichten */
 }
+
 
 .row.two { grid-template-columns: 1fr auto; } /* Input + Button (Button wird so nicht drübergelegt) */
 
