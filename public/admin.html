@@ -142,9 +142,12 @@
     <div style="margin-top:12px">
       <h2>Admin</h2>
       <div class="row">
-        <button class="btn gray" id="btnListNodes">GET /admin/nodes</button>
-        <button class="btn red" id="btnReset">POST /admin/reset</button>
-      </div>
+  <button class="btn gray" id="btnListNodes">GET /admin/nodes</button>
+  <button class="btn" id="btnResetSeed">POST /admin/reset (mit Seed)</button>
+  <button class="btn red" id="btnResetNoSeed">POST /admin/reset (ohne Seed)</button>
+  <button class="btn red" id="btnClear" title="Nur wenn /admin/clear existiert">POST /admin/clear</button>
+</div>
+
     </div>
   </section>
 
@@ -231,7 +234,11 @@
     btnStateApply: document.getElementById("btnStateApply"),
     btnGraphVisited: document.getElementById("btnGraphVisited"),
     btnGraphAll: document.getElementById("btnGraphAll"),
-    graphSvg: document.getElementById("graphSvg")
+    graphSvg: document.getElementById("graphSvg"),
+    btnResetSeed: document.getElementById("btnResetSeed"),
+    btnResetNoSeed: document.getElementById("btnResetNoSeed"),
+    btnClear: document.getElementById("btnClear")
+
 
 
   };
@@ -453,6 +460,48 @@ els.btnDeleteSnap.onclick = async () => {
       els.status.textContent = "Reset done.";
     } catch (e) { showNodes(e); }
   };
+
+  // Reset mit Seed
+els.btnResetSeed.onclick = async () => {
+  try {
+    const r = await api(`/admin/reset`, {
+      method: "POST",
+      headers: headers(),
+      body: JSON.stringify({ seed: true })
+    });
+    showNodes(r);
+    els.sessionId.value = "";
+    els.status.textContent = "Reset (mit Seed) done.";
+    els.stateEditor.value = "{}";
+  } catch (e) { showNodes(e); }
+};
+
+// Reset ohne Seed (leer)
+els.btnResetNoSeed.onclick = async () => {
+  try {
+    const r = await api(`/admin/reset`, {
+      method: "POST",
+      headers: headers(),
+      body: JSON.stringify({ seed: false })
+    });
+    showNodes(r);
+    els.sessionId.value = "";
+    els.status.textContent = "Reset (ohne Seed) done.";
+    els.stateEditor.value = "{}";
+  } catch (e) { showNodes(e); }
+};
+
+// Nur leeren (falls Endpoint existiert)
+els.btnClear.onclick = async () => {
+  try {
+    const r = await api(`/admin/clear`, { method: "POST", headers: headers() });
+    showNodes(r);
+    els.sessionId.value = "";
+    els.status.textContent = "Clear done.";
+    els.stateEditor.value = "{}";
+  } catch (e) { showNodes(e); }
+};
+
 
   // Loader
   els.btnLoadSession.onclick = loadSession;
