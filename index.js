@@ -877,54 +877,80 @@ app.patch("/sessions/:id/state", async (req, res) => {
   }
 });
 
-// Graph für eine Session (einfach: kompletter Graph aus DB)
-// Optionaler Query: mode=visited (nur besuchte Knoten + deren Kanten)
+// Graph für eine Session
 app.get("/sessions/:id/graph", async (req, res) => {
   const sessionId = Number(req.params.id);
   const mode = String(req.query.mode || "all").toLowerCase();
-
   if (!Number.isFinite(sessionId)) return res.status(400).json({ error: "invalid_session_id" });
 
   try {
+    // aktuellen Knoten holen (für Farbcodierung und fallback)
+    const s = await pool.query(`select current_node_id from session where id=$1`, [sessionId]);
+    if (!s.rowCount) return res.status(404).json({ error: "session_not_found" });
+    const currentNodeId = s.rows[0].current_node_id;
+
     if (mode === "visited") {
-      // besuchte Knoten/Kanten + aktuelle Position
-      const visited = await pool.query(
+      // besuchte Knoten = from_node_id / to_node_id aus decisions + current_node_id
+      const q = await pool.query(
         `
-        WITH decs AS (
-          SELECT d.node_id AS from_id, e.to_node_id AS to_id, d.chosen_edge_id AS edge_id
-          FROM decision d JOIN edge e ON e.id = d.chosen_edge_id
-          WHERE d.session_id = $1
+        with decs as (
+          select d.node_id as from_id, e.to_node_id as to_id, e.id as edge_id
+          from decision d
+          join edge e on e.id = d.chosen_edge_id
+          where d.session_id = $1
         ),
-        nodes AS (
-          SELECT from_id AS id FROM decs
-          UNION SELECT to_id AS id FROM decs
-          UNION SELECT current_node_id AS id FROM session WHERE id = $1
+        nodeset as (
+          select from_id as id from decs
+          union
+          select to_id   as id from decs
+          union
+          select $2::int as id
         )
-        SELECT
-          (SELECT json_agg(n) FROM (SELECT id, title FROM node WHERE id IN (SELECT id FROM nodes) ORDER BY id) n) AS nodes,
-          (SELECT json_agg(e) FROM (
-            SELECT id, from_node_id, to_node_id, label
-            FROM edge
-            WHERE from_node_id IN (SELECT id FROM nodes)
-          ) e) AS edges
+        select
+          coalesce(json_agg(n order by n.id), '[]'::json) as nodes,
+          coalesce(json_agg(ed order by ed.id), '[]'::json) as edges
+        from
+          (select id, title from node where id in (select id from nodeset) and id is not null) n,
+          lateral (
+            select e.id, e.from_node_id, e.to_node_id, e.label
+            from edge e
+            where e.id in (select edge_id from decs)
+          ) ed
         `,
-        [sessionId]
+        [sessionId, currentNodeId ?? null]
       );
-      const row = visited.rows[0];
-      res.json({
-        sessionId,
-        nodes: row.nodes || [],
-        edges: row.edges || []
-      });
-      return;
+
+      // Wenn keine Decisions existieren, kippt das CROSS-Product obigen SELECTs auf null zurück.
+      // Fallback: nur currentNode als einzelner Knoten.
+      let nodes = [];
+      let edges = [];
+      if (q.rowCount && q.rows[0].nodes && Array.isArray(q.rows[0].nodes)) {
+        nodes = q.rows[0].nodes;
+      }
+      if (q.rowCount && q.rows[0].edges && Array.isArray(q.rows[0].edges)) {
+        edges = q.rows[0].edges;
+      }
+      if (!nodes.length && currentNodeId) {
+        const one = await pool.query(`select id, title from node where id=$1`, [currentNodeId]);
+        nodes = one.rows;
+        edges = [];
+      }
+
+      const visitedNodeIds = nodes.map(n => n.id);
+      return res.json({ sessionId, mode, currentNodeId, visitedNodeIds, nodes, edges });
     }
 
-    // mode = all (ganzer Graph)
+    // mode = all
     const [nodes, edges] = await Promise.all([
-      pool.query(`SELECT id, title FROM node ORDER BY id ASC`),
-      pool.query(`SELECT id, from_node_id, to_node_id, label FROM edge ORDER BY id ASC`)
+      pool.query(`select id, title from node order by id asc`),
+      pool.query(`select id, from_node_id, to_node_id, label from edge order by id asc`)
     ]);
-    res.json({ sessionId, nodes: nodes.rows, edges: edges.rows });
+    res.json({
+      sessionId, mode, currentNodeId,
+      visitedNodeIds: [], // optional
+      nodes: nodes.rows,
+      edges: edges.rows
+    });
   } catch (e) {
     console.error(e);
     res.status(500).json({ error: "graph_failed", message: String(e) });
