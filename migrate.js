@@ -85,6 +85,22 @@ async function migrate(opts = {}) {
       ON edge (from_node_id, lower(label));
     `);
 
+    // Snapshots (Spielstände)
+await pool.query(`
+  CREATE TABLE IF NOT EXISTS snapshot (
+    id SERIAL PRIMARY KEY,
+    session_id INT REFERENCES session(id) ON DELETE CASCADE,
+    label TEXT,
+    state_json JSONB DEFAULT '{}'::jsonb,
+    current_node_id INT REFERENCES node(id) ON DELETE SET NULL,
+    created_at TIMESTAMPTZ DEFAULT now()
+  );
+
+  CREATE INDEX IF NOT EXISTS idx_snapshot_session ON snapshot(session_id);
+  CREATE INDEX IF NOT EXISTS idx_snapshot_created ON snapshot(created_at);
+`);
+
+
     console.log("[DB] Migration erfolgreich abgeschlossen ✅");
   } catch (err) {
     console.error("[DB] Fehler bei Migration ❌", err);
