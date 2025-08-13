@@ -93,6 +93,22 @@
       </div>
     </div>
 
+    <!-- Snapshots -->
+<div style="margin-top:12px">
+  <h2>Snapshots</h2>
+  <div class="row">
+    <input id="snapLabel" placeholder="Label (optional, z. B. 'Vor der Tür')" />
+    <button class="btn" id="btnMakeSnap">POST /sessions/:id/snapshot</button>
+  </div>
+  <div class="row" style="margin-top:8px">
+    <button class="btn gray" id="btnListSnaps">GET /sessions/:id/snapshots</button>
+    <input id="snapId" placeholder="snapId" />
+    <button class="btn" id="btnRestoreSnap">POST /sessions/:id/restore/:snapId</button>
+    <button class="btn red" id="btnDeleteSnap">DELETE /sessions/:id/snapshots/:snapId</button>
+  </div>
+</div>
+
+
     <div style="margin-top:12px">
       <h2>Edges bearbeiten/löschen</h2>
       <div class="grid3">
@@ -138,6 +154,10 @@
 
     <h2 style="margin-top:16px">Nodes</h2>
     <div id="nodes" class="mono"></div>
+
+    <h2 style="margin-top:16px">Snapshots</h2>
+    <div id="snaps" class="mono"></div>
+
   </section>
 </main>
 
@@ -180,6 +200,14 @@
     btnHistory: document.getElementById("btnHistory"),
     status: document.getElementById("status"),
     nodes: document.getElementById("nodes"),
+    snapLabel: document.getElementById("snapLabel"),
+btnMakeSnap: document.getElementById("btnMakeSnap"),
+btnListSnaps: document.getElementById("btnListSnaps"),
+snapId: document.getElementById("snapId"),
+btnRestoreSnap: document.getElementById("btnRestoreSnap"),
+btnDeleteSnap: document.getElementById("btnDeleteSnap"),
+snaps: document.getElementById("snaps")
+
   };
 
   // Persistenter Key
@@ -218,6 +246,10 @@
   function showNodes(obj) {
     els.nodes.textContent = JSON.stringify(obj, null, 2);
   }
+  
+function showSnaps(obj) {
+  els.snaps.textContent = JSON.stringify(obj, null, 2);
+}
 
   // Session anlegen
   els.btnNewSession.onclick = async () => {
@@ -292,6 +324,62 @@
     } catch (e) { showStatus(e); }
   };
 
+// Snapshot anlegen
+els.btnMakeSnap.onclick = async () => {
+  const sid = Number(els.sessionId.value);
+  if (!Number.isFinite(sid)) return alert("Session-ID fehlt/ungültig.");
+  const label = (els.snapLabel.value || "").trim();
+  const body = label ? { label } : {};
+  try {
+    const r = await api(`/sessions/${sid}/snapshot`, {
+      method: "POST", headers: headers(), body: JSON.stringify(body)
+    });
+    await listSnaps(); // direkt aktualisieren
+  } catch (e) { showStatus(e); }
+};
+
+// Snapshots auflisten
+async function listSnaps() {
+  const sid = Number(els.sessionId.value);
+  if (!Number.isFinite(sid)) return alert("Session-ID fehlt/ungültig.");
+  try {
+    const r = await api(`/sessions/${sid}/snapshots`, { headers: headers() });
+    showSnaps(r);
+    // Bequemlichkeit: neueste snapId vorbefüllen
+    if (Array.isArray(r.snapshots) && r.snapshots.length) {
+      els.snapId.value = r.snapshots[0].id;
+    }
+  } catch (e) { showSnaps(e); }
+}
+els.btnListSnaps.onclick = listSnaps;
+
+// Snapshot wiederherstellen
+els.btnRestoreSnap.onclick = async () => {
+  const sid = Number(els.sessionId.value);
+  const snapId = Number(els.snapId.value);
+  if (!Number.isFinite(sid) || !Number.isFinite(snapId)) return alert("IDs prüfen.");
+  try {
+    const body = { clearHistory: false }; // bei Bedarf true
+    const r = await api(`/sessions/${sid}/restore/${snapId}`, {
+      method: "POST", headers: headers(), body: JSON.stringify(body)
+    });
+    await loadSession();
+    await listSnaps();
+  } catch (e) { showStatus(e); }
+};
+
+// Snapshot löschen
+els.btnDeleteSnap.onclick = async () => {
+  const sid = Number(els.sessionId.value);
+  const snapId = Number(els.snapId.value);
+  if (!Number.isFinite(sid) || !Number.isFinite(snapId)) return alert("IDs prüfen.");
+  try {
+    await api(`/sessions/${sid}/snapshots/${snapId}`, { method: "DELETE", headers: headers() });
+    await listSnaps();
+  } catch (e) { showSnaps(e); }
+};
+
+  
   // Edge patch
   els.btnPatchEdge.onclick = async () => {
     try {
@@ -347,8 +435,9 @@
     if (!Number.isFinite(sid)) return alert("Session-ID fehlt/ungültig.");
     const r = await api(`/sessions/${sid}`, { headers: headers() });
     showStatus(r);
-    // Vorschlag: erste Option vorausfüllen
-    if (Array.isArray(r.options) && r.options.length) els.edgeId.value = r.options[0].id;
+if (Array.isArray(r.options) && r.options.length) els.edgeId.value = r.options[0].id;
+await listSnaps(); // Snapshots parallel anzeigen
+
   }
   // History laden
 els.btnHistory.onclick = async () => {
@@ -361,6 +450,7 @@ els.btnHistory.onclick = async () => {
     showStatus(e);
   }
 };
+  
 
 
   function safeJSON(text, fallback) {
