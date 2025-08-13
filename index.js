@@ -726,6 +726,33 @@ app.delete("/edges/:edgeId", async (req, res) => {
   }
 });
 
+// Snapshot anlegen
+app.post("/sessions/:id/snapshot", async (req, res) => {
+  const sessionId = Number(req.params.id);
+  const label = (req.body?.label ?? "").toString().trim() || null;
+  if (!Number.isFinite(sessionId)) return res.status(400).json({ error: "invalid_session_id" });
+
+  try {
+    const s = await pool.query(`SELECT id, current_node_id, state_json FROM session WHERE id=$1`, [sessionId]);
+    if (!s.rowCount) return res.status(404).json({ error: "session_not_found" });
+    const session = s.rows[0];
+
+    const ins = await pool.query(
+      `INSERT INTO snapshot (session_id, label, state_json, current_node_id)
+       VALUES ($1, $2, $3, $4)
+       RETURNING id, session_id, label, current_node_id, created_at`,
+      [sessionId, label, session.state_json || {}, session.current_node_id]
+    );
+
+    res.status(201).json({ ok: true, snapshot: ins.rows[0] });
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ error: "snapshot_failed", message: String(e) });
+  }
+});
+
+
+
 // Static Admin-UI (serves files from /public)
 const path = require("path");
 app.use("/admin-ui", express.static(path.join(__dirname, "public")));
