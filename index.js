@@ -1007,6 +1007,172 @@ return res.json({
   }
 });
 
+// Start a live vote for the current node's options
+app.post("/sessions/:id/vote/start", async (req, res) => {
+  const sessionId = Number(req.params.id);
+  const durationSec = Number(req.body?.durationSec || 0); // optional, rein informativ
+  let optionIds = Array.isArray(req.body?.options) ? req.body.options.map(Number) : null;
+
+  const client = await pool.connect();
+  try {
+    await client.query("BEGIN");
+    const s = await client.query(`select id, current_node_id, state_json from session where id=$1 for update`, [sessionId]);
+    if (!s.rowCount) { await client.query("ROLLBACK"); return res.status(404).json({ error: "session_not_found" }); }
+    const session = s.rows[0];
+    if (!session.current_node_id) { await client.query("ROLLBACK"); return res.status(409).json({ error: "no_current_node_set" }); }
+
+    // mögliche Optionen am aktuellen Node laden
+    const e = await client.query(
+      `select id, label, to_node_id, condition_json from edge where from_node_id=$1 order by id asc`,
+      [session.current_node_id]
+    );
+    // Sichtbarkeit filtern wie in GET /sessions/:id
+    const st = session.state_json || {};
+    const visible = e.rows.filter(row => evalCondition(st, row.condition_json));
+
+    if (!optionIds) optionIds = visible.map(r => r.id);
+    const allowed = new Set(visible.map(r => r.id));
+    const invalid = optionIds.filter(id => !allowed.has(id));
+    if (invalid.length) { await client.query("ROLLBACK"); return res.status(400).json({ error: "options_invalid_for_current_node", invalid }); }
+
+    const now = new Date().toISOString();
+    const vote = {
+      active: true,
+      nodeId: session.current_node_id,
+      options: optionIds,         // Edge-IDs
+      tally: Object.fromEntries(optionIds.map(id => [String(id), 0])),
+      voters: {},                 // optionales Duplikat-Tracking: voterId -> edgeId
+      startedAt: now,
+      durationSec: durationSec || null
+    };
+
+    const next = { ...(session.state_json || {}), vote };
+    await client.query(`update session set state_json=$1, updated_at=now() where id=$2`, [next, sessionId]);
+    await client.query("COMMIT");
+    res.status(201).json({ ok: true, vote });
+  } catch (e) {
+    try { await client.query("ROLLBACK"); } catch {}
+    console.error(e);
+    res.status(500).json({ error: "vote_start_failed", message: String(e) });
+  } finally {
+    client.release();
+  }
+});
+
+// Cast a vote for an edge option
+app.post("/sessions/:id/vote/cast", async (req, res) => {
+  const sessionId = Number(req.params.id);
+  const edgeId = Number(req.body?.edgeId);
+  const voterId = (req.body?.voterId ?? "").toString(); // optional dedupe
+
+  if (!Number.isFinite(edgeId)) return res.status(400).json({ error: "edgeId_required" });
+
+  const client = await pool.connect();
+  try {
+    await client.query("BEGIN");
+    const s = await client.query(`select id, state_json from session where id=$1 for update`, [sessionId]);
+    if (!s.rowCount) { await client.query("ROLLBACK"); return res.status(404).json({ error: "session_not_found" }); }
+    const session = s.rows[0];
+    const state = session.state_json || {};
+    const vote = state.vote;
+    if (!vote?.active) { await client.query("ROLLBACK"); return res.status(409).json({ error: "no_active_vote" }); }
+
+    const allowed = new Set((vote.options || []).map(Number));
+    if (!allowed.has(edgeId)) { await client.query("ROLLBACK"); return res.status(400).json({ error: "edge_not_in_vote" }); }
+
+    // Einfaches Dedupe: gleicher voterId darf nur 1x stimmen (optional)
+    vote.voters = vote.voters || {};
+    if (voterId) {
+      const prev = vote.voters[voterId];
+      if (prev && prev !== edgeId) {
+        // Stimme umhängen
+        vote.tally[String(prev)] = Math.max(0, Number(vote.tally[String(prev)] || 0) - 1);
+      }
+      vote.voters[voterId] = edgeId;
+    }
+
+    vote.tally[String(edgeId)] = Number(vote.tally[String(edgeId)] || 0) + 1;
+
+    const next = { ...state, vote };
+    await client.query(`update session set state_json=$1, updated_at=now() where id=$2`, [next, sessionId]);
+    await client.query("COMMIT");
+    res.json({ ok: true, tally: vote.tally });
+  } catch (e) {
+    try { await client.query("ROLLBACK"); } catch {}
+    console.error(e);
+    res.status(500).json({ error: "vote_cast_failed", message: String(e) });
+  } finally {
+    client.release();
+  }
+});
+
+app.get("/sessions/:id/vote", async (req, res) => {
+  const sessionId = Number(req.params.id);
+  if (!Number.isFinite(sessionId)) return res.status(400).json({ error: "invalid_session_id" });
+  const s = await pool.query(`select state_json from session where id=$1`, [sessionId]);
+  if (!s.rowCount) return res.status(404).json({ error: "session_not_found" });
+  res.json(s.rows[0].state_json?.vote || { active: false });
+});
+
+// Close vote; optionally apply winning edge as decision
+app.post("/sessions/:id/vote/close", async (req, res) => {
+  const sessionId = Number(req.params.id);
+  const apply = Boolean(req.body?.apply);
+  const client = await pool.connect();
+
+  try {
+    await client.query("BEGIN");
+    const s = await client.query(`select id, state_json from session where id=$1 for update`, [sessionId]);
+    if (!s.rowCount) { await client.query("ROLLBACK"); return res.status(404).json({ error: "session_not_found" }); }
+    const session = s.rows[0];
+    const state = session.state_json || {};
+    const vote = state.vote;
+    if (!vote?.active) { await client.query("ROLLBACK"); return res.status(409).json({ error: "no_active_vote" }); }
+
+    // Gewinner bestimmen (höchster Count; bei Gleichstand erster)
+    const entries = Object.entries(vote.tally || {}).map(([k,v]) => [Number(k), Number(v)]);
+    entries.sort((a,b) => b[1] - a[1]);
+    const winner = entries[0]?.[0] ?? null;
+
+    // Vote beenden
+    const ended = { ...vote, active: false, endedAt: new Date().toISOString(), winner };
+    const nextState = { ...state, vote: ended };
+
+    await client.query(`update session set state_json=$1, updated_at=now() where id=$2`, [nextState, sessionId]);
+
+    let applied = null;
+    if (apply && Number.isFinite(winner)) {
+      // Entscheidung anwenden (wie /decision)
+      const s2 = await client.query(`select * from session where id=$1 for update`, [sessionId]);
+      const sess = s2.rows[0];
+      const e = await client.query(`select * from edge where id=$1`, [winner]);
+      if (e.rowCount) {
+        const edge = e.rows[0];
+        // effect anwenden
+        const newState = applyEffect(nextState || {}, edge.effect_json || {});
+        await client.query(
+          `insert into decision (session_id, node_id, chosen_edge_id) values ($1, $2, $3)`,
+          [sess.id, sess.current_node_id, edge.id]
+        );
+        await client.query(
+          `update session set current_node_id=$1, state_json=$2, updated_at=now() where id=$3`,
+          [edge.to_node_id, newState, sess.id]
+        );
+        applied = { toNodeId: edge.to_node_id, edgeId: edge.id };
+      }
+    }
+
+    await client.query("COMMIT");
+    res.json({ ok: true, winner, applied });
+  } catch (e) {
+    try { await client.query("ROLLBACK"); } catch {}
+    console.error(e);
+    res.status(500).json({ error: "vote_close_failed", message: String(e) });
+  } finally {
+    client.release();
+  }
+});
+
 
 // Static Admin-UI (serves files from /public)
 const path = require("path");
