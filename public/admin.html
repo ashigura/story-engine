@@ -9,7 +9,13 @@
     header { padding: 12px 16px; background:#0f172a; color:#fff; display:flex; align-items:center; gap:12px; }
     header input { padding:8px; border-radius:8px; border:1px solid #334155; background:#0b1220; color:#e2e8f0; }
     header button { padding:8px 12px; border-radius:8px; border:0; background:#22c55e; color:#0b1220; cursor:pointer; }
-    main { padding:16px; display:grid; gap:16px; grid-template-columns: 600px 1fr; }
+    main {
+  padding: 16px;
+  display: grid;
+  gap: 16px;
+  grid-template-columns: minmax(380px, 420px) 1fr; /* breiter + flexibel */
+}
+
     section { background:#0b1220; color:#e2e8f0; border:1px solid #1e293b; border-radius:12px; padding:12px; }
     h2 { margin:0 0 8px; font-size:16px; color:#93c5fd; }
     label { display:block; margin:8px 0 4px; font-size:13px; color:#a5b4fc; }
