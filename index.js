@@ -968,16 +968,39 @@ app.get("/sessions/:id/graph", async (req, res) => {
     }
 
     // mode = all
-    const [nodes, edges] = await Promise.all([
-      pool.query(`select id, title from node order by id asc`),
-      pool.query(`select id, from_node_id, to_node_id, label from edge order by id asc`)
-    ]);
-    res.json({
-      sessionId, mode, currentNodeId,
-      visitedNodeIds: [], // optional
-      nodes: nodes.rows,
-      edges: edges.rows
-    });
+const [nodesQ, edgesQ, visitedQ] = await Promise.all([
+  pool.query(`select id, title from node order by id asc`),
+  pool.query(`select id, from_node_id, to_node_id, label from edge order by id asc`),
+  pool.query(
+    `
+    with decs as (
+      select d.node_id as from_id, e.to_node_id as to_id
+      from decision d
+      join edge e on e.id = d.chosen_edge_id
+      where d.session_id = $1
+    ),
+    nodeset as (
+      select from_id as id from decs
+      union
+      select to_id   as id from decs
+      union
+      select $2::int as id
+    )
+    select coalesce(array_agg(id), '{}') as ids from nodeset
+    `,
+    [sessionId, currentNodeId ?? null]
+  )
+]);
+
+return res.json({
+  sessionId,
+  mode,
+  currentNodeId,
+  visitedNodeIds: visitedQ.rows[0]?.ids ?? [],
+  nodes: nodesQ.rows,
+  edges: edgesQ.rows
+});
+
   } catch (e) {
     console.error(e);
     res.status(500).json({ error: "graph_failed", message: String(e) });
