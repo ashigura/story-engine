@@ -517,26 +517,36 @@ els.btnStateApply.onclick = async () => {
 els.btnGraphVisited.onclick = () => loadGraph("visited");
 els.btnGraphAll.onclick = () => loadGraph("all");
 
-function renderGraph({ nodes = [], edges = [] }) {
+function renderGraph(payload) {
+  const { nodes = [], edges = [], currentNodeId = null, visitedNodeIds = [] } = payload;
+  const visitedSet = new Set(Array.isArray(visitedNodeIds) ? visitedNodeIds : []);
+
   const g = new dagreD3.graphlib.Graph().setGraph({ rankdir: "LR", nodesep: 30, ranksep: 60 });
 
   nodes.forEach(n => {
+    // Farbwahl
+    let fill = "#0f172a";  // default
+    let stroke = "#334155";
+    if (n.id === currentNodeId) { fill = "#22c55e"; stroke = "#14532d"; }         // aktueller Knoten: grün
+    else if (visitedSet.has(n.id)) { fill = "#2563eb"; stroke = "#1e3a8a"; }      // besucht: blau
+
     const label = `${n.id}\n${n.title || ""}`;
     g.setNode(String(n.id), {
       label,
-      rx: 6, ry: 6,
-      style: "fill:#0f172a;stroke:#334155;color:#e2e8f0",
+      rx: 8, ry: 8,
+      style: `fill:${fill};stroke:${stroke};color:#0b1220`,
       labelStyle: "fill:#e2e8f0"
     });
   });
 
   edges.forEach(e => {
+    const edgeText = `[${e.id}] ${e.label || ""}`; // ID vor dem Namen
     g.setEdge(String(e.from_node_id), String(e.to_node_id), {
-      label: e.label || "",
+      label: edgeText,
       lineInterpolate: "basis",
       style: "stroke:#475569;fill:none",
       arrowheadStyle: "fill:#475569",
-      labelStyle: "fill:#cbd5e1"
+      labelStyle: "fill:#cbd5e1;font-size:12px"
     });
   });
 
@@ -547,18 +557,17 @@ function renderGraph({ nodes = [], edges = [] }) {
   render(inner, g);
 
   // Auto-Zoom/Center
-  const { width, height } = g.graph();
+  const graphDims = g.graph();
+  const width = graphDims.width || 1;
+  const height = graphDims.height || 1;
   const svgWidth = els.graphSvg.clientWidth || 800;
   const svgHeight = els.graphSvg.clientHeight || 420;
-  const scale = Math.min(
-    (svgWidth - 40) / (width || 1),
-    (svgHeight - 40) / (height || 1),
-    1.2
-  );
+  const scale = Math.min((svgWidth - 40) / width, (svgHeight - 40) / height, 1.2);
   const x = (svgWidth - (width * scale)) / 2;
   const y = (svgHeight - (height * scale)) / 2;
   inner.attr("transform", `translate(${x},${y}) scale(${scale})`);
 }
+
 
   
 
