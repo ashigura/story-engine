@@ -751,6 +751,94 @@ app.post("/sessions/:id/snapshot", async (req, res) => {
   }
 });
 
+// Snapshots einer Session auflisten
+app.get("/sessions/:id/snapshots", async (req, res) => {
+  const sessionId = Number(req.params.id);
+  if (!Number.isFinite(sessionId)) return res.status(400).json({ error: "invalid_session_id" });
+
+  try {
+    const q = await pool.query(
+      `SELECT id, label, current_node_id, created_at
+       FROM snapshot
+       WHERE session_id=$1
+       ORDER BY created_at DESC, id DESC`,
+      [sessionId]
+    );
+    res.json({ sessionId, snapshots: q.rows });
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ error: "list_snapshots_failed", message: String(e) });
+  }
+});
+
+// Snapshot wiederherstellen
+app.post("/sessions/:id/restore/:snapId", async (req, res) => {
+  const sessionId = Number(req.params.id);
+  const snapId = Number(req.params.snapId);
+  const clearHistory = Boolean(req.body?.clearHistory); // optional
+  if (!Number.isFinite(sessionId) || !Number.isFinite(snapId))
+    return res.status(400).json({ error: "invalid_ids" });
+
+  const client = await pool.connect();
+  try {
+    await client.query("BEGIN");
+
+    const s = await client.query(`SELECT id FROM session WHERE id=$1 FOR UPDATE`, [sessionId]);
+    if (!s.rowCount) {
+      await client.query("ROLLBACK");
+      return res.status(404).json({ error: "session_not_found" });
+    }
+
+    const snap = await client.query(
+      `SELECT id, state_json, current_node_id FROM snapshot WHERE id=$1 AND session_id=$2`,
+      [snapId, sessionId]
+    );
+    if (!snap.rowCount) {
+      await client.query("ROLLBACK");
+      return res.status(404).json({ error: "snapshot_not_found" });
+    }
+    const { state_json, current_node_id } = snap.rows[0];
+
+    // Optional: History leeren (alle Entscheidungen entfernen)
+    if (clearHistory) {
+      await client.query(`DELETE FROM decision WHERE session_id=$1`, [sessionId]);
+    }
+
+    await client.query(
+      `UPDATE session SET current_node_id=$1, state_json=$2, updated_at=now() WHERE id=$3`,
+      [current_node_id, state_json || {}, sessionId]
+    );
+
+    await client.query("COMMIT");
+    res.json({ ok: true, sessionId, restoredTo: { snapId, currentNodeId: current_node_id } });
+  } catch (e) {
+    try { await client.query("ROLLBACK"); } catch {}
+    console.error(e);
+    res.status(500).json({ error: "restore_failed", message: String(e) });
+  } finally {
+    client.release();
+  }
+});
+
+// Snapshot löschen (optional)
+app.delete("/sessions/:id/snapshots/:snapId", async (req, res) => {
+  const sessionId = Number(req.params.id);
+  const snapId = Number(req.params.snapId);
+  if (!Number.isFinite(sessionId) || !Number.isFinite(snapId))
+    return res.status(400).json({ error: "invalid_ids" });
+
+  try {
+    const del = await pool.query(
+      `DELETE FROM snapshot WHERE id=$1 AND session_id=$2 RETURNING id`,
+      [snapId, sessionId]
+    );
+    if (!del.rowCount) return res.status(404).json({ error: "snapshot_not_found" });
+    res.json({ ok: true, deletedSnapshotId: snapId });
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ error: "delete_snapshot_failed", message: String(e) });
+  }
+});
 
 
 // Static Admin-UI (serves files from /public)
