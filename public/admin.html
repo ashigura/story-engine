@@ -27,7 +27,13 @@ input, textarea, select, button { width:100%; min-width:0; } /* min-width:0 fix 
 input, textarea, select { padding:8px; border-radius:8px; border:1px solid #334155; background:#0f172a; color:#e2e8f0; }
 textarea { min-height:84px; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
 
-.row { display:grid; grid-template-columns: 1fr 1fr; gap:8px; align-items:start; }
+.row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 8px;
+  align-items: center; /* mittige Ausrichtung */
+}
+
 .row.two { grid-template-columns: 1fr auto; } /* Input + Button (Button wird so nicht drübergelegt) */
 
 .btn { margin-top:8px; padding:8px 10px; border-radius:8px; border:0; background:#3b82f6; color:#0b1220; cursor:pointer; white-space:nowrap; }
