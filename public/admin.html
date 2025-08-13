@@ -243,6 +243,9 @@
 
   };
 
+  let currentGraphMode = "visited";
+
+
   // Persistenter Key
   els.apiKey.value = localStorage.getItem("xApiKey") || "dev-secret-change-me";
   els.saveKey.onclick = () => {
@@ -488,6 +491,9 @@ els.btnResetNoSeed.onclick = async () => {
     els.sessionId.value = "";
     els.status.textContent = "Reset (ohne Seed) done.";
     els.stateEditor.value = "{}";
+    
+    currentGraphMode = "visited";
+
   } catch (e) { showNodes(e); }
 };
 
@@ -513,7 +519,9 @@ els.btnClear.onclick = async () => {
 els.stateEditor.value = JSON.stringify(r.state || {}, null, 2);
 if (Array.isArray(r.options) && r.options.length) els.edgeId.value = r.options[0].id;
 // Optional: Graph direkt anzeigen (visited)
-loadGraph("visited");
+// vorher: loadGraph("visited");
+loadGraph(currentGraphMode);
+
 
 await listSnaps(); // Snapshots parallel anzeigen
 
@@ -563,8 +571,9 @@ els.btnStateApply.onclick = async () => {
     renderGraph(data);
   } catch (e) { showStatus(e); }
 }
-els.btnGraphVisited.onclick = () => loadGraph("visited");
-els.btnGraphAll.onclick = () => loadGraph("all");
+els.btnGraphVisited.onclick = () => { currentGraphMode = "visited"; loadGraph(currentGraphMode); };
+els.btnGraphAll.onclick     = () => { currentGraphMode = "all";     loadGraph(currentGraphMode); };
+
 
 function renderGraph(payload) {
   const { nodes = [], edges = [], currentNodeId = null, visitedNodeIds = [] } = payload;
