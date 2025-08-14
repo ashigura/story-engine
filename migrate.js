@@ -125,11 +125,11 @@ if (require.main === module) {
 create table if not exists chat_event (
   id            bigserial primary key,
   session_id    int not null,
-  platform      text not null,               -- z.B. twitch, youtube, kick, ...
+  platform      text not null,               // z.B. twitch, youtube, kick, ...
   user_id       text not null,
   username      text not null,
-  message       text,                         -- roher text (falls vorhanden)
-  kind          text not null default 'message', -- message | reaction | command
+  message       text,                         // roher text (falls vorhanden)
+  kind          text not null default 'message', // message | reaction | command
   payload_json  jsonb not null default '{}'::jsonb,
   created_at    timestamptz not null default now(),
   processed_at  timestamptz
