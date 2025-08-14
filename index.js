@@ -1081,13 +1081,19 @@ app.post("/sessions/:id/vote/start", async (req, res) => {
       tally: Object.fromEntries(optionIds.map(id => [String(id), 0])),
       voters: {},                 // optionales Duplikat-Tracking: voterId -> edgeId
       startedAt: now,
-      durationSec: durationSec || null
+      durationSec: Number.isFinite(durationSec) && durationSec > 0 ? durationSec : null
     };
 
     const next = { ...(session.state_json || {}), vote };
     await client.query(`update session set state_json=$1, updated_at=now() where id=$2`, [next, sessionId]);
     await client.query("COMMIT");
-    publish(sessionId, "vote/started", { options: vote.options, startedAt: vote.startedAt });
+    
+    publish(sessionId, "vote/started", {
+  options: vote.options,
+  startedAt: vote.startedAt,
+  durationSec: vote.durationSec
+});
+
 
     res.status(201).json({ ok: true, vote });
   } catch (e) {
@@ -1252,6 +1258,75 @@ function publish(sessionId, type, payload = {}) {
     }
   });
 }
+// Auto-Close abgelaufener Votes (alle 2s)
+setInterval(async () => {
+  try {
+    const q = await pool.query(`
+      SELECT id, state_json
+      FROM session
+      WHERE (state_json->'vote'->>'active')::bool = true
+        AND (state_json->'vote'->>'durationSec') ~ '^[0-9]+$'
+        AND (
+          (state_json->'vote'->>'startedAt')::timestamptz
+          + ((state_json->'vote'->>'durationSec')::int * interval '1 second')
+        ) <= now()
+    `);
+
+    for (const row of q.rows) {
+      const sessionId = row.id;
+      const vote = row.state_json?.vote || {};
+      const tally = vote.tally || {};
+      const entries = Object.entries(tally).map(([k, v]) => [Number(k), Number(v)]);
+      entries.sort((a, b) => b[1] - a[1]);
+      const winner = entries[0]?.[0] ?? null;
+
+      const client = await pool.connect();
+      try {
+        await client.query("BEGIN");
+
+        const ended = { ...vote, active: false, endedAt: new Date().toISOString(), winner };
+        const nextState = { ...row.state_json, vote: ended };
+        await client.query(
+          `UPDATE session SET state_json=$1, updated_at=now() WHERE id=$2`,
+          [nextState, sessionId]
+        );
+
+        let applied = null;
+        if (Number.isFinite(winner)) {
+          const e = await client.query(`SELECT * FROM edge WHERE id=$1`, [winner]);
+          if (e.rowCount) {
+            const s2 = await client.query(`SELECT * FROM session WHERE id=$1 FOR UPDATE`, [sessionId]);
+            const sess = s2.rows[0];
+            const edge = e.rows[0];
+            const newState = applyEffect(nextState || {}, edge.effect_json || {});
+            await client.query(
+              `INSERT INTO decision (session_id, node_id, chosen_edge_id) VALUES ($1, $2, $3)`,
+              [sess.id, sess.current_node_id, edge.id]
+            );
+            await client.query(
+              `UPDATE session SET current_node_id=$1, state_json=$2, updated_at=now() WHERE id=$3`,
+              [edge.to_node_id, newState, sess.id]
+            );
+            applied = { toNodeId: edge.to_node_id, edgeId: edge.id };
+          }
+        }
+
+        await client.query("COMMIT");
+        if (typeof publish === "function") {
+          publish(sessionId, "vote/closed", { winner, applied });
+        }
+      } catch (err) {
+        try { await client.query("ROLLBACK"); } catch {}
+        console.error("auto-close vote failed", err);
+      } finally {
+        client.release();
+      }
+    }
+  } catch (e) {
+    console.error("vote auto closer tick error", e);
+  }
+}, 2000);
+
 
 
 // Static Admin-UI (serves files from /public)
