@@ -234,6 +234,15 @@ footer { padding:10px 16px; color:#64748b; font-size:12px; }
 <footer>Admin-UI · spricht mit deiner API unter <span id="baseUrlFoot"></span></footer>
 
 <script>
+
+window.addEventListener("error", (e) => {
+  const pre = document.createElement("pre");
+  pre.textContent = "JS ERROR: " + e.message;
+  pre.style.cssText = "position:fixed;left:8px;bottom:8px;background:#111;color:#f88;padding:8px;border:1px solid #900;z-index:99999;max-width:90vw;white-space:pre-wrap";
+  document.body.appendChild(pre);
+});
+
+  
   const BASE_URL = "https://live-story-teller-gu7wv.ondigitalocean.app";
   const els = {
     apiKey: document.getElementById("apiKey"),
@@ -297,8 +306,10 @@ footer { padding:10px 16px; color:#64748b; font-size:12px; }
 
   };
 
-  let currentGraphMode = "visited";
-  let currentVoteOptions = new Set();    // für Graph-Highlight der abstimmbaren Edges
+  
+if (typeof window.currentGraphMode === "undefined") window.currentGraphMode = "visited";
+if (typeof window.currentVoteOptions === "undefined") window.currentVoteOptions = new Set();
+
 
   const WS_URL = BASE_URL.replace(/^http/, "ws") + "/ws";
 let ws = null;
