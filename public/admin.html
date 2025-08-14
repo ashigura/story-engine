@@ -50,6 +50,13 @@ footer { padding:10px 16px; color:#64748b; font-size:12px; }
   .row.two { grid-template-columns: 1fr; }
 }
 
+.flash { animation: flash 600ms ease-out; }
+@keyframes flash {
+  0%{box-shadow:0 0 0 0 rgba(34,197,94,.8)}
+  100%{box-shadow:0 0 0 12px rgba(34,197,94,0)}
+}
+
+    
   </style>
   <!-- D3 + Dagre-D3 für Graph-Layout (LR) -->
 <script src="https://unpkg.com/d3@5.16.0/dist/d3.min.js"></script>
@@ -314,6 +321,17 @@ if (typeof window.currentVoteOptions === "undefined") window.currentVoteOptions 
   const WS_URL = BASE_URL.replace(/^http/, "ws") + "/ws";
 let ws = null;
 let wsReconnectTimer = null;
+  
+let refreshTimer = null;
+  
+function scheduleRefresh() {
+  clearTimeout(refreshTimer);
+  refreshTimer = setTimeout(async () => {
+    await loadSession();
+    await loadGraph(currentGraphMode);
+  }, 150);
+}
+function flash(el){ if(!el) return; el.classList.remove('flash'); void el.offsetWidth; el.classList.add('flash'); }
 
 function wsConnect() {
   try { if (ws) ws.close(); } catch {}
@@ -332,25 +350,44 @@ function wsConnect() {
     if (!Number.isFinite(sid) || msg.sessionId !== sid) return;
 
     switch (msg.type) {
-      case "decision/applied":
-      case "rewind/applied":
-      case "state/updated":
-      case "option/added":
-      case "edge/updated":
-      case "vote/closed":
-        // Full refresh für Konsistenz
-        loadSession();
-        loadGraph(currentGraphMode);
-        break;
-      case "vote/started":
-        currentVoteOptions = new Set((msg.options || []).map(Number));
-        loadGraph(currentGraphMode);
-        break;
-      case "vote/tally":
-        // Tally live updaten
-        els.voteBox.textContent = JSON.stringify({ tally: msg.tally }, null, 2);
-        break;
-    }
+  case "vote/tally": {
+    // nur Tally live aktualisieren
+    const current = els.voteBox.textContent ? JSON.parse(els.voteBox.textContent) : {};
+    const next = { ...(current || {}), tally: msg.tally };
+    els.voteBox.textContent = JSON.stringify(next, null, 2);
+    flash(els.voteBox);
+    break;
+  }
+  case "vote/started": {
+    currentVoteOptions = new Set((msg.options || []).map(Number));
+    loadGraph(currentGraphMode);
+    // Statusbox antippen
+    flash(els.graphSvg);
+    break;
+  }
+  case "vote/closed": {
+    currentVoteOptions = new Set();
+    scheduleRefresh(); // Gewinner angewendet? -> Full refresh
+    break;
+  }
+  case "state/updated": {
+    // State direkt einblenden, ohne HTTP-GET
+    els.stateEditor.value = JSON.stringify(msg.state || {}, null, 2);
+    flash(els.stateEditor);
+    // Optionen können sich durch State-Change ändern -> sanfter Full-Refresh
+    scheduleRefresh();
+    break;
+  }
+  case "option/added":
+  case "edge/updated":
+  case "decision/applied":
+  case "rewind/applied": {
+    // Graph & Status konsistent neu laden (debounced)
+    scheduleRefresh();
+    break;
+  }
+}
+
   };
 
   ws.onclose = () => {
@@ -707,9 +744,15 @@ els.btnClear.onclick = async () => {
       wsSend({ type: "subscribe", sessionId: sid });
       els.sessionId.dataset.prev = String(sid);
     }
-
+  
     const r = await api(`/sessions/${sid}`, { headers: headers() });
+
+    // Nach erfolgreichem New-Session:
+if (ws && ws.readyState === 1) ws.send(JSON.stringify({ type:"subscribe", sessionId: r.id }));
+
+    
    showStatus(r);
+    
     if (Array.isArray(r.options) && r.options.length) {
   els.edgeId.value = r.options[0].id;     // schon vorhanden
   els.voteEdgeId.value = r.options[0].id; // neu: Voting-Eingabefeld vorfüllen
