@@ -254,6 +254,18 @@ footer { padding:10px 16px; color:#64748b; font-size:12px; }
   <button class="btn gray" id="btnGraphVisited">Graph: visited</button>
   <button class="btn gray" id="btnGraphAll">Graph: all</button>
 </div>
+
+    <h2 style="margin-top:16px">Multi‑Session‑Monitor</h2>
+<div class="row two">
+  <button class="btn" id="msmLoad">GET /admin/sessions</button>
+  <button class="btn gray" id="msmSubAll">Subscribe all</button>
+</div>
+<div class="row two">
+  <input id="msmFilter" placeholder="Filter (z. B. running)" />
+  <button class="btn gray" id="msmUnsubAll">Unsubscribe all</button>
+</div>
+<div id="msmGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:10px;margin-top:8px"></div>
+
 <svg id="graphSvg" width="100%" height="420" style="background:#0b1220;border:1px solid #1e293b;border-radius:12px;margin-top:8px"></svg>
 
 
@@ -337,7 +349,13 @@ window.addEventListener("error", (e) => {
     btnListOptions: document.getElementById("btnListOptions"),
     btnEndSession: document.getElementById("btnEndSession"),
     jumpToNodeId: document.getElementById("jumpToNodeId"),
-    btnJump: document.getElementById("btnJump")
+    btnJump: document.getElementById("btnJump"),
+    msmLoad: document.getElementById("msmLoad"),
+    msmSubAll: document.getElementById("msmSubAll"),
+    msmUnsubAll: document.getElementById("msmUnsubAll"),
+    msmFilter: document.getElementById("msmFilter"),
+    msmGrid: document.getElementById("msmGrid")
+
 
 
 
@@ -357,6 +375,142 @@ let refreshTimer = null;
 let voteInterval = null;
 let voteEndsAt = null;
 
+// ===== Multi-Session-Monitor (MSM) =====
+const msm = {
+  cards: new Map(),       // sid -> DOM
+  timers: new Map(),      // sid -> debounce timer
+  subs: new Set(),        // aktuell abonnierte sids
+};
+
+function msmRenderCard(s) {
+  const sid = s.id;
+  let el = msm.cards.get(sid);
+  const html = `
+    <div style="border:1px solid #1e293b;border-radius:10px;padding:10px;background:#0b1220">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+        <strong>Session #${sid}</strong>
+        <span class="pill">${s.status || "?"}</span>
+      </div>
+      <div class="mono" style="font-size:12px;line-height:1.3">
+        Node: ${s.current_node_id ?? "—"} ${s.current_title ? ("· " + s.current_title) : ""}<br/>
+        Updated: ${s.updated_at ? new Date(s.updated_at).toLocaleString() : "—"}
+      </div>
+      <div class="row" style="margin-top:8px">
+        <button class="btn" data-act="focus"  data-sid="${sid}">Focus</button>
+        <button class="btn gray" data-act="details" data-sid="${sid}">Details</button>
+      </div>
+      <div class="mono" id="msmStatus-${sid}" style="margin-top:6px;max-height:180px;overflow:auto;background:#0f172a;border:1px solid #334155;border-radius:8px;padding:6px"></div>
+    </div>
+  `;
+  if (!el) {
+    el = document.createElement("div");
+    el.innerHTML = html;
+    els.msmGrid.appendChild(el);
+    msm.cards.set(sid, el);
+    // initial details laden
+    msmRefreshCard(sid);
+  } else {
+    el.innerHTML = html;
+  }
+
+  // Buttons in der Card verdrahten
+  const btnFocus = el.querySelector('[data-act="focus"]');
+  const btnDetails = el.querySelector('[data-act="details"]');
+  btnFocus?.addEventListener("click", () => {
+    els.sessionId.value = sid;
+    loadSession();
+    if (ws && ws.readyState === 1) ws.send(JSON.stringify({ type:"subscribe", sessionId: sid }));
+  });
+  btnDetails?.addEventListener("click", () => msmRefreshCard(sid));
+}
+
+async function msmRefreshCard(sid) {
+  try {
+    const r = await api(`/sessions/${sid}`, { headers: headers() });
+    const box = document.getElementById(`msmStatus-${sid}`);
+    if (box) {
+      // Kompaktere Ansicht: nur das Wichtigste
+      const compact = {
+        status: r.status,
+        currentNodeId: r.currentNodeId,
+        options: (r.options || []).map(o => ({ id:o.id, label:o.label, to:o.to_node_id })),
+        stateKeys: Object.keys(r.state || {})
+      };
+      box.textContent = JSON.stringify(compact, null, 2);
+    }
+  } catch (e) {
+    const box = document.getElementById(`msmStatus-${sid}`);
+    if (box) box.textContent = JSON.stringify(e, null, 2);
+  }
+}
+
+// Debounced per-Session-Refresh bei WS-Events
+function msmScheduleUpdate(sid) {
+  clearTimeout(msm.timers.get(sid));
+  const t = setTimeout(() => msmRefreshCard(sid), 150);
+  msm.timers.set(sid, t);
+}
+
+// Liste laden
+els.msmLoad.onclick = async () => {
+  try {
+    els.msmGrid.innerHTML = "";
+    msm.cards.clear();
+    const r = await api(`/admin/sessions`, { headers: headers() });
+    let rows = r.sessions || [];
+    const f = (els.msmFilter.value || "").trim().toLowerCase();
+    if (f) rows = rows.filter(s => String(s.status || "").toLowerCase().includes(f) || String(s.id).includes(f));
+    rows.forEach(msmRenderCard);
+  } catch (e) {
+    alert("Fehler beim Laden der Sessions");
+    console.error(e);
+  }
+};
+
+// Alle subscriben / unsubscriben
+els.msmSubAll.onclick = () => {
+  const ids = Array.from(msm.cards.keys());
+  ids.forEach(sid => {
+    if (!msm.subs.has(sid) && ws && ws.readyState === 1) {
+      ws.send(JSON.stringify({ type:"subscribe", sessionId: sid }));
+      msm.subs.add(sid);
+    }
+  });
+};
+els.msmUnsubAll.onclick = () => {
+  const ids = Array.from(msm.cards.keys());
+  ids.forEach(sid => {
+    if (msm.subs.has(sid) && ws && ws.readyState === 1) {
+      ws.send(JSON.stringify({ type:"unsubscribe", sessionId: sid }));
+      msm.subs.delete(sid);
+    }
+  });
+};
+
+// WS: bei Events die passenden Karten aktualisieren
+// (füge das in deinem ws.onmessage switch NACH den bestehenden Fällen ein)
+function msmOnWs(msg) {
+  const sid = msg.sessionId;
+  if (!msm.cards.has(sid)) return;       // nur Sessions mit Card
+  switch (msg.type) {
+    case "vote/tally":
+    case "vote/started":
+    case "vote/closed":
+    case "state/updated":
+    case "option/added":
+    case "edge/updated":
+    case "decision/applied":
+    case "rewind/applied":
+    case "jump/applied":
+    case "session/ended":
+    case "session/created":
+      msmScheduleUpdate(sid);
+      break;
+  }
+}
+
+
+  
 function startVoteCountdown(startedAtISO, durationSec) {
   clearInterval(voteInterval);
   if (!Number.isFinite(durationSec) || durationSec <= 0 || !startedAtISO) {
@@ -455,6 +609,8 @@ function wsConnect() {
     break;
   }
 }
+    msmOnWs(msg);
+
 
   };
 
