@@ -100,6 +100,24 @@ await pool.query(`
   CREATE INDEX IF NOT EXISTS idx_snapshot_created ON snapshot(created_at);
 `);
 
+    -- chat events (eingehende Nachrichten/Reaktionen aus MultiChat)
+create table if not exists chat_event (
+  id            bigserial primary key,
+  session_id    int not null,
+  platform      text not null,               -- z.B. twitch, youtube, kick, ...
+  user_id       text not null,
+  username      text not null,
+  message       text,                         -- roher text (falls vorhanden)
+  kind          text not null default 'message', -- message | reaction | command
+  payload_json  jsonb not null default '{}'::jsonb,
+  created_at    timestamptz not null default now(),
+  processed_at  timestamptz
+);
+
+create index if not exists ix_chat_event_session_created on chat_event(session_id, created_at desc);
+create index if not exists ix_chat_event_processed on chat_event(processed_at);
+
+
 
     console.log("[DB] Migration erfolgreich abgeschlossen ✅");
   } catch (err) {
@@ -121,20 +139,4 @@ if (require.main === module) {
     .then(() => process.exit(0));
 }
 
-// chat events (eingehende Nachrichten/Reaktionen aus MultiChat)
-create table if not exists chat_event (
-  id            bigserial primary key,
-  session_id    int not null,
-  platform      text not null,               // z.B. twitch, youtube, kick, ...
-  user_id       text not null,
-  username      text not null,
-  message       text,                         // roher text (falls vorhanden)
-  kind          text not null default 'message', // message | reaction | command
-  payload_json  jsonb not null default '{}'::jsonb,
-  created_at    timestamptz not null default now(),
-  processed_at  timestamptz
-);
-
-create index if not exists ix_chat_event_session_created on chat_event(session_id, created_at desc);
-create index if not exists ix_chat_event_processed on chat_event(processed_at);
 
