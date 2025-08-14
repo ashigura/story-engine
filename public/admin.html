@@ -1122,16 +1122,30 @@ els.btnEndSession.onclick = async () => {
   async function loadGraph(mode) {
   const sid = Number(els.sessionId.value);
   if (!Number.isFinite(sid)) return alert("Session-ID fehlt/ungültig.");
+
   try {
-    const data = await api(`/sessions/${sid}/graph?mode=${mode}`, { headers: headers() });
-    renderGraph(data);
+    if (mode === "all") {
+      const [graphData, list] = await Promise.all([
+        api(`/sessions/${sid}/graph?mode=all`, { headers: headers() }),
+        api(`/admin/sessions`, { headers: headers() })
+      ]);
+      // Marker vorbereiten: { sid, nodeId, color }
+      const markers = (list.sessions || [])
+        .filter(s => Number.isFinite(s.current_node_id))
+        .map(s => ({ sid: s.id, nodeId: s.current_node_id, color: sessionColor(s.id) }));
+      renderGraph(graphData, markers);
+    } else {
+      const data = await api(`/sessions/${sid}/graph?mode=${mode}`, { headers: headers() });
+      renderGraph(data, []); // keine globalen Marker im visited-Modus
+    }
   } catch (e) { showStatus(e); }
 }
+
 els.btnGraphVisited.onclick = () => { currentGraphMode = "visited"; loadGraph(currentGraphMode); };
 els.btnGraphAll.onclick     = () => { currentGraphMode = "all";     loadGraph(currentGraphMode); };
 
 
-function renderGraph(payload) {
+function renderGraph(payload, sessionMarkers = []) {
   const { nodes = [], edges = [], currentNodeId = null, visitedNodeIds = [] } = payload;
   const visitedSet = new Set(Array.isArray(visitedNodeIds) ? visitedNodeIds : []);
 
@@ -1182,6 +1196,52 @@ function renderGraph(payload) {
   const inner = svg.append("g");
   const render = new dagreD3.render();
   render(inner, g);
+  // --- Session-Marker in Graph: all ---
+// mehrere Sessions können auf demselben Node stehen -> Dots leicht versetzt
+const groupByNode = new Map();
+sessionMarkers.forEach(m => {
+  const arr = groupByNode.get(m.nodeId) || [];
+  arr.push(m);
+  groupByNode.set(m.nodeId, arr);
+});
+
+groupByNode.forEach((arr, nodeId) => {
+  const nodeSel = d3.select(els.graphSvg).select(`g.node[id="${nodeId}"]`);
+  // dagre-d3 gibt keine id-Attribute auf <g.node>; fallback: selektiere über key:
+  const nodeG = d3.select(els.graphSvg).selectAll("g.node")
+    .filter(function() { return d3.select(this).select("tspan").text().startsWith(String(nodeId)); });
+
+  const target = nodeG.empty() ? null : nodeG;
+  if (!target) return;
+
+  // Marker-Gruppe anlegen
+  const markersG = target.append("g").attr("class", "session-markers");
+
+  const offset = 8; // Abstand zwischen Dots
+  arr.forEach((m, idx) => {
+    // kleine Kreise oben rechts am Node platzieren
+    // wir nehmen die Box des Rects zur Positionierung
+    const rect = target.select("rect");
+    const w = Number(rect.attr("width") || 80);
+    const h = Number(rect.attr("height") || 30);
+
+    const cx = (w/2) - 8 - (idx * offset);
+    const cy = -(h/2) + 8;
+    const isFocused = Number(els.sessionId.value) === m.sid;
+    const r = isFocused ? 7.5 : 6;
+    
+    markersG.append("circle")
+      .attr("cx", cx)
+      .attr("cy", cy)
+      .attr("r", r)
+      .attr("fill", m.color)
+      .attr("stroke", "#0b1220")
+      .attr("stroke-width", 2)
+      .append("title")
+      .text(`Session #${m.sid}`);
+  });
+});
+
 
   // Auto-Zoom/Center
   const graphDims = g.graph();
