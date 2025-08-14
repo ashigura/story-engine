@@ -270,6 +270,13 @@ footer { padding:10px 16px; color:#64748b; font-size:12px; }
   <input id="msmFilter" placeholder="Filter (z. B. running)" />
   <button class="btn gray" id="msmUnsubAll">Unsubscribe all</button>
 </div>
+
+  <h2 style="margin-top:16px">Live‑Feed (Ingest)</h2>
+<div class="row two">
+  <div class="pill">eingehend + verarbeitet</div>
+</div>
+<div id="ingestFeed" class="mono" style="margin-top:8px; max-height:220px; overflow:auto; background:#0f172a; border:1px solid #334155; border-radius:8px; padding:8px"></div>
+
 <div id="msmGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:10px;margin-top:8px"></div>
 
 <svg id="graphSvg" width="100%" height="420" style="background:#0b1220;border:1px solid #1e293b;border-radius:12px;margin-top:8px"></svg>
@@ -640,6 +647,15 @@ function wsConnect() {
     scheduleRefresh();
     break;
   }
+  case "ingest/new": {
+  appendIngest({ type:"in", platform: msg.platform, user: msg.username, text: msg.message });
+  break;
+}
+  case "ingest/processed": {
+  appendIngest({ type:"out", platform: msg.platform, user: msg.username, text: msg.message, outcome: msg.outcome });
+  break;
+}
+
   case "option/added":
   case "edge/updated":
   case "decision/applied":
@@ -710,6 +726,7 @@ wsConnect(); // sofort verbinden
 function showSnaps(obj) {
   els.snaps.textContent = JSON.stringify(obj, null, 2);
 }
+  
 
   // Session anlegen
   els.btnNewSession.onclick = async () => {
@@ -813,6 +830,22 @@ async function listSnaps() {
 }
 els.btnListSnaps.onclick = listSnaps;
 
+function appendIngest(ev) {
+  const box = document.getElementById("ingestFeed");
+  if (!box) return;
+  const time = new Date().toLocaleTimeString();
+  const line = (ev.type === "in")
+    ? `[${time}] ⬅ ${ev.platform} | ${ev.user}: ${ev.text || ""}`
+    : `[${time}] ✅ ${ev.platform} | ${ev.user}: ${ev.text || ""}  → ${ev.outcome}`;
+  const el = document.createElement("div");
+  el.textContent = line;
+  box.prepend(el);
+  // trim
+  const max = 200;
+  while (box.childElementCount > max) box.removeChild(box.lastChild);
+}
+
+  
 // Snapshot wiederherstellen
 els.btnRestoreSnap.onclick = async () => {
   const sid = Number(els.sessionId.value);
