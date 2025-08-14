@@ -700,7 +700,6 @@ els.btnClear.onclick = async () => {
     const sid = Number(els.sessionId.value);
     if (!Number.isFinite(sid)) return alert("Session-ID fehlt/ungültig.");
     const prevSid = Number(els.sessionId.dataset.prev || "NaN");
-    const sid = Number(els.sessionId.value);
     if (Number.isFinite(prevSid) && prevSid !== sid) {
       wsSend({ type: "unsubscribe", sessionId: prevSid });
     }
