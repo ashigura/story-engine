@@ -1138,15 +1138,17 @@ function renderGraph(payload) {
   const g = new dagreD3.graphlib.Graph().setGraph({ rankdir: "LR", nodesep: 30, ranksep: 60 });
 
  nodes.forEach(n => {
-  let fill = "#0f172a";  // Standard-Hintergrund
-  let stroke = "#334155"; // Standard-Rand
+  let fill = "#0f172a";   // default
+  let stroke = "#334155"; // default
+
+  const sid = Number(els.sessionId.value);
+  const sessCol = sessionColor(sid);  // <- WERT der Farbe (z. B. "hsl(...)")
 
   if (n.id === currentNodeId) {
-    // Aktueller Node: Sessionfarbe
-    fill = sessionColor;
-    stroke = sessionColor;
+    // nur der aktuelle Node bekommt die Session-Farbe
+    fill = sessCol;
+    stroke = sessCol;
   } else if (visitedSet.has(n.id)) {
-    // Besuchte Nodes: Blau
     fill = "#2563eb";
     stroke = "#1e3a8a";
   }
@@ -1155,10 +1157,11 @@ function renderGraph(payload) {
   g.setNode(String(n.id), {
     label,
     rx: 8, ry: 8,
-    style: `fill:${fill};stroke:${stroke};color:#0b1220`,
+    style: `fill:${fill};stroke:${stroke};stroke-width:2px;color:#0b1220`,
     labelStyle: "fill:#e2e8f0"
   });
 });
+
 
 
   edges.forEach(e => {
