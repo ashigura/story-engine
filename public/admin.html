@@ -163,6 +163,15 @@ footer { padding:10px 16px; color:#64748b; font-size:12px; }
     <button class="btn" id="btnVoteCast">POST /sessions/:id/vote/cast</button>
     <button class="btn red" id="btnVoteClose">POST /sessions/:id/vote/close (apply)</button>
   </div>
+  <div class="row">
+  <div style="grid-column:1/-1">
+    <div id="voteTimer" class="pill" style="display:inline-block;margin-right:8px">—</div>
+    <div style="height:8px;background:#1f2937;border-radius:999px;overflow:hidden">
+      <div id="voteProgress" style="height:8px;width:0%;background:#f59e0b"></div>
+    </div>
+  </div>
+</div>
+
   <div id="voteBox" class="mono" style="margin-top:8px"></div>
 </div>
 
@@ -309,7 +318,10 @@ window.addEventListener("error", (e) => {
     voteVoterId: document.getElementById("voteVoterId"),
     btnVoteCast: document.getElementById("btnVoteCast"),
     btnVoteClose: document.getElementById("btnVoteClose"),
-    voteBox: document.getElementById("voteBox")
+    voteBox: document.getElementById("voteBox"),
+    voteTimer: document.getElementById("voteTimer"),
+    voteProgress: document.getElementById("voteProgress")
+
 
   };
 
@@ -323,6 +335,42 @@ let ws = null;
 let wsReconnectTimer = null;
   
 let refreshTimer = null;
+
+let voteInterval = null;
+let voteEndsAt = null;
+
+function startVoteCountdown(startedAtISO, durationSec) {
+  clearInterval(voteInterval);
+  if (!Number.isFinite(durationSec) || durationSec <= 0 || !startedAtISO) {
+    els.voteTimer.textContent = "∞";
+    els.voteProgress.style.width = "0%";
+    return;
+  }
+  const started = Date.parse(startedAtISO);
+  voteEndsAt = started + durationSec * 1000;
+
+  const tick = () => {
+    const now = Date.now();
+    const remain = Math.max(0, voteEndsAt - now);
+    const total = durationSec * 1000;
+    const percent = Math.max(0, Math.min(100, ((total - remain) / total) * 100));
+    els.voteProgress.style.width = percent.toFixed(1) + "%";
+    const s = Math.ceil(remain / 1000);
+    const mm = String(Math.floor(s / 60)).padStart(2, "0");
+    const ss = String(s % 60).padStart(2, "0");
+    els.voteTimer.textContent = `${mm}:${ss}`;
+    if (remain <= 0) clearInterval(voteInterval);
+  };
+  tick();
+  voteInterval = setInterval(tick, 250);
+}
+
+function stopVoteCountdown() {
+  clearInterval(voteInterval);
+  els.voteTimer.textContent = "—";
+  els.voteProgress.style.width = "0%";
+}
+
   
 function scheduleRefresh() {
   clearTimeout(refreshTimer);
@@ -360,6 +408,7 @@ function wsConnect() {
   }
   case "vote/started": {
     currentVoteOptions = new Set((msg.options || []).map(Number));
+    startVoteCountdown(msg.startedAt, msg.durationSec || 0);
     loadGraph(currentGraphMode);
     // Statusbox antippen
     flash(els.graphSvg);
@@ -367,6 +416,7 @@ function wsConnect() {
   }
   case "vote/closed": {
     currentVoteOptions = new Set();
+    stopVoteCountdown();
     scheduleRefresh(); // Gewinner angewendet? -> Full refresh
     break;
   }
@@ -597,8 +647,14 @@ els.btnVoteStart.onclick = async () => {
     // Edge-IDs für Graph-Highlight merken
     currentVoteOptions = new Set((r.vote?.options || []).map(Number));
     loadGraph(currentGraphMode);
+
+      // r.vote.startedAt / r.vote.durationSec kommen vom Server
+startVoteCountdown(r.vote?.startedAt, r.vote?.durationSec || 0);
+    
   } catch (e) { els.voteBox.textContent = JSON.stringify(e, null, 2); }
 };
+
+
 
 // Voting: Status
 els.btnVoteStatus.onclick = async () => {
@@ -609,6 +665,8 @@ els.btnVoteStatus.onclick = async () => {
     els.voteBox.textContent = JSON.stringify(r, null, 2);
     currentVoteOptions = new Set((r.options || []).map(Number));
     loadGraph(currentGraphMode);
+    startVoteCountdown(r.startedAt, r.durationSec || 0);
+
   } catch (e) { els.voteBox.textContent = JSON.stringify(e, null, 2); }
 };
 
