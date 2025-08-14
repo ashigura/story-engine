@@ -231,7 +231,8 @@ const port = process.env.PORT || 8080;
 // simple API key check (Health & Admin-UI sind öffentlich lesbar)
 app.use((req, res, next) => {
   // Public: health + statische Admin-UI
-  if (req.path === "/health" || req.path.startsWith("/admin-ui") || req.path === "/ws") return next();
+  if (req.path === "/health" || req.path.startsWith("/admin-ui") || req.path === "/ws" ||
+    req.path === "/ingest/message") return next();
 
 
   // Key aus Header ODER Query (falls mal nötig ?key=...)
