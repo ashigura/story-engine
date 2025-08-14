@@ -56,6 +56,12 @@ footer { padding:10px 16px; color:#64748b; font-size:12px; }
   100%{box-shadow:0 0 0 12px rgba(34,197,94,0)}
 }
 
+    .msm-card { border:1px solid #1e293b; border-radius:10px; padding:10px; background:#0b1220; transition:background .2s, box-shadow .2s, border-color .2s; }
+.msm-card.subscribed { background:#0c1a2e; box-shadow:0 0 0 1px #1f3a5f inset; }
+.msm-card.focused { border-color:#fbbf24; box-shadow:0 0 0 2px rgba(251,191,36,.35); }
+.msm-title { display:flex; justify-content:space-between; align-items:center; margin-bottom:6px; }
+.msm-name { font-weight:600; }
+
     
   </style>
   <!-- D3 + Dagre-D3 für Graph-Layout (LR) -->
@@ -382,13 +388,26 @@ const msm = {
   subs: new Set(),        // aktuell abonnierte sids
 };
 
+// Deterministische Session-Farbe (HSL) aus ID
+function sessionHueFromId(id){ // 0..360 verteilt
+  let x = Number(id) >>> 0;
+  x ^= x << 13; x ^= x >>> 17; x ^= x << 5;
+  return (x % 360 + 360) % 360;
+}
+function sessionColor(id){ // CSS-Farbe
+  const h = sessionHueFromId(id);
+  return `hsl(${h}deg 70% 60%)`;
+}
+
+  
 function msmRenderCard(s) {
   const sid = s.id;
   let el = msm.cards.get(sid);
+  const col = sessionColor(sid);
   const html = `
-    <div style="border:1px solid #1e293b;border-radius:10px;padding:10px;background:#0b1220">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
-        <strong>Session #${sid}</strong>
+    <div class="msm-card ${msm.subs.has(sid) ? 'subscribed' : ''} ${Number(els.sessionId.value)===sid ? 'focused' : ''}">
+      <div class="msm-title">
+        <span class="msm-name" style="color:${col}">Session #${sid}</span>
         <span class="pill">${s.status || "?"}</span>
       </div>
       <div class="mono" style="font-size:12px;line-height:1.3">
@@ -407,22 +426,33 @@ function msmRenderCard(s) {
     el.innerHTML = html;
     els.msmGrid.appendChild(el);
     msm.cards.set(sid, el);
-    // initial details laden
     msmRefreshCard(sid);
   } else {
     el.innerHTML = html;
   }
 
-  // Buttons in der Card verdrahten
+  // Buttons
   const btnFocus = el.querySelector('[data-act="focus"]');
   const btnDetails = el.querySelector('[data-act="details"]');
   btnFocus?.addEventListener("click", () => {
     els.sessionId.value = sid;
+    // Fokus-Style neu setzen (alle Karten neu rendern)
+    Array.from(msm.cards.keys()).forEach(id => {
+      const c = msm.cards.get(id).firstElementChild;
+      c.classList.toggle("focused", id===sid);
+    });
     loadSession();
+    loadGraph(currentGraphMode);
+
     if (ws && ws.readyState === 1) ws.send(JSON.stringify({ type:"subscribe", sessionId: sid }));
+    // sicherstellen, dass in den Subs markiert ist
+    msm.subs.add(sid);
+    const card = msm.cards.get(sid).firstElementChild;
+    card.classList.add("subscribed");
   });
   btnDetails?.addEventListener("click", () => msmRefreshCard(sid));
 }
+
 
 async function msmRefreshCard(sid) {
   try {
@@ -473,6 +503,8 @@ els.msmSubAll.onclick = () => {
   ids.forEach(sid => {
     if (!msm.subs.has(sid) && ws && ws.readyState === 1) {
       ws.send(JSON.stringify({ type:"subscribe", sessionId: sid }));
+      const c = msm.cards.get(sid)?.firstElementChild;
+if (c) c.classList.add("subscribed");
       msm.subs.add(sid);
     }
   });
@@ -482,6 +514,8 @@ els.msmUnsubAll.onclick = () => {
   ids.forEach(sid => {
     if (msm.subs.has(sid) && ws && ws.readyState === 1) {
       ws.send(JSON.stringify({ type:"unsubscribe", sessionId: sid }));
+      const c2 = msm.cards.get(sid)?.firstElementChild;
+if (c2) c2.classList.remove("subscribed");
       msm.subs.delete(sid);
     }
   });
@@ -507,6 +541,12 @@ function msmOnWs(msg) {
       msmScheduleUpdate(sid);
       break;
   }
+  const card = msm.cards.get(msg.sessionId)?.firstElementChild;
+if (card) {
+  card.classList.toggle("subscribed", msm.subs.has(msg.sessionId));
+  card.classList.toggle("focused", Number(els.sessionId.value)===msg.sessionId);
+}
+
 }
 
 
@@ -1104,11 +1144,14 @@ function renderGraph(payload) {
     if (n.id === currentNodeId) { fill = "#22c55e"; stroke = "#14532d"; }         // aktueller Knoten: grün
     else if (visitedSet.has(n.id)) { fill = "#2563eb"; stroke = "#1e3a8a"; }      // besucht: blau
 
+    const sid = Number(els.sessionId.value);
+  const sessStroke = sessionColor(sid);
+    
     const label = `${n.id}\n${n.title || ""}`;
     g.setNode(String(n.id), {
       label,
       rx: 8, ry: 8,
-      style: `fill:${fill};stroke:${stroke};color:#0b1220`,
+      style: `fill:${fill};stroke:${sessStroke};stroke-width:2px;color:#0b1220`,
       labelStyle: "fill:#e2e8f0"
     });
   });
