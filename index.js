@@ -157,6 +157,10 @@ app.post("/sessions", async (req, res) => {
       [startNodeId]
     );
     await client.query("COMMIT");
+    
+publish(q.rows[0].id, "session/created", {});
+
+    
 
     const id = q.rows[0].id;
     res.setHeader("Location", `/sessions/${id}`);
@@ -1404,6 +1408,22 @@ app.post("/sessions/:id/end", async (req, res) => {
   }
 });
 
+// Admin: alle Sessions grob listen
+app.get("/admin/sessions", async (_req, res) => {
+  try {
+    const q = await pool.query(`
+      select s.id, s.status, s.current_node_id, n.title as current_title, s.updated_at
+      from session s
+      left join node n on n.id = s.current_node_id
+      order by s.updated_at desc nulls last, s.id desc
+      limit 200
+    `);
+    res.json({ sessions: q.rows });
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ error: "list_sessions_failed", message: String(e) });
+  }
+});
 
 
 // Static Admin-UI (serves files from /public)
