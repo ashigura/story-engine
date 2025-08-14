@@ -300,6 +300,62 @@ footer { padding:10px 16px; color:#64748b; font-size:12px; }
   let currentGraphMode = "visited";
   let currentVoteOptions = new Set();    // für Graph-Highlight der abstimmbaren Edges
 
+  const WS_URL = BASE_URL.replace(/^http/, "ws") + "/ws";
+let ws = null;
+let wsReconnectTimer = null;
+
+function wsConnect() {
+  try { if (ws) ws.close(); } catch {}
+  ws = new WebSocket(WS_URL);
+
+  ws.onopen = () => {
+    // bei bestehender Session erneut subscriben
+    const sid = Number(els.sessionId.value);
+    if (Number.isFinite(sid)) wsSend({ type: "subscribe", sessionId: sid });
+  };
+
+  ws.onmessage = (ev) => {
+    let msg = null;
+    try { msg = JSON.parse(ev.data); } catch { return; }
+    const sid = Number(els.sessionId.value);
+    if (!Number.isFinite(sid) || msg.sessionId !== sid) return;
+
+    switch (msg.type) {
+      case "decision/applied":
+      case "rewind/applied":
+      case "state/updated":
+      case "option/added":
+      case "edge/updated":
+      case "vote/closed":
+        // Full refresh für Konsistenz
+        loadSession();
+        loadGraph(currentGraphMode);
+        break;
+      case "vote/started":
+        currentVoteOptions = new Set((msg.options || []).map(Number));
+        loadGraph(currentGraphMode);
+        break;
+      case "vote/tally":
+        // Tally live updaten
+        els.voteBox.textContent = JSON.stringify({ tally: msg.tally }, null, 2);
+        break;
+    }
+  };
+
+  ws.onclose = () => {
+    ws = null;
+    clearTimeout(wsReconnectTimer);
+    wsReconnectTimer = setTimeout(wsConnect, 1500);
+  };
+
+  ws.onerror = () => { try { ws.close(); } catch {} };
+}
+
+function wsSend(obj) {
+  if (ws && ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify(obj));
+}
+wsConnect(); // sofort verbinden
+
 
 
   // Persistenter Key
@@ -632,6 +688,16 @@ els.btnClear.onclick = async () => {
   async function loadSession() {
     const sid = Number(els.sessionId.value);
     if (!Number.isFinite(sid)) return alert("Session-ID fehlt/ungültig.");
+    const prevSid = Number(els.sessionId.dataset.prev || "NaN");
+    const sid = Number(els.sessionId.value);
+    if (Number.isFinite(prevSid) && prevSid !== sid) {
+      wsSend({ type: "unsubscribe", sessionId: prevSid });
+    }
+    if (Number.isFinite(sid)) {
+      wsSend({ type: "subscribe", sessionId: sid });
+      els.sessionId.dataset.prev = String(sid);
+    }
+
     const r = await api(`/sessions/${sid}`, { headers: headers() });
    showStatus(r);
     if (Array.isArray(r.options) && r.options.length) {
