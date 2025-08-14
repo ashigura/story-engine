@@ -1327,6 +1327,83 @@ setInterval(async () => {
   }
 }, 2000);
 
+// Sichtbare Optionen (Edges) für die aktuelle Position
+app.get("/sessions/:id/options", async (req, res) => {
+  const sessionId = Number(req.params.id);
+  if (!Number.isFinite(sessionId)) return res.status(400).json({ error: "invalid_session_id" });
+
+  try {
+    const s = await pool.query(`select current_node_id, state_json from session where id=$1`, [sessionId]);
+    if (!s.rowCount) return res.status(404).json({ error: "session_not_found" });
+    const { current_node_id, state_json } = s.rows[0];
+    if (!current_node_id) return res.json({ sessionId, options: [] });
+
+    const e = await pool.query(
+      `select id, label, to_node_id, condition_json from edge where from_node_id=$1 order by id asc`,
+      [current_node_id]
+    );
+    const st = state_json || {};
+    const visible = e.rows.filter(row => evalCondition(st, row.condition_json));
+    res.json({ sessionId, currentNodeId: current_node_id, options: visible });
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ error: "options_failed", message: String(e) });
+  }
+});
+
+// Direkt zu einem Node springen (kein Decision‑Eintrag)
+app.post("/sessions/:id/jump", async (req, res) => {
+  const sessionId = Number(req.params.id);
+  const toNodeId = Number(req.body?.toNodeId);
+  if (!Number.isFinite(sessionId) || !Number.isFinite(toNodeId))
+    return res.status(400).json({ error: "invalid_ids" });
+
+  const client = await pool.connect();
+  try {
+    await client.query("BEGIN");
+    const s = await client.query(`select id from session where id=$1 for update`, [sessionId]);
+    if (!s.rowCount) { await client.query("ROLLBACK"); return res.status(404).json({ error: "session_not_found" }); }
+
+    // Node existiert?
+    const n = await client.query(`select id from node where id=$1`, [toNodeId]);
+    if (!n.rowCount) { await client.query("ROLLBACK"); return res.status(400).json({ error: "target_node_not_found" }); }
+
+    await client.query(`update session set current_node_id=$1, updated_at=now() where id=$2`, [toNodeId, sessionId]);
+    await client.query("COMMIT");
+
+    // WS‑Update (falls vorhanden)
+    if (typeof publish === "function") publish(sessionId, "jump/applied", { toNodeId });
+
+    res.json({ ok: true, toNodeId });
+  } catch (e) {
+    try { await client.query("ROLLBACK"); } catch {}
+    console.error(e);
+    res.status(500).json({ error: "jump_failed", message: String(e) });
+  } finally {
+    client.release();
+  }
+});
+
+// Session beenden (Status = ended)
+app.post("/sessions/:id/end", async (req, res) => {
+  const sessionId = Number(req.params.id);
+  if (!Number.isFinite(sessionId)) return res.status(400).json({ error: "invalid_session_id" });
+
+  try {
+    const u = await pool.query(
+      `update session set status='ended', updated_at=now() where id=$1 returning id, status`,
+      [sessionId]
+    );
+    if (!u.rowCount) return res.status(404).json({ error: "session_not_found" });
+
+    if (typeof publish === "function") publish(sessionId, "session/ended", {});
+    res.json({ ok: true, id: sessionId, status: "ended" });
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ error: "end_failed", message: String(e) });
+  }
+});
+
 
 
 // Static Admin-UI (serves files from /public)
