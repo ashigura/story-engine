@@ -102,7 +102,8 @@ const port = process.env.PORT || 8080;
 // simple API key check (Health & Admin-UI sind öffentlich lesbar)
 app.use((req, res, next) => {
   // Public: health + statische Admin-UI
-  if (req.path === "/health" || req.path.startsWith("/admin-ui")) return next();
+  if (req.path === "/health" || req.path.startsWith("/admin-ui") || req.path === "/ws") return next();
+
 
   // Key aus Header ODER Query (falls mal nötig ?key=...)
   const key = req.header("x-api-key") || req.query.key;
@@ -319,6 +320,8 @@ app.post("/sessions/:id/rewind", async (req, res) => {
     );
 
     await client.query("COMMIT");
+    publish(sessionId, "rewind/applied", { steps, newCurrentNodeId });
+
     res.json({
       ok: true,
       sessionId,
@@ -500,6 +503,8 @@ app.post("/sessions/:id/decision", async (req, res) => {
 
 
     await client.query("COMMIT");
+    publish(id, "decision/applied", { toNodeId: edge.to_node_id, edgeId: edge.id });
+
     res.json({ ok: true, toNodeId: edge.to_node_id });
   } catch (e) {
     try { await client.query("ROLLBACK"); } catch {}
@@ -641,6 +646,7 @@ app.post("/sessions/:id/add-option", async (req, res) => {
 
     await client.query("COMMIT");
 
+
     res.json({
       ok: true,
       newNode: newNode.rows[0],
@@ -727,6 +733,7 @@ app.patch("/edges/:edgeId", async (req, res) => {
     );
 
     await client.query("COMMIT");
+
     res.json({ ok: true, edge: upd.rows[0] });
   } catch (e) {
     try { await client.query("ROLLBACK"); } catch {}
@@ -894,6 +901,8 @@ app.patch("/sessions/:id/state", async (req, res) => {
       [nextState, sessionId]
     );
     await client.query("COMMIT");
+    publish(sessionId, "state/updated", { state: nextState });
+
     res.json({ ok: true, state: nextState });
   } catch (e) {
     try { await client.query("ROLLBACK"); } catch {}
@@ -1049,6 +1058,8 @@ app.post("/sessions/:id/vote/start", async (req, res) => {
     const next = { ...(session.state_json || {}), vote };
     await client.query(`update session set state_json=$1, updated_at=now() where id=$2`, [next, sessionId]);
     await client.query("COMMIT");
+    publish(sessionId, "vote/started", { options: vote.options, startedAt: vote.startedAt });
+
     res.status(201).json({ ok: true, vote });
   } catch (e) {
     try { await client.query("ROLLBACK"); } catch {}
@@ -1096,6 +1107,8 @@ app.post("/sessions/:id/vote/cast", async (req, res) => {
     const next = { ...state, vote };
     await client.query(`update session set state_json=$1, updated_at=now() where id=$2`, [next, sessionId]);
     await client.query("COMMIT");
+    publish(sessionId, "vote/tally", { tally: vote.tally });
+
     res.json({ ok: true, tally: vote.tally });
   } catch (e) {
     try { await client.query("ROLLBACK"); } catch {}
@@ -1163,6 +1176,8 @@ app.post("/sessions/:id/vote/close", async (req, res) => {
     }
 
     await client.query("COMMIT");
+    publish(sessionId, "vote/closed", { winner, applied });
+
     res.json({ ok: true, winner, applied });
   } catch (e) {
     try { await client.query("ROLLBACK"); } catch {}
@@ -1173,6 +1188,42 @@ app.post("/sessions/:id/vote/close", async (req, res) => {
   }
 });
 
+const http = require("http");
+const WebSocket = require("ws");
+
+const server = http.createServer(app);
+const wss = new WebSocket.Server({ server, path: "/ws" });
+
+// einfache Subscriptions pro Verbindung
+wss.on("connection", (ws) => {
+  ws.subscriptions = new Set();
+
+  ws.on("message", (buf) => {
+    let msg = null;
+    try { msg = JSON.parse(buf.toString()); } catch { return; }
+    if (msg?.type === "subscribe" && Number.isFinite(Number(msg.sessionId))) {
+      ws.subscriptions.add(Number(msg.sessionId));
+      ws.send(JSON.stringify({ type: "subscribed", sessionId: Number(msg.sessionId) }));
+    }
+    if (msg?.type === "unsubscribe" && Number.isFinite(Number(msg.sessionId))) {
+      ws.subscriptions.delete(Number(msg.sessionId));
+      ws.send(JSON.stringify({ type: "unsubscribed", sessionId: Number(msg.sessionId) }));
+    }
+  });
+
+  ws.on("close", () => { ws.subscriptions.clear(); });
+});
+
+// Broadcast‑Helper
+function publish(sessionId, type, payload = {}) {
+  const msg = JSON.stringify({ type, sessionId, ...payload, ts: Date.now() });
+  wss.clients.forEach((ws) => {
+    if (ws.readyState === WebSocket.OPEN && ws.subscriptions?.has(sessionId)) {
+      ws.send(msg);
+    }
+  });
+}
+
 
 // Static Admin-UI (serves files from /public)
 const path = require("path");
@@ -1180,4 +1231,5 @@ app.use("/admin-ui", express.static(path.join(__dirname, "public")));
 
 //////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////
-app.listen(port, () => console.log("Server on :" + port));
+server.listen(port, () => console.log("HTTP+WS on :" + port));
+
