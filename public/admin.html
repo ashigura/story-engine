@@ -127,6 +127,19 @@ footer { padding:10px 16px; color:#64748b; font-size:12px; }
       </div>
     </div>
 
+    <div style="margin-top:12px">
+  <h2>Admin‑Actions</h2>
+  <div class="row">
+    <button class="btn gray" id="btnListOptions">GET /sessions/:id/options</button>
+    <button class="btn red" id="btnEndSession">POST /sessions/:id/end</button>
+  </div>
+  <div class="row">
+    <input id="jumpToNodeId" placeholder="toNodeId (Jump)" />
+    <button class="btn" id="btnJump">POST /sessions/:id/jump</button>
+  </div>
+</div>
+
+
 
 
     <!-- Snapshots -->
@@ -320,7 +333,12 @@ window.addEventListener("error", (e) => {
     btnVoteClose: document.getElementById("btnVoteClose"),
     voteBox: document.getElementById("voteBox"),
     voteTimer: document.getElementById("voteTimer"),
-    voteProgress: document.getElementById("voteProgress")
+    voteProgress: document.getElementById("voteProgress"),
+    btnListOptions: document.getElementById("btnListOptions"),
+    btnEndSession: document.getElementById("btnEndSession"),
+    jumpToNodeId: document.getElementById("jumpToNodeId"),
+    btnJump: document.getElementById("btnJump")
+
 
 
   };
@@ -862,6 +880,48 @@ els.btnStateApply.onclick = async () => {
     await loadSession();
   } catch (e) { showStatus(e); }
 };
+
+  // Sichtbare Optionen
+els.btnListOptions.onclick = async () => {
+  const sid = Number(els.sessionId.value);
+  if (!Number.isFinite(sid)) return alert("Session-ID fehlt/ungültig.");
+  try {
+    const r = await api(`/sessions/${sid}/options`, { headers: headers() });
+    showStatus(r);
+    // QoL: erste Option in Felder übernehmen
+    if (Array.isArray(r.options) && r.options.length) {
+      els.edgeId.value = r.options[0].id;
+      els.voteEdgeId.value = r.options[0].id;
+    }
+  } catch (e) { showStatus(e); }
+};
+
+// Jump
+els.btnJump.onclick = async () => {
+  const sid = Number(els.sessionId.value);
+  const toNodeId = Number(els.jumpToNodeId.value);
+  if (!Number.isFinite(sid) || !Number.isFinite(toNodeId)) return alert("IDs prüfen.");
+  try {
+    const r = await api(`/sessions/${sid}/jump`, {
+      method: "POST", headers: headers(), body: JSON.stringify({ toNodeId })
+    });
+    showStatus(r);
+    await loadSession();
+    loadGraph(currentGraphMode);
+  } catch (e) { showStatus(e); }
+};
+
+// End Session
+els.btnEndSession.onclick = async () => {
+  const sid = Number(els.sessionId.value);
+  if (!Number.isFinite(sid)) return alert("Session-ID fehlt/ungültig.");
+  try {
+    const r = await api(`/sessions/${sid}/end`, { method: "POST", headers: headers() });
+    showStatus(r);
+    await loadSession();
+  } catch (e) { showStatus(e); }
+};
+
 
   async function loadGraph(mode) {
   const sid = Number(els.sessionId.value);
