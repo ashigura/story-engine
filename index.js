@@ -645,6 +645,7 @@ app.post("/sessions/:id/add-option", async (req, res) => {
     );
 
     await client.query("COMMIT");
+    publish(sessionId, "option/added", { edge: newEdge, node: newNode });
 
 
     res.json({
@@ -733,6 +734,8 @@ app.patch("/edges/:edgeId", async (req, res) => {
     );
 
     await client.query("COMMIT");
+    publish(sessionId, "edge/updated", { edgeId }); // bzw. deleted
+
 
     res.json({ ok: true, edge: upd.rows[0] });
   } catch (e) {
@@ -751,14 +754,40 @@ app.delete("/edges/:edgeId", async (req, res) => {
   if (!Number.isFinite(edgeId)) return res.status(400).json({ error: "invalid_edge_id" });
 
   try {
-    const del = await pool.query(`delete from edge where id=$1 returning id`, [edgeId]);
-    if (!del.rowCount) return res.status(404).json({ error: "edge_not_found" });
-    res.json({ ok: true, deletedEdgeId: edgeId });
+    // 1) Edge VOR dem Löschen laden (wir brauchen from_node_id)
+    const qEdge = await pool.query(
+      `SELECT id, from_node_id FROM edge WHERE id = $1`,
+      [edgeId]
+    );
+    if (!qEdge.rowCount) return res.status(404).json({ error: "edge_not_found" });
+
+    const { from_node_id } = qEdge.rows[0];
+
+    // 2) Betroffene Sessions ermitteln (alle, die gerade an diesem from_node sind)
+    const qSess = await pool.query(
+      `SELECT id FROM session WHERE current_node_id = $1`,
+      [from_node_id]
+    );
+    const sessionIds = qSess.rows.map(r => r.id);
+
+    // 3) Edge löschen
+    await pool.query(`DELETE FROM edge WHERE id = $1`, [edgeId]);
+
+    // 4) Live-Event für alle betroffenen Sessions senden (falls publish vorhanden)
+    if (typeof publish === "function") {
+      for (const sid of sessionIds) {
+        publish(sid, "edge/updated", { edgeId, deleted: true });
+      }
+    }
+
+    // 5) Antwort
+    res.json({ ok: true, deletedEdgeId: edgeId, affectedSessions: sessionIds });
   } catch (e) {
     console.error(e);
     res.status(500).json({ error: "edge_delete_failed", message: String(e) });
   }
 });
+
 
 // Snapshot anlegen
 app.post("/sessions/:id/snapshot", async (req, res) => {
