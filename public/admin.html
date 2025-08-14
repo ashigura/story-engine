@@ -1137,24 +1137,29 @@ function renderGraph(payload) {
 
   const g = new dagreD3.graphlib.Graph().setGraph({ rankdir: "LR", nodesep: 30, ranksep: 60 });
 
-  nodes.forEach(n => {
-    // Farbwahl
-    let fill = "#0f172a";  // default
-    let stroke = "#334155";
-    if (n.id === currentNodeId) { fill = "#22c55e"; stroke = "#14532d"; }         // aktueller Knoten: grün
-    else if (visitedSet.has(n.id)) { fill = "#2563eb"; stroke = "#1e3a8a"; }      // besucht: blau
+ nodes.forEach(n => {
+  let fill = "#0f172a";  // Standard-Hintergrund
+  let stroke = "#334155"; // Standard-Rand
 
-    const sid = Number(els.sessionId.value);
-  const sessStroke = sessionColor(sid);
-    
-    const label = `${n.id}\n${n.title || ""}`;
-    g.setNode(String(n.id), {
-      label,
-      rx: 8, ry: 8,
-      style: `fill:${fill};stroke:${sessStroke};stroke-width:2px;color:#0b1220`,
-      labelStyle: "fill:#e2e8f0"
-    });
+  if (n.id === currentNodeId) {
+    // Aktueller Node: Sessionfarbe
+    fill = sessionColor;
+    stroke = sessionColor;
+  } else if (visitedSet.has(n.id)) {
+    // Besuchte Nodes: Blau
+    fill = "#2563eb";
+    stroke = "#1e3a8a";
+  }
+
+  const label = `${n.id}\n${n.title || ""}`;
+  g.setNode(String(n.id), {
+    label,
+    rx: 8, ry: 8,
+    style: `fill:${fill};stroke:${stroke};color:#0b1220`,
+    labelStyle: "fill:#e2e8f0"
   });
+});
+
 
   edges.forEach(e => {
   const inVote = currentVoteOptions.has(Number(e.id));
