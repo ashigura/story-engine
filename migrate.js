@@ -121,7 +121,7 @@ if (require.main === module) {
     .then(() => process.exit(0));
 }
 
--- chat events (eingehende Nachrichten/Reaktionen aus MultiChat)
+// chat events (eingehende Nachrichten/Reaktionen aus MultiChat)
 create table if not exists chat_event (
   id            bigserial primary key,
   session_id    int not null,
