@@ -89,6 +89,135 @@ function applyEffect(state, effect = {}) {
   return next;
 }
 
+// ----- Vote Parsing (sehr einfach, MVP) -----
+const EMOJI_MAP = new Map([ ["👍",1], ["👎",2], ["1️⃣",1], ["2️⃣",2], ["3️⃣",3], ["4️⃣",4] ]);
+function parseVoteIndex(text) {
+  if (!text || typeof text !== "string") return null;
+  const t = text.trim().toLowerCase();
+  // Befehle: !vote 2 | vote 2 | #2 | option 2
+  const m = t.match(/(?:!?\s*vote|option|#)\s*([1-9][0-9]?)/) || t.match(/\b([1-9][0-9]?)\b/);
+  if (m) return Number(m[1]);
+  for (const [emo, idx] of EMOJI_MAP) if (t.includes(emo)) return idx;
+  return null;
+}
+
+// Sichtbare Optionen (wie im GET /sessions/:id)
+async function getVisibleOptions(sessionId) {
+  const s = await pool.query(`select current_node_id, state_json from session where id=$1`, [sessionId]);
+  if (!s.rowCount) return { currentNodeId: null, options: [] };
+  const { current_node_id, state_json } = s.rows[0];
+  if (!current_node_id) return { currentNodeId: null, options: [] };
+  const e = await pool.query(
+    `select id, label, to_node_id, condition_json from edge where from_node_id=$1 order by id asc`,
+    [current_node_id]
+  );
+  const st = state_json || {};
+  const visible = e.rows.filter(row => evalCondition(st, row.condition_json));
+  return { currentNodeId: current_node_id, options: visible };
+}
+
+// Stimmen abgeben (interne Helper)
+async function castVote(sessionId, edgeId, voterId) {
+  // reuse deines vote/cast Codes direkt hier (kleiner interner Call)
+  const client = await pool.connect();
+  try {
+    await client.query("BEGIN");
+    const s = await client.query(`select id, state_json from session where id=$1 for update`, [sessionId]);
+    if (!s.rowCount) { await client.query("ROLLBACK"); return { ok:false, error:"session_not_found" }; }
+    const state = s.rows[0].state_json || {};
+    const vote = state.vote;
+    if (!vote?.active) { await client.query("ROLLBACK"); return { ok:false, error:"no_active_vote" }; }
+
+    const allowed = new Set((vote.options || []).map(Number));
+    if (!allowed.has(edgeId)) { await client.query("ROLLBACK"); return { ok:false, error:"edge_not_in_vote" }; }
+
+    vote.voters = vote.voters || {};
+    if (voterId) {
+      const prev = vote.voters[voterId];
+      if (prev && prev !== edgeId) {
+        vote.tally[String(prev)] = Math.max(0, Number(vote.tally[String(prev)] || 0) - 1);
+      }
+      vote.voters[voterId] = edgeId;
+    }
+    vote.tally[String(edgeId)] = Number(vote.tally[String(edgeId)] || 0) + 1;
+
+    const next = { ...state, vote };
+    await client.query(`update session set state_json=$1, updated_at=now() where id=$2`, [next, sessionId]);
+    await client.query("COMMIT");
+
+    if (typeof publish === "function") publish(sessionId, "vote/tally", { tally: vote.tally });
+    return { ok:true };
+  } catch (e) {
+    try { await client.query("ROLLBACK"); } catch {}
+    console.error(e);
+    return { ok:false, error:String(e) };
+  } finally {
+    client.release();
+  }
+}
+
+// Einfacher Worker: verarbeitet neue chat_event Zeilen -> Vote
+const VOTE_COOLDOWN_MS = 4000; // per user/session
+const lastVoteMap = new Map(); // key: sessionId|userId
+
+setInterval(async () => {
+  try {
+    // Hole ein paar ungearbeitete Events
+    const q = await pool.query(`
+      select id, session_id, platform, user_id, username, message, kind, payload_json, created_at
+      from chat_event
+      where processed_at is null
+      order by created_at asc
+      limit 50
+    `);
+
+    for (const ev of q.rows) {
+      const key = `${ev.session_id}|${ev.user_id}`;
+      const now = Date.now();
+      const last = lastVoteMap.get(key) || 0;
+
+      let handled = false;
+      let outcome = null;
+
+      // Nur wenn ein aktives Voting läuft: versuche Mapping
+      const { options } = await getVisibleOptions(ev.session_id);
+      if (options.length) {
+        // parse Index aus Text oder Reaction
+        const idx = parseVoteIndex(ev.message || (ev.payload_json?.reaction || ""));
+        if (idx && idx >= 1 && idx <= options.length) {
+          // Cooldown
+          if (now - last >= VOTE_COOLDOWN_MS) {
+            const edgeId = Number(options[idx - 1].id);
+            const r = await castVote(ev.session_id, edgeId, `${ev.platform}:${ev.user_id}`);
+            handled = !!r.ok;
+            outcome = r.ok ? `vote->edge:${edgeId}` : r.error;
+            if (r.ok) lastVoteMap.set(key, now);
+          } else {
+            handled = true; // aber gedrosselt
+            outcome = "cooldown";
+          }
+        }
+      }
+
+      await pool.query(
+        `update chat_event set processed_at = now(), payload_json = jsonb_set(payload_json,'{outcome}', to_jsonb($1::text), true) where id=$2`,
+        [ outcome || "ignored", ev.id ]
+      );
+
+      // Live-Feed in Admin-UI
+      if (typeof publish === "function") {
+        publish(ev.session_id, "ingest/processed", {
+          platform: ev.platform,
+          username: ev.username,
+          message: ev.message,
+          outcome: outcome || "ignored"
+        });
+      }
+    }
+  } catch (e) {
+    console.error("ingest worker error", e);
+  }
+}, 1200);
 
 
 
@@ -1422,6 +1551,42 @@ app.get("/admin/sessions", async (_req, res) => {
   } catch (e) {
     console.error(e);
     res.status(500).json({ error: "list_sessions_failed", message: String(e) });
+  }
+});
+
+
+// Ingest: nimmt normalisierte Chat-/Reaction-Events entgegen (für Casterlabs-Bridge)
+app.post("/ingest/message", async (req, res) => {
+  const key = req.header("x-ingest-key");
+  if (!process.env.INGEST_KEY || key !== process.env.INGEST_KEY) {
+    return res.status(401).json({ error: "unauthorized" });
+  }
+
+  const {
+    sessionId,               // Pflicht: wohin routen
+    platform = "unknown",    // twitch|youtube|...
+    userId = "unknown",
+    username = "unknown",
+    message = "",
+    kind = "message",        // message|reaction|command
+    payload = {}             // beliebige Extras (emotes, badges, amount, ...)
+  } = req.body || {};
+
+  const sid = Number(sessionId);
+  if (!Number.isFinite(sid)) return res.status(400).json({ error: "invalid_session_id" });
+
+  try {
+    await pool.query(
+      `insert into chat_event (session_id, platform, user_id, username, message, kind, payload_json)
+       values ($1,$2,$3,$4,$5,$6,$7)`,
+      [sid, String(platform), String(userId), String(username), String(message||""), String(kind||"message"), payload||{}]
+    );
+    // optional: leichter Push in UI
+    if (typeof publish === "function") publish(sid, "ingest/new", { platform, username, message, kind });
+    res.status(201).json({ ok: true });
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ error: "ingest_failed", message: String(e) });
   }
 });
 
