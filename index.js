@@ -217,7 +217,7 @@ setInterval(async () => {
   } catch (e) {
     console.error("ingest worker error", e);
   }
-}, 1200);
+}, 200);
 
 
 
