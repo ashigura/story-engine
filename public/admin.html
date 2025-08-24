@@ -397,8 +397,6 @@ let refreshTimer = null;
 let voteInterval = null;
 let voteEndsAt = null;
 
-
-
 // ===== Multi-Session-Monitor (MSM) =====
 const msm = {
   cards: new Map(),       // sid -> DOM
@@ -1228,23 +1226,141 @@ els.btnEndSession.onclick = async () => {
 };
 
 
- async function loadGraph(mode) {
-  currentGraphMode = mode; // <— merken
+  async function loadGraph(mode) {
   const sid = Number(els.sessionId.value);
   if (!Number.isFinite(sid)) return alert("Session-ID fehlt/ungültig.");
+
   try {
-    const data = await api(`/sessions/${sid}/graph?mode=${mode}`, { headers: headers() });
-    renderGraph(data, collectSessionMarkers?.() || []); // falls du sessionMarkers nutzt
+    if (mode === "all") {
+      const [graphData, list] = await Promise.all([
+        api(`/sessions/${sid}/graph?mode=all`, { headers: headers() }),
+        api(`/admin/sessions`, { headers: headers() })
+      ]);
+      // Marker vorbereiten: { sid, nodeId, color }
+      const markers = (list.sessions || [])
+        .filter(s => Number.isFinite(s.current_node_id))
+        .map(s => ({ sid: s.id, nodeId: s.current_node_id, color: sessionColor(s.id) }));
+      renderGraph(graphData, markers);
+    } else {
+      const data = await api(`/sessions/${sid}/graph?mode=${mode}`, { headers: headers() });
+      renderGraph(data, []); // keine globalen Marker im visited-Modus
+    }
   } catch (e) { showStatus(e); }
 }
-
 
 els.btnGraphVisited.onclick = () => { currentGraphMode = "visited"; loadGraph(currentGraphMode); };
 els.btnGraphAll.onclick     = () => { currentGraphMode = "all";     loadGraph(currentGraphMode); };
 
 
+function renderGraph(payload, sessionMarkers = []) {
+  const { nodes = [], edges = [], currentNodeId = null, visitedNodeIds = [] } = payload;
+  const visitedSet = new Set(Array.isArray(visitedNodeIds) ? visitedNodeIds : []);
 
-function renderGraph(payload, sessionMarkers = []) { const { nodes = [], edges = [], currentNodeId = null, visitedNodeIds = [] } = payload; const visitedSet = new Set(Array.isArray(visitedNodeIds) ? visitedNodeIds : []); const g = new dagreD3.graphlib.Graph().setGraph({ rankdir: "LR", nodesep: 30, ranksep: 60 }); nodes.forEach(n => { let fill = "#0f172a"; // default let stroke = "#334155"; // default const sid = Number(els.sessionId.value); const sessCol = sessionColor(sid); // <- WERT der Farbe (z. B. "hsl(...)") if (n.id === currentNodeId) { // nur der aktuelle Node bekommt die Session-Farbe fill = sessCol; stroke = sessCol; } else if (visitedSet.has(n.id)) { fill = "#2563eb"; stroke = "#1e3a8a"; } const label = ${n.id}\n${n.title || ""}; g.setNode(String(n.id), { label, rx: 8, ry: 8, style: fill:${fill};stroke:${stroke};stroke-width:2px;color:#0b1220, labelStyle: "fill:#e2e8f0" }); }); edges.forEach(e => { const inVote = currentVoteOptions.has(Number(e.id)); const edgeText = [${e.id}] ${e.label || ""}; g.setEdge(String(e.from_node_id), String(e.to_node_id), { label: edgeText, lineInterpolate: "basis", style: inVote ? "stroke:#f59e0b;stroke-width:2.2px;fill:none" : "stroke:#475569;fill:none", arrowheadStyle: inVote ? "fill:#f59e0b" : "fill:#475569", labelStyle: "fill:#cbd5e1;font-size:12px" }); }); const svg = d3.select(els.graphSvg); svg.selectAll("*").remove(); const inner = svg.append("g"); const render = new dagreD3.render(); render(inner, g); // --- Session-Marker in Graph: all --- // mehrere Sessions können auf demselben Node stehen -> Dots leicht versetzt const groupByNode = new Map(); sessionMarkers.forEach(m => { const arr = groupByNode.get(m.nodeId) || []; arr.push(m); groupByNode.set(m.nodeId, arr); }); groupByNode.forEach((arr, nodeId) => { const nodeSel = d3.select(els.graphSvg).select(g.node[id="${nodeId}"]); // dagre-d3 gibt keine id-Attribute auf <g.node>; fallback: selektiere über key: const nodeG = d3.select(els.graphSvg).selectAll("g.node") .filter(function() { return d3.select(this).select("tspan").text().startsWith(String(nodeId)); }); const target = nodeG.empty() ? null : nodeG; if (!target) return; // Marker-Gruppe anlegen const markersG = target.append("g").attr("class", "session-markers"); const offset = 8; // Abstand zwischen Dots arr.forEach((m, idx) => { // kleine Kreise oben rechts am Node platzieren // wir nehmen die Box des Rects zur Positionierung const rect = target.select("rect"); const w = Number(rect.attr("width") || 80); const h = Number(rect.attr("height") || 30); const cx = (w/2) - 8 - (idx * offset); const cy = -(h/2) + 8; const isFocused = Number(els.sessionId.value) === m.sid; const r = isFocused ? 7.5 : 6; markersG.append("circle") .attr("cx", cx) .attr("cy", cy) .attr("r", r) .attr("fill", m.color) .attr("stroke", "#0b1220") .attr("stroke-width", 2) .append("title") .text(Session #${m.sid}); }); }); // Auto-Zoom/Center const graphDims = g.graph(); const width = graphDims.width || 1; const height = graphDims.height || 1; const svgWidth = els.graphSvg.clientWidth || 800; const svgHeight = els.graphSvg.clientHeight || 420; const scale = Math.min((svgWidth - 40) / width, (svgHeight - 40) / height, 1.2); const x = (svgWidth - (width * scale)) / 2; const y = (svgHeight - (height * scale)) / 2; inner.attr("transform", translate(${x},${y}) scale(${scale})); }
+  const g = new dagreD3.graphlib.Graph().setGraph({ rankdir: "LR", nodesep: 30, ranksep: 60 });
+
+ nodes.forEach(n => {
+  let fill = "#0f172a";   // default
+  let stroke = "#334155"; // default
+
+  const sid = Number(els.sessionId.value);
+  const sessCol = sessionColor(sid);  // <- WERT der Farbe (z. B. "hsl(...)")
+
+  if (n.id === currentNodeId) {
+    // nur der aktuelle Node bekommt die Session-Farbe
+    fill = sessCol;
+    stroke = sessCol;
+  } else if (visitedSet.has(n.id)) {
+    fill = "#2563eb";
+    stroke = "#1e3a8a";
+  }
+
+  const label = `${n.id}\n${n.title || ""}`;
+  g.setNode(String(n.id), {
+    label,
+    rx: 8, ry: 8,
+    style: `fill:${fill};stroke:${stroke};stroke-width:2px;color:#0b1220`,
+    labelStyle: "fill:#e2e8f0"
+  });
+});
+
+
+
+  edges.forEach(e => {
+  const inVote = currentVoteOptions.has(Number(e.id));
+  const edgeText = `[${e.id}] ${e.label || ""}`;
+  g.setEdge(String(e.from_node_id), String(e.to_node_id), {
+    label: edgeText,
+    lineInterpolate: "basis",
+    style: inVote ? "stroke:#f59e0b;stroke-width:2.2px;fill:none" : "stroke:#475569;fill:none",
+    arrowheadStyle: inVote ? "fill:#f59e0b" : "fill:#475569",
+    labelStyle: "fill:#cbd5e1;font-size:12px"
+  });
+});
+
+
+  const svg = d3.select(els.graphSvg);
+  svg.selectAll("*").remove();
+  const inner = svg.append("g");
+  const render = new dagreD3.render();
+  render(inner, g);
+  // --- Session-Marker in Graph: all ---
+// mehrere Sessions können auf demselben Node stehen -> Dots leicht versetzt
+const groupByNode = new Map();
+sessionMarkers.forEach(m => {
+  const arr = groupByNode.get(m.nodeId) || [];
+  arr.push(m);
+  groupByNode.set(m.nodeId, arr);
+});
+
+groupByNode.forEach((arr, nodeId) => {
+  const nodeSel = d3.select(els.graphSvg).select(`g.node[id="${nodeId}"]`);
+  // dagre-d3 gibt keine id-Attribute auf <g.node>; fallback: selektiere über key:
+  const nodeG = d3.select(els.graphSvg).selectAll("g.node")
+    .filter(function() { return d3.select(this).select("tspan").text().startsWith(String(nodeId)); });
+
+  const target = nodeG.empty() ? null : nodeG;
+  if (!target) return;
+
+  // Marker-Gruppe anlegen
+  const markersG = target.append("g").attr("class", "session-markers");
+
+  const offset = 8; // Abstand zwischen Dots
+  arr.forEach((m, idx) => {
+    // kleine Kreise oben rechts am Node platzieren
+    // wir nehmen die Box des Rects zur Positionierung
+    const rect = target.select("rect");
+    const w = Number(rect.attr("width") || 80);
+    const h = Number(rect.attr("height") || 30);
+
+    const cx = (w/2) - 8 - (idx * offset);
+    const cy = -(h/2) + 8;
+    const isFocused = Number(els.sessionId.value) === m.sid;
+    const r = isFocused ? 7.5 : 6;
+    
+    markersG.append("circle")
+      .attr("cx", cx)
+      .attr("cy", cy)
+      .attr("r", r)
+      .attr("fill", m.color)
+      .attr("stroke", "#0b1220")
+      .attr("stroke-width", 2)
+      .append("title")
+      .text(`Session #${m.sid}`);
+  });
+});
+
+
+  // Auto-Zoom/Center
+  const graphDims = g.graph();
+  const width = graphDims.width || 1;
+  const height = graphDims.height || 1;
+  const svgWidth = els.graphSvg.clientWidth || 800;
+  const svgHeight = els.graphSvg.clientHeight || 420;
+  const scale = Math.min((svgWidth - 40) / width, (svgHeight - 40) / height, 1.2);
+  const x = (svgWidth - (width * scale)) / 2;
+  const y = (svgHeight - (height * scale)) / 2;
+  inner.attr("transform", `translate(${x},${y}) scale(${scale})`);
+}
 
 
   
