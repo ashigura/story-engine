@@ -760,8 +760,8 @@ function showSnaps(obj) {
     } catch (e) { showStatus(e); }
   };
 
-  // Option hinzufügen
-  els.btnAddOption.onclick = async () => {
+ // Option hinzufügen
+els.btnAddOption.onclick = async () => {
   try {
     const sid = Number(els.sessionId.value);
     const mode = els.optTargetMode.value;
@@ -774,13 +774,11 @@ function showSnaps(obj) {
         label,
         nodeTitle: els.optNodeTitle.value || "Neuer Knoten",
         nodeContent: safeJSON(els.optNodeContent.value, { text: "" }),
-        // NEU:
         condition: safeJSON((document.getElementById("optCondition")?.value || "{}"), null),
         effect:    safeJSON((document.getElementById("optEffect")?.value || "{}"), null)
       };
-      // leere Objekte als null senden (optional, sauberer)
-      if (body && body.condition && Object.keys(body.condition).length === 0) body.condition = null;
-      if (body && body.effect    && Object.keys(body.effect).length    === 0) body.effect    = null;
+      if (body.condition && Object.keys(body.condition).length === 0) body.condition = null;
+      if (body.effect    && Object.keys(body.effect).length    === 0) body.effect    = null;
 
       await api(`/sessions/${sid}/add-option`, {
         method:"POST", headers: headers(), body: JSON.stringify(body)
@@ -788,8 +786,6 @@ function showSnaps(obj) {
     } else {
       const toNodeId = Number(els.optToNodeId.value);
       if (!Number.isFinite(toNodeId)) return alert("toNodeId ist ungültig.");
-      // Für "existing" verwenden wir weiterhin /expand – hier kannst du Condition/Effect je Edge mitschicken,
-      // falls dein /expand-Endpoint bereits angepasst ist. Sonst weglassen.
       body = {
         edges: [{
           label,
@@ -807,18 +803,7 @@ function showSnaps(obj) {
     }
     await loadSession();
   } catch (e) { showStatus(e); }
-        };
-        await api(`/sessions/${sid}/add-option`, { method:"POST", headers: headers(), body: JSON.stringify(body) });
-      } else {
-        const toNodeId = Number(els.optToNodeId.value);
-        if (!Number.isFinite(toNodeId)) return alert("toNodeId ist ungültig.");
-        // Wir nutzen expand mit toNodeId
-        body = { edges: [{ label, toNodeId }] };
-        await api(`/sessions/${sid}/expand`, { method:"POST", headers: headers(), body: JSON.stringify(body) });
-      }
-      await loadSession();
-    } catch (e) { showStatus(e); }
-  };
+};
 
   // Entscheidung ausführen
   els.btnDecide.onclick = async () => {
