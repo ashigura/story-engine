@@ -744,49 +744,65 @@ app.post("/sessions/:id/start", async (req, res) => {
 });
 
 
+// ----- REPLACE this whole handler in index.js -----
 app.post("/sessions/:id/add-option", async (req, res) => {
   const sessionId = Number(req.params.id);
-  const { label, nodeTitle, nodeContent } = req.body;
+  if (!Number.isFinite(sessionId)) return res.status(400).json({ error: "invalid_session_id" });
 
-  if (!label || !nodeTitle) {
-    return res.status(400).json({ error: "label_and_nodeTitle_required" });
-  }
+  const label = (req.body?.label || "").trim();
+  if (!label) return res.status(400).json({ error: "newEdge_label_required" });
+
+  const nodeTitle = (req.body?.nodeTitle || "").trim();
+  const nodeContent = req.body?.nodeContent ?? {};
+
+  // NEU: optional gleich mitgeben
+  const condition = req.body?.condition ?? null; // JSON-Objekt oder null
+  const effect    = req.body?.effect    ?? null; // JSON-Objekt oder null
 
   const client = await pool.connect();
   try {
     await client.query("BEGIN");
 
-    // Session prüfen
-    const s = await client.query(`SELECT * FROM session WHERE id=$1 FOR UPDATE`, [sessionId]);
-    if (!s.rowCount) return res.status(404).json({ error: "session_not_found" });
+    // Session prüfen + aktuellen Node holen (für from_node_id)
+    const s = await client.query(`select * from session where id=$1 for update`, [sessionId]);
+    if (!s.rowCount) {
+      await client.query("ROLLBACK");
+      return res.status(404).json({ error: "session_not_found" });
+    }
     const session = s.rows[0];
     if (!session.current_node_id) {
+      await client.query("ROLLBACK");
       return res.status(400).json({ error: "no_current_node_set" });
     }
 
-    // Neuen Node erstellen
-    const newNode = await client.query(
-      `INSERT INTO node (title, content_json) VALUES ($1, $2) RETURNING id, title, content_json`,
-      [nodeTitle, nodeContent || {}]
+    // Ziel-Node anlegen
+    if (!nodeTitle) {
+      await client.query("ROLLBACK");
+      return res.status(400).json({ error: "newNode_title_required" });
+    }
+    const insNode = await client.query(
+      `insert into node (title, content_json) values ($1, $2::jsonb) returning id, title, content_json`,
+      [nodeTitle, JSON.stringify(nodeContent ?? {})]
     );
+    const newNode = insNode.rows[0];
 
-    const newNodeId = newNode.rows[0].id;
-
-    // Neue Edge erstellen
-    const newEdge = await client.query(
-      `INSERT INTO edge (from_node_id, to_node_id, label) VALUES ($1, $2, $3) RETURNING id, label, to_node_id`,
-      [session.current_node_id, newNodeId, label]
+    // Edge anlegen (inkl. Condition/Effect, falls vorhanden)
+    const insEdge = await client.query(
+      `insert into edge (from_node_id, to_node_id, label, condition_json, effect_json)
+       values ($1, $2, $3, $4::jsonb, $5::jsonb)
+       returning id, from_node_id, to_node_id, label, condition_json, effect_json`,
+      [
+        session.current_node_id,
+        newNode.id,
+        label,
+        condition ? JSON.stringify(condition) : null,
+        effect    ? JSON.stringify(effect)    : null
+      ]
     );
+    const newEdge = insEdge.rows[0];
 
     await client.query("COMMIT");
-    publish(sessionId, "option/added", { edge: newEdge, node: newNode });
-
-
-    res.json({
-      ok: true,
-      newNode: newNode.rows[0],
-      newEdge: newEdge.rows[0]
-    });
+    res.json({ ok: true, newNode, newEdge });
   } catch (e) {
     await client.query("ROLLBACK");
     console.error(e);
@@ -795,6 +811,7 @@ app.post("/sessions/:id/add-option", async (req, res) => {
     client.release();
   }
 });
+
 
 // 📍 In Datei: index.js — Edge bearbeiten (Label / Ziel / Condition / Effect)
 app.patch("/edges/:edgeId", async (req, res) => {
