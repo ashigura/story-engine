@@ -473,13 +473,15 @@ app.post("/sessions/:id/rewind", async (req, res) => {
 });
 
 
-// 📍 In Datei: index.js (GitHub Web-Editor) — neue Route: dynamische Edges anlegen
+// ----- REPLACE: /sessions/:id/expand -----
 app.post("/sessions/:id/expand", async (req, res) => {
   const sessionId = Number(req.params.id);
-  if (!Number.isFinite(sessionId)) return res.status(400).json({ error: "invalid_session_id" });
+  if (!Number.isFinite(sessionId)) {
+    return res.status(400).json({ error: "invalid_session_id" });
+  }
 
-  const edges = req.body?.edges;
-  if (!Array.isArray(edges) || edges.length === 0) {
+  const edges = Array.isArray(req.body?.edges) ? req.body.edges : null;
+  if (!edges || edges.length === 0) {
     return res.status(400).json({ error: "edges_required" });
   }
 
@@ -487,95 +489,77 @@ app.post("/sessions/:id/expand", async (req, res) => {
   try {
     await client.query("BEGIN");
 
-    // Session sperren & aktuellen Node bestimmen
-    const s = await client.query(`select * from session where id=$1 for update`, [sessionId]);
+    // Session + current node locken
+    const s = await client.query(
+      `select * from session where id=$1 for update`,
+      [sessionId]
+    );
     if (!s.rowCount) {
       await client.query("ROLLBACK");
       return res.status(404).json({ error: "session_not_found" });
     }
     const session = s.rows[0];
-    const fromNodeId = session.current_node_id;
-    if (!fromNodeId) {
+    if (!session.current_node_id) {
       await client.query("ROLLBACK");
       return res.status(400).json({ error: "no_current_node_set" });
     }
 
-    const addedEdges = [];
+    const created = []; // { edge, node? }
 
-    for (const spec of edges) {
-      // 1) Label prüfen
-      const label = (spec?.label ?? "").trim();
+    for (const item of edges) {
+      const label = (item?.label || "").trim();
       if (!label) {
         await client.query("ROLLBACK");
         return res.status(400).json({ error: "edge_label_required" });
       }
 
-      // 2) Ziel bestimmen: genau EINES von newNode ODER toNodeId
-      const hasNew = !!spec?.newNode;
-      const hasTo = spec?.toNodeId !== undefined && spec?.toNodeId !== null;
+      let toNodeId = Number(item?.toNodeId);
+      let newNode = null;
 
-      if (hasNew === hasTo) { // beides true ODER beides false
-        await client.query("ROLLBACK");
-        return res.status(400).json({ error: "choose_newNode_or_toNodeId" });
-      }
-
-      let toNodeId;
-
-      if (hasNew) {
-        const title = (spec.newNode?.title ?? "").trim();
-        const content = spec.newNode?.content ?? {};
-        if (!title) {
+      // Optional: neuen Ziel-Node anlegen, falls nodeTitle angegeben ist
+      if (!Number.isFinite(toNodeId)) {
+        const nodeTitle = (item?.nodeTitle || "").trim();
+        const nodeContent = item?.nodeContent ?? {};
+        if (!nodeTitle) {
           await client.query("ROLLBACK");
-          return res.status(400).json({ error: "newNode_title_required" });
+          return res.status(400).json({ error: "either_toNodeId_or_nodeTitle_required" });
         }
-        const ins = await client.query(
-          `insert into node (title, content_json) values ($1, $2) returning id`,
-          [title, content]
+
+        const insNode = await client.query(
+          `insert into node (title, content_json) values ($1, $2::jsonb)
+           returning id, title, content_json`,
+          [nodeTitle, JSON.stringify(nodeContent ?? {})]
         );
-        toNodeId = ins.rows[0].id;
-      } else {
-        toNodeId = Number(spec.toNodeId);
-        if (!Number.isFinite(toNodeId)) {
-          await client.query("ROLLBACK");
-          return res.status(400).json({ error: "invalid_toNodeId" });
-        }
-        const chk = await client.query(`select 1 from node where id=$1`, [toNodeId]);
-        if (!chk.rowCount) {
-          await client.query("ROLLBACK");
-          return res.status(400).json({ error: "invalid_toNodeId" });
-        }
+        newNode = insNode.rows[0];
+        toNodeId = newNode.id;
       }
 
-      // (Optional) Labels pro fromNode einzigartig machen
-      const dup = await client.query(
-        `select 1 from edge where from_node_id=$1 and lower(label)=lower($2)`,
-        [fromNodeId, label]
-      );
-      if (dup.rowCount) {
-        await client.query("ROLLBACK");
-        return res.status(409).json({ error: "edge_conflict", detail: "label exists for this node" });
-      }
+      // Optional: Condition/Effect übernehmen
+      const condition = item?.condition ?? null;
+      const effect    = item?.effect ?? null;
 
-      // (Optional) spätere Felder condition/effect/weight vorbereiten
-      const condition = spec?.condition ?? {};
-      const effect = spec?.effect ?? {};
-
-      const e = await client.query(
+      const insEdge = await client.query(
         `insert into edge (from_node_id, to_node_id, label, condition_json, effect_json)
-         values ($1, $2, $3, $4, $5)
-         returning id`,
-        [fromNodeId, toNodeId, label, condition, effect]
+         values ($1, $2, $3, $4::jsonb, $5::jsonb)
+         returning id, from_node_id, to_node_id, label, condition_json, effect_json`,
+        [
+          session.current_node_id,
+          toNodeId,
+          label,
+          condition ? JSON.stringify(condition) : null,
+          effect    ? JSON.stringify(effect)    : null
+        ]
       );
 
-      addedEdges.push({ id: e.rows[0].id, label, toNodeId });
+      created.push({ edge: insEdge.rows[0], node: newNode });
     }
 
     await client.query("COMMIT");
-    res.json({ sessionId, fromNodeId, addedEdges });
-  } catch (err) {
-    try { await client.query("ROLLBACK"); } catch {}
-    console.error(err);
-    res.status(500).json({ error: "expand_failed", message: String(err) });
+    res.json({ ok: true, created });
+  } catch (e) {
+    await client.query("ROLLBACK");
+    console.error(e);
+    res.status(500).json({ error: "expand_failed", message: String(e) });
   } finally {
     client.release();
   }
