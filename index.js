@@ -1088,17 +1088,17 @@ app.get("/sessions/:id/graph", async (req, res) => {
   if (!Number.isFinite(sessionId)) return res.status(400).json({ error: "invalid_session_id" });
 
   try {
-    // aktuellen Knoten holen (für Farbcodierung und fallback)
+    // aktuellen Knoten holen
     const s = await pool.query(`select current_node_id from session where id=$1`, [sessionId]);
     if (!s.rowCount) return res.status(404).json({ error: "session_not_found" });
     const currentNodeId = s.rows[0].current_node_id;
 
     if (mode === "visited") {
-      // besuchte Knoten = from_node_id / to_node_id aus decisions + current_node_id
-      const q = await pool.query(
+      // besuchte Knoten & gewählte Edges aus decision ableiten
+      const visitedQ = await pool.query(
         `
         with decs as (
-          select d.node_id as from_id, e.to_node_id as to_id, e.id as edge_id
+          select d.node_id as from_id, e.to_node_id as to_id, d.chosen_edge_id as edge_id
           from decision d
           join edge e on e.id = d.chosen_edge_id
           where d.session_id = $1
@@ -1110,73 +1110,68 @@ app.get("/sessions/:id/graph", async (req, res) => {
           union
           select $2::int as id
         )
-        select
-          coalesce(json_agg(n order by n.id), '[]'::json) as nodes,
-          coalesce(json_agg(ed order by ed.id), '[]'::json) as edges
-        from
-          (select id, title from node where id in (select id from nodeset) and id is not null) n,
-          lateral (
-            select e.id, e.from_node_id, e.to_node_id, e.label
-            from edge e
-            where e.id in (select edge_id from decs)
-          ) ed
+        select coalesce(array_agg(id), '{}') as ids from nodeset
         `,
         [sessionId, currentNodeId ?? null]
       );
+      const visitedNodeIds = visitedQ.rows[0]?.ids ?? [];
 
-      // Wenn keine Decisions existieren, kippt das CROSS-Product obigen SELECTs auf null zurück.
-      // Fallback: nur currentNode als einzelner Knoten.
-      let nodes = [];
-      let edges = [];
-      if (q.rowCount && q.rows[0].nodes && Array.isArray(q.rows[0].nodes)) {
-        nodes = q.rows[0].nodes;
-      }
-      if (q.rowCount && q.rows[0].edges && Array.isArray(q.rows[0].edges)) {
-        edges = q.rows[0].edges;
-      }
-      if (!nodes.length && currentNodeId) {
-        const one = await pool.query(`select id, title from node where id=$1`, [currentNodeId]);
-        nodes = one.rows;
-        edges = [];
-      }
+      const [nodesQ, edgesQ] = await Promise.all([
+        visitedNodeIds.length
+          ? pool.query(`select id, title from node where id = any($1::int[]) order by id asc`, [visitedNodeIds])
+          : pool.query(`select id, title from node where false`),
+        pool.query(
+          `select id, from_node_id, to_node_id, label, condition_json, effect_json
+           from edge
+           where id in (select chosen_edge_id from decision where session_id = $1)
+           order by id asc`,
+          [sessionId]
+        )
+      ]);
 
-      const visitedNodeIds = nodes.map(n => n.id);
-      return res.json({ sessionId, mode, currentNodeId, visitedNodeIds, nodes, edges });
+      return res.json({
+        sessionId,
+        mode,
+        currentNodeId,
+        visitedNodeIds,
+        nodes: nodesQ.rows || [],
+        edges: edgesQ.rows || []
+      });
     }
 
-    // mode = all
-const [nodesQ, edgesQ, visitedQ] = await Promise.all([
-  pool.query(`select id, title from node order by id asc`),
-  pool.query(`select id, from_node_id, to_node_id, label from edge order by id asc`),
-  pool.query(
-    `
-    with decs as (
-      select d.node_id as from_id, e.to_node_id as to_id
-      from decision d
-      join edge e on e.id = d.chosen_edge_id
-      where d.session_id = $1
-    ),
-    nodeset as (
-      select from_id as id from decs
-      union
-      select to_id   as id from decs
-      union
-      select $2::int as id
-    )
-    select coalesce(array_agg(id), '{}') as ids from nodeset
-    `,
-    [sessionId, currentNodeId ?? null]
-  )
-]);
+    // mode = all  → alle Knoten/Edges inkl. condition_json/effect_json
+    const [nodesQ, edgesQ, visitedQ] = await Promise.all([
+      pool.query(`select id, title from node order by id asc`),
+      pool.query(`select id, from_node_id, to_node_id, label, condition_json, effect_json from edge order by id asc`),
+      pool.query(
+        `
+        with decs as (
+          select d.node_id as from_id, e.to_node_id as to_id
+          from decision d
+          join edge e on e.id = d.chosen_edge_id
+          where d.session_id = $1
+        ),
+        nodeset as (
+          select from_id as id from decs
+          union
+          select to_id   as id from decs
+          union
+          select $2::int as id
+        )
+        select coalesce(array_agg(id), '{}') as ids from nodeset
+        `,
+        [sessionId, currentNodeId ?? null]
+      )
+    ]);
 
-return res.json({
-  sessionId,
-  mode,
-  currentNodeId,
-  visitedNodeIds: visitedQ.rows[0]?.ids ?? [],
-  nodes: nodesQ.rows,
-  edges: edgesQ.rows
-});
+    return res.json({
+      sessionId,
+      mode,
+      currentNodeId,
+      visitedNodeIds: visitedQ.rows[0]?.ids ?? [],
+      nodes: nodesQ.rows || [],
+      edges: edgesQ.rows || []
+    });
 
   } catch (e) {
     console.error(e);
