@@ -1038,44 +1038,48 @@ app.delete("/sessions/:id/snapshots/:snapId", async (req, res) => {
   }
 });
 
-// Session-State patchen (set/remove mit unserem applyEffect)
+// PATCH /sessions/:id/state  → State setzen (vollständig ersetzen)
+// Optional: ?mode=merge für JSONB-Merge statt Full-Replace
 app.patch("/sessions/:id/state", async (req, res) => {
-  const sessionId = Number(req.params.id);
-  if (!Number.isFinite(sessionId)) return res.status(400).json({ error: "invalid_session_id" });
+  const id = Number(req.params.id);
+  if (!Number.isFinite(id)) return res.status(400).json({ error: "invalid_session_id" });
 
-  // Body: { set?: {...}, add?: {...}, toggle?: [...], push?: {...}, remove?: [...] }
-  const effect = {
-    set:    req.body?.set,
-    add:    req.body?.add,
-    toggle: req.body?.toggle,
-    push:   req.body?.push,
-    remove: req.body?.remove
-  };
+  // Wir akzeptieren beliebiges JSON-Objekt; bei null/leer -> {}
+  const incoming = (req.body && typeof req.body === "object") ? req.body : {};
 
-  const client = await pool.connect();
   try {
-    await client.query("BEGIN");
-    const s = await client.query(`SELECT id, state_json, current_node_id FROM session WHERE id=$1 FOR UPDATE`, [sessionId]);
-    if (!s.rowCount) { await client.query("ROLLBACK"); return res.status(404).json({ error: "session_not_found" }); }
+    let q;
+    if ((req.query.mode || "").toLowerCase() === "merge") {
+      // JSONB-Merge (bestehender state_json || incoming)
+      q = await pool.query(
+        `update session
+           set state_json = coalesce(state_json,'{}'::jsonb) || $1::jsonb,
+               updated_at = now()
+         where id = $2
+         returning state_json`,
+        [JSON.stringify(incoming), id]
+      );
+    } else {
+      // Full-Replace
+      q = await pool.query(
+        `update session
+           set state_json = $1::jsonb,
+               updated_at = now()
+         where id = $2
+         returning state_json`,
+        [JSON.stringify(incoming), id]
+      );
+    }
 
-    const cur = s.rows[0];
-    const nextState = applyEffect(cur.state_json || {}, effect || {});
-    await client.query(
-      `UPDATE session SET state_json=$1, updated_at=now() WHERE id=$2`,
-      [nextState, sessionId]
-    );
-    await client.query("COMMIT");
-    publish(sessionId, "state/updated", { state: nextState });
-
-    res.json({ ok: true, state: nextState });
+    if (!q.rowCount) return res.status(404).json({ error: "session_not_found" });
+    const state = q.rows[0].state_json || {};
+    res.json({ ok: true, state });
   } catch (e) {
-    try { await client.query("ROLLBACK"); } catch {}
     console.error(e);
     res.status(500).json({ error: "state_patch_failed", message: String(e) });
-  } finally {
-    client.release();
   }
 });
+
 
 // Graph für eine Session
 app.get("/sessions/:id/graph", async (req, res) => {
