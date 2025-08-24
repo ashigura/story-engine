@@ -1126,16 +1126,63 @@ els.btnStateRefresh.onclick = async () => {
 els.btnStateApply.onclick = async () => {
   const sid = Number(els.sessionId.value);
   if (!Number.isFinite(sid)) return alert("Session-ID fehlt/ungültig.");
-  let body = {};
-  try { body = JSON.parse(els.stateEditor.value || "{}"); } catch { return alert("Ungültiges JSON."); }
+
+  // Originaltext sichern, falls etwas schiefgeht
+  const prev = els.stateEditor.value;
+  let body;
+
+  // 1) JSON validieren
+  try {
+    const raw = els.stateEditor.value || "{}";
+    body = JSON.parse(raw);
+    if (typeof body !== "object" || body === null) {
+      alert("JSON muss ein Objekt sein.");
+      return;
+    }
+  } catch (err) {
+    alert("Ungültiges JSON im State-Feld.");
+    return;
+  }
+
+  // 2) PATCH schicken
   try {
     const r = await api(`/sessions/${sid}/state`, {
-      method: "PATCH", headers: headers(), body: JSON.stringify(body)
+      method: "PATCH",
+      headers: headers(),
+      body: JSON.stringify(body)
     });
-    els.stateEditor.value = JSON.stringify(r.state || {}, null, 2);
+
+    // 3) Response auswerten: bevorzugt r.state verwenden
+    if (r && typeof r === "object" && "state" in r) {
+      els.stateEditor.value = JSON.stringify(r.state || {}, null, 2);
+    } else {
+      // Fallback: Session neu laden und State daraus nehmen
+      const s = await api(`/sessions/${sid}`, { headers: headers() });
+      els.stateEditor.value = JSON.stringify(s.state || {}, null, 2);
+    }
+
+    // Optional: Statuspanel aktualisieren
     await loadSession();
-  } catch (e) { showStatus(e); }
+  } catch (e) {
+    // Fehler: alten Text wiederherstellen & anzeigen
+    els.stateEditor.value = prev;
+    showStatus(e);
+  }
 };
+
+// State neu laden (GET /sessions/:id)
+els.btnStateRefresh.onclick = async () => {
+  const sid = Number(els.sessionId.value);
+  if (!Number.isFinite(sid)) return alert("Session-ID fehlt/ungültig.");
+  try {
+    const r = await api(`/sessions/${sid}`, { headers: headers() });
+    els.stateEditor.value = JSON.stringify(r.state || {}, null, 2);
+    showStatus(r);
+  } catch (e) {
+    showStatus(e);
+  }
+};
+
 
   // Sichtbare Optionen
 els.btnListOptions.onclick = async () => {
