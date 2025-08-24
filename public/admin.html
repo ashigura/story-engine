@@ -5,40 +5,69 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Story Engine – Admin</title>
   <style>
-    :root{
-      --bg:#0b1220; --bg2:#0f172a; --fg:#e2e8f0; --muted:#94a3b8;
-      --b:#1e293b; --b2:#334155; --blue:#2563eb; --blue2:#1e3a8a;
-      --green:#22c55e; --green2:#14532d; --graybtn:#475569; --red:#ef4444;
-      --primary:#3b82f6; --yellow:#f59e0b;
-    }
-    *{box-sizing:border-box}
-    body { font-family: system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif; margin:0; background:var(--bg); color:var(--fg); }
-    header { padding:12px 16px; background:#0f172a; color:#fff; display:flex; align-items:center; gap:12px; position:sticky; top:0; z-index:2; }
-    header input { padding:8px; border-radius:8px; border:1px solid var(--b2); background:var(--bg); color:var(--fg); min-width:280px;}
-    header button { padding:8px 12px; border-radius:8px; border:0; background:var(--green); color:var(--bg); cursor:pointer; }
-    header .muted{color:var(--muted)}
-    main { padding:16px; display:grid; gap:16px; grid-template-columns: 420px 1fr; align-items:start;}
-    section { background:var(--bg); color:var(--fg); border:1px solid var(--b); border-radius:12px; padding:12px; }
-    h2 { margin:0 0 8px; font-size:16px; color:#93c5fd; }
-    label { display:block; margin:8px 0 4px; font-size:13px; color:#a5b4fc; }
-    input, textarea, select { width:100%; padding:8px; border-radius:8px; border:1px solid var(--b2); background:var(--bg2); color:var(--fg); }
-    textarea { min-height:84px; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
-    .row { display:grid; grid-template-columns: 1fr 1fr; gap:8px; align-items:start; }
-    .row3 { display:grid; grid-template-columns: 1fr 1fr 1fr; gap:8px; }
-    .row4 { display:grid; grid-template-columns: repeat(4, 1fr); gap:8px; }
-    .btn { margin-top:8px; padding:8px 10px; border-radius:8px; border:0; background:var(--primary); color:var(--bg); cursor:pointer; }
-    .btn.red { background:var(--red); color:#fff; }
-    .btn.gray { background:var(--graybtn); color:var(--fg); }
-    .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; white-space:pre-wrap; background:var(--bg2); padding:8px; border-radius:8px; border:1px solid var(--b2); }
-    table { width:100%; border-collapse: collapse; }
-    th, td { border-bottom:1px solid var(--b); padding:6px 8px; font-size:13px; }
-    footer { padding:10px 16px; color:var(--muted); font-size:12px; }
-    .hint{ color:var(--muted); font-size:12px; margin-top:4px;}
-    .pill { display:inline-block; padding:2px 6px; border-radius:999px; background:#1f2937; font-size:12px; color:#cbd5e1; }
+    * { box-sizing: border-box; }             /* verhindert Überlappungen durch Padding/Borders */
+
+body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; margin: 0; }
+header { padding: 12px 16px; background:#0f172a; color:#fff; display:flex; align-items:center; gap:12px; }
+header input { padding:8px; border-radius:8px; border:1px solid #334155; background:#0b1220; color:#e2e8f0; }
+header button { padding:8px 12px; border-radius:8px; border:0; background:#22c55e; color:#0b1220; cursor:pointer; }
+
+main {
+  padding:16px;
+  display:grid;
+  gap:16px;
+  grid-template-columns: minmax(420px, 600px) 1fr;  /* linke Spalte breiter + flexibel */
+}
+
+section { background:#0b1220; color:#e2e8f0; border:1px solid #1e293b; border-radius:12px; padding:12px; overflow:hidden; }
+h2 { margin:0 0 8px; font-size:16px; color:#93c5fd; }
+label { display:block; margin:8px 0 4px; font-size:13px; color:#a5b4fc; }
+
+input, textarea, select, button { width:100%; min-width:0; } /* min-width:0 fix für Grid-Overflow */
+input, textarea, select { padding:8px; border-radius:8px; border:1px solid #334155; background:#0f172a; color:#e2e8f0; }
+textarea { min-height:84px; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+.row { display:grid; grid-template-columns: 1fr 1fr; gap:8px; align-items:start; }
+.row.two { grid-template-columns: 1fr auto; } /* Input + Button (Button wird so nicht drübergelegt) */
+
+.btn { margin-top:8px; padding:8px 10px; border-radius:8px; border:0; background:#3b82f6; color:#0b1220; cursor:pointer; white-space:nowrap; }
+.btn.red { background:#ef4444; color:#fff; }
+.btn.gray { background:#475569; color:#e2e8f0; }
+
+table { width:100%; border-collapse: collapse; }
+th, td { border-bottom:1px solid #1e293b; padding:6px 8px; font-size:13px; }
+.muted { color:#94a3b8; }
+.pill { display:inline-block; padding:2px 6px; border-radius:999px; background:#1f2937; font-size:12px; color:#cbd5e1; }
+.grid2 { display:grid; grid-template-columns: 1fr 1fr; gap:12px; }
+.grid3 { display:grid; grid-template-columns: repeat(3, 1fr); gap:12px; }
+.grid2 > *, .grid3 > * { min-width:0; }   /* verhindert Rand-Überlauf in Grids */
+.mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; white-space:pre-wrap; }
+footer { padding:10px 16px; color:#64748b; font-size:12px; }
+
+/* Responsive: auf kleineren Screens einspaltig, kein Überlappen */
+@media (max-width: 1100px) {
+  main { grid-template-columns: 1fr; }
+  .row { grid-template-columns: 1fr; }
+  .row.two { grid-template-columns: 1fr; }
+}
+
+.flash { animation: flash 600ms ease-out; }
+@keyframes flash {
+  0%{box-shadow:0 0 0 0 rgba(34,197,94,.8)}
+  100%{box-shadow:0 0 0 12px rgba(34,197,94,0)}
+}
+
+    .msm-card { border:1px solid #1e293b; border-radius:10px; padding:10px; background:#0b1220; transition:background .2s, box-shadow .2s, border-color .2s; }
+.msm-card.subscribed { background:#0c1a2e; box-shadow:0 0 0 1px #1f3a5f inset; }
+.msm-card.focused { border-color:#fbbf24; box-shadow:0 0 0 2px rgba(251,191,36,.35); }
+.msm-title { display:flex; justify-content:space-between; align-items:center; margin-bottom:6px; }
+.msm-name { font-weight:600; }
+
+    
   </style>
-  <!-- D3 + Dagre-D3 -->
-  <script src="https://unpkg.com/d3@5.16.0/dist/d3.min.js"></script>
-  <script src="https://unpkg.com/dagre-d3@0.6.4/dist/dagre-d3.min.js"></script>
+  <!-- D3 + Dagre-D3 für Graph-Layout (LR) -->
+<script src="https://unpkg.com/d3@5.16.0/dist/d3.min.js"></script>
+<script src="https://unpkg.com/dagre-d3@0.6.4/dist/dagre-d3.min.js"></script>
+
 </head>
 <body>
 <header>
@@ -51,126 +80,172 @@
 </header>
 
 <main>
-  <!-- Linke Spalte: Formulare -->
   <section>
     <h2>Sitzung</h2>
     <label>Session-ID</label>
-    <div class="row">
-      <input id="sessionId" placeholder="z. B. 58" />
+    <div class="row two">
+      <input id="sessionId" placeholder="z. B. 13" />
       <button class="btn gray" id="btnNewSession">Neue Session</button>
     </div>
 
-    <div class="row" style="margin-top:8px">
-      <button class="btn" id="btnLoadSession">GET /sessions/:id</button>
-      <button class="btn" id="btnHistory">GET /sessions/:id/history</button>
-    </div>
-
-    <h2 style="margin-top:12px">Start setzen</h2>
-    <label>Titel</label>
-    <input id="startTitle" placeholder="Start" />
-    <label>Content (JSON)</label>
-    <textarea id="startContent">{ "text": "Das Abenteuer beginnt hier." }</textarea>
-    <button class="btn" id="btnStart">POST /sessions/:id/start</button>
-
-    <h2 style="margin-top:12px">Option hinzufügen</h2>
-    <label>Label</label>
-    <input id="optLabel" placeholder="Gehe nach Norden" />
-    <label>Ziel-Node</label>
-    <select id="optTargetMode">
-      <option value="new">Neuen Node anlegen</option>
-      <option value="existing">Existierenden Node nutzen</option>
-    </select>
-    <div id="targetNew">
-      <label>Neuer Node: Titel</label>
-      <input id="optNodeTitle" placeholder="Am Flussufer" />
-      <label>Neuer Node: Content (JSON)</label>
-      <textarea id="optNodeContent">{ "text": "Kalter Wind ..." }</textarea>
-    </div>
-    <div id="targetExisting" style="display:none">
-      <label>toNodeId (existiert bereits)</label>
-      <input id="optToNodeId" placeholder="z. B. 203" />
-    </div>
-
-    <div class="row" style="margin-top:8px">
+    <div class="grid2">
       <div>
-        <label>Condition (JSON)</label>
-        <textarea id="optCondition">{}</textarea>
+        <h2 style="margin-top:12px">Start setzen</h2>
+        <label>Titel</label>
+        <input id="startTitle" placeholder="Start" />
+        <label>Content (JSON)</label>
+        <textarea id="startContent">{ "text": "Das Abenteuer beginnt hier." }</textarea>
+        <button class="btn" id="btnStart">/sessions/:id/start</button>
       </div>
+
       <div>
-        <label>Effect (JSON)</label>
-        <textarea id="optEffect">{}</textarea>
+        <h2 style="margin-top:12px">Option hinzufügen</h2>
+        <label>Label</label>
+        <input id="optLabel" placeholder="Gehe nach Norden" />
+        <label>Ziel-Node</label>
+        <select id="optTargetMode">
+          <option value="new">Neuen Node anlegen</option>
+          <option value="existing">Existierenden Node nutzen</option>
+        </select>
+        <div id="targetNew">
+          <label>Neuer Node: Titel</label>
+          <input id="optNodeTitle" placeholder="Am Flussufer" />
+          <label>Neuer Node: Content (JSON)</label>
+          <textarea id="optNodeContent">{ "text": "Kalter Wind ..." }</textarea>
+          <label>Condition (JSON, optional)</label>
+          <textarea id="optCondition">{}</textarea>
+
+<label>Effect (JSON, optional)</label>
+<textarea id="optEffect">{}</textarea>
+
+        </div>
+        <div id="targetExisting" style="display:none">
+          <label>toNodeId (existiert bereits)</label>
+          <input id="optToNodeId" placeholder="z. B. 32" />
+        </div>
+        <button class="btn" id="btnAddOption">/sessions/:id/add-option</button>
       </div>
     </div>
-    <div class="hint">Beispiel Condition:<br>
-      <code>{"requires":[{"key":"inventory.key","op":"==","value":true}]}</code>
-    </div>
-    <button class="btn" id="btnAddOption">POST /sessions/:id/add-option (oder /expand)</button>
 
-    <h2 style="margin-top:12px">Decision & Rewind</h2>
-    <div class="row">
-      <input id="edgeId" placeholder="edgeId zum Ausführen" />
-      <button class="btn" id="btnDecide">POST /sessions/:id/decision</button>
-    </div>
-    <div class="row" style="margin-top:8px">
-      <input id="rewindSteps" placeholder="Anzahl Schritte zurück (z. B. 1)" />
-      <button class="btn red" id="btnRewind">POST /sessions/:id/rewind</button>
-    </div>
-
-    <h2 style="margin-top:12px">Snapshots</h2>
-    <div class="row">
-      <input id="snapLabel" placeholder="Label (optional, z. B. 'Vor der Tür')" />
-      <button class="btn" id="btnMakeSnap">POST /sessions/:id/snapshot</button>
-    </div>
-    <div class="row" style="margin-top:8px">
-      <button class="btn gray" id="btnListSnaps">GET /sessions/:id/snapshots</button>
-      <input id="snapId" placeholder="snapId" />
-      <button class="btn" id="btnRestoreSnap">POST /sessions/:id/restore/:snapId</button>
-      <button class="btn red" id="btnDeleteSnap">DELETE /sessions/:id/snapshots/:snapId</button>
-    </div>
-
-    <h2 style="margin-top:12px">Edges bearbeiten/löschen</h2>
-    <div class="row3">
-      <div>
-        <label>edgeId</label>
-        <input id="editEdgeId" placeholder="z. B. 151" />
+    <div style="margin-top:12px">
+      <h2>Decision & Rewind</h2>
+      <div class="row">
+        <input id="edgeId" placeholder="edgeId zum Ausführen" />
+        <button class="btn" id="btnDecide">/sessions/:id/decision</button>
       </div>
-      <div>
-        <label>Neues Label</label>
-        <input id="editLabel" placeholder="Neues Label..." />
-      </div>
-      <div>
-        <label>Neues toNodeId</label>
-        <input id="editToNodeId" placeholder="z. B. 204" />
+      <div class="row" style="margin-top:8px">
+        <input id="rewindSteps" placeholder="Anzahl Schritte zurück (z. B. 1)" />
+        <button class="btn red" id="btnRewind">/sessions/:id/rewind</button>
       </div>
     </div>
-    <label>Condition (JSON)</label>
-    <textarea id="editCondition">{}</textarea>
-    <label>Effect (JSON)</label>
-    <textarea id="editEffect">{}</textarea>
-    <div class="row">
-      <button class="btn" id="btnPatchEdge">PATCH /edges/:edgeId</button>
-      <button class="btn red" id="btnDeleteEdge">DELETE /edges/:edgeId</button>
+
+    <div style="margin-top:12px">
+  <h2>Admin‑Actions</h2>
+  <div class="row">
+    <button class="btn gray" id="btnListOptions">GET /sessions/:id/options</button>
+    <button class="btn red" id="btnEndSession">POST /sessions/:id/end</button>
+  </div>
+  <div class="row">
+    <input id="jumpToNodeId" placeholder="toNodeId (Jump)" />
+    <button class="btn" id="btnJump">POST /sessions/:id/jump</button>
+  </div>
+</div>
+
+
+
+
+    <!-- Snapshots -->
+<div style="margin-top:12px">
+  <h2>Snapshots</h2>
+  <div class="row">
+    <input id="snapLabel" placeholder="Label (optional, z. B. 'Vor der Tür')" />
+    <button class="btn" id="btnMakeSnap">POST /sessions/:id/snapshot</button>
+  </div>
+  <div class="row" style="margin-top:8px">
+    <button class="btn gray" id="btnListSnaps">GET /sessions/:id/snapshots</button>
+    <input id="snapId" placeholder="snapId" />
+    <button class="btn" id="btnRestoreSnap">POST /sessions/:id/restore/:snapId</button>
+    <button class="btn red" id="btnDeleteSnap">DELETE /sessions/:id/snapshots/:snapId</button>
+  </div>
+</div>
+
+<!-- Voting -->
+<div style="margin-top:12px">
+  <h2>Voting</h2>
+  <div class="row">
+    <input id="voteDuration" placeholder="Dauer in Sekunden (optional)" />
+    <input id="voteOptionsCsv" placeholder="Edge-IDs kommasepariert (leer = sichtbare Optionen)" />
+  </div>
+  <div class="row">
+    <button class="btn" id="btnVoteStart">POST /sessions/:id/vote/start</button>
+    <button class="btn gray" id="btnVoteStatus">GET /sessions/:id/vote</button>
+  </div>
+  <div class="row">
+    <input id="voteEdgeId" placeholder="edgeId zum Abstimmen" />
+    <input id="voteVoterId" placeholder="voterId (optional, z. B. user-1)" />
+  </div>
+  <div class="row">
+    <button class="btn" id="btnVoteCast">POST /sessions/:id/vote/cast</button>
+    <button class="btn red" id="btnVoteClose">POST /sessions/:id/vote/close (apply)</button>
+  </div>
+  <div class="row">
+  <div style="grid-column:1/-1">
+    <div id="voteTimer" class="pill" style="display:inline-block;margin-right:8px">—</div>
+    <div style="height:8px;background:#1f2937;border-radius:999px;overflow:hidden">
+      <div id="voteProgress" style="height:8px;width:0%;background:#f59e0b"></div>
+    </div>
+  </div>
+</div>
+
+  <div id="voteBox" class="mono" style="margin-top:8px"></div>
+</div>
+
+    
+
+    <div style="margin-top:12px">
+      <h2>Edges bearbeiten/löschen</h2>
+      <div class="grid3">
+        <div>
+          <label>edgeId</label>
+          <input id="editEdgeId" placeholder="z. B. 24" />
+        </div>
+        <div>
+          <label>Neues Label</label>
+          <input id="editLabel" placeholder="Neues Label..." />
+        </div>
+        <div>
+          <label>Neues toNodeId</label>
+          <input id="editToNodeId" placeholder="z. B. 32" />
+        </div>
+      </div>
+      <label>Condition (JSON)</label>
+      <textarea id="editCondition">{}</textarea>
+      <label>Effect (JSON)</label>
+      <textarea id="editEffect">{}</textarea>
+      <div class="row">
+        <button class="btn" id="btnPatchEdge">PATCH /edges/:edgeId</button>
+        <button class="btn red" id="btnDeleteEdge">DELETE /edges/:edgeId</button>
+      </div>
     </div>
 
-    <h2 style="margin-top:12px">Admin</h2>
-    <div class="row4">
-      <button class="btn gray" id="btnListNodes">GET /admin/nodes</button>
-      <button class="btn" id="btnResetSeed">POST /admin/reset (mit Seed)</button>
-      <button class="btn red" id="btnResetNoSeed">POST /admin/reset (ohne Seed)</button>
-      <button class="btn red" id="btnClear" title="Nur wenn /admin/clear existiert">POST /admin/clear</button>
-    </div>
+    <div style="margin-top:12px">
+      <h2>Admin</h2>
+      <div class="row">
+  <button class="btn gray" id="btnListNodes">GET /admin/nodes</button>
+  <button class="btn" id="btnResetSeed">POST /admin/reset (mit Seed)</button>
+  <button class="btn red" id="btnResetNoSeed">POST /admin/reset (ohne Seed)</button>
+  <button class="btn red" id="btnClear" title="Nur wenn /admin/clear existiert">POST /admin/clear</button>
+</div>
 
-    <h2 style="margin-top:12px">State</h2>
-    <textarea id="stateEditor" class="mono" style="width:100%;min-height:120px">{}</textarea>
-    <div class="row" style="margin-top:6px">
-      <button class="btn" id="btnStateRefresh">State neu laden</button>
-      <button class="btn" id="btnStateApply">State patchen</button>
     </div>
   </section>
 
-  <!-- Rechte Spalte: Status + Graph -->
   <section>
     <h2>Session Status</h2>
+    <div class="row">
+      <button class="btn" id="btnLoadSession">GET /sessions/:id</button>
+      <button class="btn" id="btnHistory">GET /sessions/:id/history</button>
+    </div>
     <div id="status" class="mono" style="margin-top:8px"></div>
 
     <h2 style="margin-top:16px">Nodes</h2>
@@ -179,19 +254,60 @@
     <h2 style="margin-top:16px">Snapshots</h2>
     <div id="snaps" class="mono"></div>
 
-    <h2 style="margin-top:16px">Graph (Session)</h2>
-    <div class="row">
-      <button class="btn gray" id="btnGraphVisited">Graph: visited</button>
-      <button class="btn gray" id="btnGraphAll">Graph: all</button>
-    </div>
-    <svg id="graphSvg" width="100%" height="480" style="background:var(--bg);border:1px solid var(--b);border-radius:12px;margin-top:8px"></svg>
+    <h2 style="margin-top:16px">State</h2>
+<textarea id="stateEditor" class="mono" style="width:100%;min-height:120px">{}</textarea>
+<div class="row" style="margin-top:6px">
+  <button class="btn" id="btnStateRefresh">State neu laden</button>
+  <button class="btn" id="btnStateApply">State patchen</button>
+</div>
+
+<h2 style="margin-top:16px">Graph (Session)</h2>
+<div class="row">
+  <button class="btn gray" id="btnGraphVisited">Graph: visited</button>
+  <button class="btn gray" id="btnGraphAll">Graph: all</button>
+</div>
+
+    <h2 style="margin-top:16px">Multi‑Session‑Monitor</h2>
+<div class="row two">
+  <button class="btn" id="msmLoad">GET /admin/sessions</button>
+  <button class="btn gray" id="msmSubAll">Subscribe all</button>
+</div>
+<div class="row two">
+  <input id="msmFilter" placeholder="Filter (z. B. running)" />
+  <button class="btn gray" id="msmUnsubAll">Unsubscribe all</button>
+</div>
+
+  <h2 style="margin-top:16px">Live‑Feed (Ingest)</h2>
+<div class="row two">
+  <div class="pill">eingehend + verarbeitet</div>
+</div>
+<div id="ingestFeed" class="mono" style="margin-top:8px; max-height:220px; overflow:auto; background:#0f172a; border:1px solid #334155; border-radius:8px; padding:8px"></div>
+
+<div id="msmGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:10px;margin-top:8px"></div>
+
+<svg id="graphSvg" width="100%" height="420" style="background:#0b1220;border:1px solid #1e293b;border-radius:12px;margin-top:8px"></svg>
+
+
   </section>
 </main>
 
 <footer>Admin-UI · spricht mit deiner API unter <span id="baseUrlFoot"></span></footer>
 
 <script>
-  // === Konfiguration & Helpers ===
+
+  window.addEventListener('error', (e) => {
+  console.error('Admin-UI error:', e.message);
+});
+
+  
+window.addEventListener("error", (e) => {
+  const pre = document.createElement("pre");
+  pre.textContent = "JS ERROR: " + e.message;
+  pre.style.cssText = "position:fixed;left:8px;bottom:8px;background:#111;color:#f88;padding:8px;border:1px solid #900;z-index:99999;max-width:90vw;white-space:pre-wrap";
+  document.body.appendChild(pre);
+});
+
+  
   const BASE_URL = "https://live-story-teller-gu7wv.ondigitalocean.app";
   const els = {
     apiKey: document.getElementById("apiKey"),
@@ -200,15 +316,9 @@
     baseUrlFoot: document.getElementById("baseUrlFoot"),
     sessionId: document.getElementById("sessionId"),
     btnNewSession: document.getElementById("btnNewSession"),
-    btnLoadSession: document.getElementById("btnLoadSession"),
-    btnHistory: document.getElementById("btnHistory"),
-    status: document.getElementById("status"),
-    nodes: document.getElementById("nodes"),
-    // Start
     startTitle: document.getElementById("startTitle"),
     startContent: document.getElementById("startContent"),
     btnStart: document.getElementById("btnStart"),
-    // Add option
     optLabel: document.getElementById("optLabel"),
     optTargetMode: document.getElementById("optTargetMode"),
     targetNew: document.getElementById("targetNew"),
@@ -216,23 +326,11 @@
     optNodeTitle: document.getElementById("optNodeTitle"),
     optNodeContent: document.getElementById("optNodeContent"),
     optToNodeId: document.getElementById("optToNodeId"),
-    optCondition: document.getElementById("optCondition"),
-    optEffect: document.getElementById("optEffect"),
     btnAddOption: document.getElementById("btnAddOption"),
-    // Decide/rewind
     edgeId: document.getElementById("edgeId"),
     btnDecide: document.getElementById("btnDecide"),
     rewindSteps: document.getElementById("rewindSteps"),
     btnRewind: document.getElementById("btnRewind"),
-    // Snapshots
-    snapLabel: document.getElementById("snapLabel"),
-    btnMakeSnap: document.getElementById("btnMakeSnap"),
-    btnListSnaps: document.getElementById("btnListSnaps"),
-    snapId: document.getElementById("snapId"),
-    btnRestoreSnap: document.getElementById("btnRestoreSnap"),
-    btnDeleteSnap: document.getElementById("btnDeleteSnap"),
-    snaps: document.getElementById("snaps"),
-    // Edge edit
     editEdgeId: document.getElementById("editEdgeId"),
     editLabel: document.getElementById("editLabel"),
     editToNodeId: document.getElementById("editToNodeId"),
@@ -240,24 +338,365 @@
     editEffect: document.getElementById("editEffect"),
     btnPatchEdge: document.getElementById("btnPatchEdge"),
     btnDeleteEdge: document.getElementById("btnDeleteEdge"),
-    // Admin
     btnListNodes: document.getElementById("btnListNodes"),
-    btnResetSeed: document.getElementById("btnResetSeed"),
-    btnResetNoSeed: document.getElementById("btnResetNoSeed"),
-    btnClear: document.getElementById("btnClear"),
-    // State
+    btnLoadSession: document.getElementById("btnLoadSession"),
+    btnHistory: document.getElementById("btnHistory"),
+    status: document.getElementById("status"),
+    nodes: document.getElementById("nodes"),
+    snapLabel: document.getElementById("snapLabel"),
+    btnMakeSnap: document.getElementById("btnMakeSnap"),
+    btnListSnaps: document.getElementById("btnListSnaps"),
+    snapId: document.getElementById("snapId"),
+    btnRestoreSnap: document.getElementById("btnRestoreSnap"),
+    btnDeleteSnap: document.getElementById("btnDeleteSnap"),
+    snaps: document.getElementById("snaps"),
     stateEditor: document.getElementById("stateEditor"),
     btnStateRefresh: document.getElementById("btnStateRefresh"),
     btnStateApply: document.getElementById("btnStateApply"),
-    // Graph
     btnGraphVisited: document.getElementById("btnGraphVisited"),
     btnGraphAll: document.getElementById("btnGraphAll"),
-    graphSvg: document.getElementById("graphSvg")
+    graphSvg: document.getElementById("graphSvg"),
+    btnResetSeed: document.getElementById("btnResetSeed"),
+    btnResetNoSeed: document.getElementById("btnResetNoSeed"),
+    btnClear: document.getElementById("btnClear"),
+    voteDuration: document.getElementById("voteDuration"),
+    voteOptionsCsv: document.getElementById("voteOptionsCsv"),
+    btnVoteStart: document.getElementById("btnVoteStart"),
+    btnVoteStatus: document.getElementById("btnVoteStatus"),
+    voteEdgeId: document.getElementById("voteEdgeId"),
+    voteVoterId: document.getElementById("voteVoterId"),
+    btnVoteCast: document.getElementById("btnVoteCast"),
+    btnVoteClose: document.getElementById("btnVoteClose"),
+    voteBox: document.getElementById("voteBox"),
+    voteTimer: document.getElementById("voteTimer"),
+    voteProgress: document.getElementById("voteProgress"),
+    btnListOptions: document.getElementById("btnListOptions"),
+    btnEndSession: document.getElementById("btnEndSession"),
+    jumpToNodeId: document.getElementById("jumpToNodeId"),
+    btnJump: document.getElementById("btnJump"),
+    msmLoad: document.getElementById("msmLoad"),
+    msmSubAll: document.getElementById("msmSubAll"),
+    msmUnsubAll: document.getElementById("msmUnsubAll"),
+    msmFilter: document.getElementById("msmFilter"),
+    msmGrid: document.getElementById("msmGrid")
+
   };
 
-  // Nur EIN Set/Mode global
-  let currentVoteOptions = new Set();
-  window.currentGraphMode = "visited";
+
+  
+if (typeof window.currentGraphMode === "undefined") window.currentGraphMode = "visited";
+if (typeof window.currentVoteOptions === "undefined") window.currentVoteOptions = new Set();
+
+
+  const WS_URL = BASE_URL.replace(/^http/, "ws") + "/ws";
+let ws = null;
+let wsReconnectTimer = null;
+  
+let refreshTimer = null;
+
+let voteInterval = null;
+let voteEndsAt = null;
+
+let currentGraphMode = "visited";
+
+
+// ===== Multi-Session-Monitor (MSM) =====
+const msm = {
+  cards: new Map(),       // sid -> DOM
+  timers: new Map(),      // sid -> debounce timer
+  subs: new Set(),        // aktuell abonnierte sids
+};
+
+// Deterministische Session-Farbe (HSL) aus ID
+function sessionHueFromId(id){ // 0..360 verteilt
+  let x = Number(id) >>> 0;
+  x ^= x << 13; x ^= x >>> 17; x ^= x << 5;
+  return (x % 360 + 360) % 360;
+}
+function sessionColor(id){ // CSS-Farbe
+  const h = sessionHueFromId(id);
+  return `hsl(${h}deg 70% 60%)`;
+}
+
+  
+function msmRenderCard(s) {
+  const sid = s.id;
+  let el = msm.cards.get(sid);
+  const col = sessionColor(sid);
+  const html = `
+    <div class="msm-card ${msm.subs.has(sid) ? 'subscribed' : ''} ${Number(els.sessionId.value)===sid ? 'focused' : ''}">
+      <div class="msm-title">
+        <span class="msm-name" style="color:${col}">Session #${sid}</span>
+        <span class="pill">${s.status || "?"}</span>
+      </div>
+      <div class="mono" style="font-size:12px;line-height:1.3">
+        Node: ${s.current_node_id ?? "—"} ${s.current_title ? ("· " + s.current_title) : ""}<br/>
+        Updated: ${s.updated_at ? new Date(s.updated_at).toLocaleString() : "—"}
+      </div>
+      <div class="row" style="margin-top:8px">
+        <button class="btn" data-act="focus"  data-sid="${sid}">Focus</button>
+        <button class="btn gray" data-act="details" data-sid="${sid}">Details</button>
+      </div>
+      <div class="mono" id="msmStatus-${sid}" style="margin-top:6px;max-height:180px;overflow:auto;background:#0f172a;border:1px solid #334155;border-radius:8px;padding:6px"></div>
+    </div>
+  `;
+  if (!el) {
+    el = document.createElement("div");
+    el.innerHTML = html;
+    els.msmGrid.appendChild(el);
+    msm.cards.set(sid, el);
+    msmRefreshCard(sid);
+  } else {
+    el.innerHTML = html;
+  }
+
+  // Buttons
+  const btnFocus = el.querySelector('[data-act="focus"]');
+  const btnDetails = el.querySelector('[data-act="details"]');
+  btnFocus?.addEventListener("click", () => {
+    els.sessionId.value = sid;
+    // Fokus-Style neu setzen (alle Karten neu rendern)
+    Array.from(msm.cards.keys()).forEach(id => {
+      const c = msm.cards.get(id).firstElementChild;
+      c.classList.toggle("focused", id===sid);
+    });
+    loadSession();
+    loadGraph(currentGraphMode);
+
+    if (ws && ws.readyState === 1) ws.send(JSON.stringify({ type:"subscribe", sessionId: sid }));
+    // sicherstellen, dass in den Subs markiert ist
+    msm.subs.add(sid);
+    const card = msm.cards.get(sid).firstElementChild;
+    card.classList.add("subscribed");
+  });
+  btnDetails?.addEventListener("click", () => msmRefreshCard(sid));
+}
+
+
+async function msmRefreshCard(sid) {
+  try {
+    const r = await api(`/sessions/${sid}`, { headers: headers() });
+    const box = document.getElementById(`msmStatus-${sid}`);
+    if (box) {
+      // Kompaktere Ansicht: nur das Wichtigste
+      const compact = {
+        status: r.status,
+        currentNodeId: r.currentNodeId,
+        options: (r.options || []).map(o => ({ id:o.id, label:o.label, to:o.to_node_id })),
+        stateKeys: Object.keys(r.state || {})
+      };
+      box.textContent = JSON.stringify(compact, null, 2);
+    }
+  } catch (e) {
+    const box = document.getElementById(`msmStatus-${sid}`);
+    if (box) box.textContent = JSON.stringify(e, null, 2);
+  }
+}
+
+// Debounced per-Session-Refresh bei WS-Events
+function msmScheduleUpdate(sid) {
+  clearTimeout(msm.timers.get(sid));
+  const t = setTimeout(() => msmRefreshCard(sid), 150);
+  msm.timers.set(sid, t);
+}
+
+// Liste laden
+els.msmLoad.onclick = async () => {
+  try {
+    els.msmGrid.innerHTML = "";
+    msm.cards.clear();
+    const r = await api(`/admin/sessions`, { headers: headers() });
+    let rows = r.sessions || [];
+    const f = (els.msmFilter.value || "").trim().toLowerCase();
+    if (f) rows = rows.filter(s => String(s.status || "").toLowerCase().includes(f) || String(s.id).includes(f));
+    rows.forEach(msmRenderCard);
+  } catch (e) {
+    alert("Fehler beim Laden der Sessions");
+    console.error(e);
+  }
+};
+
+// Alle subscriben / unsubscriben
+els.msmSubAll.onclick = () => {
+  const ids = Array.from(msm.cards.keys());
+  ids.forEach(sid => {
+    if (!msm.subs.has(sid) && ws && ws.readyState === 1) {
+      ws.send(JSON.stringify({ type:"subscribe", sessionId: sid }));
+      const c = msm.cards.get(sid)?.firstElementChild;
+if (c) c.classList.add("subscribed");
+      msm.subs.add(sid);
+    }
+  });
+};
+els.msmUnsubAll.onclick = () => {
+  const ids = Array.from(msm.cards.keys());
+  ids.forEach(sid => {
+    if (msm.subs.has(sid) && ws && ws.readyState === 1) {
+      ws.send(JSON.stringify({ type:"unsubscribe", sessionId: sid }));
+      const c2 = msm.cards.get(sid)?.firstElementChild;
+if (c2) c2.classList.remove("subscribed");
+      msm.subs.delete(sid);
+    }
+  });
+};
+
+// WS: bei Events die passenden Karten aktualisieren
+// (füge das in deinem ws.onmessage switch NACH den bestehenden Fällen ein)
+function msmOnWs(msg) {
+  const sid = msg.sessionId;
+  if (!msm.cards.has(sid)) return;       // nur Sessions mit Card
+  switch (msg.type) {
+    case "vote/tally":
+    case "vote/started":
+    case "vote/closed":
+    case "state/updated":
+    case "option/added":
+    case "edge/updated":
+    case "decision/applied":
+    case "rewind/applied":
+    case "jump/applied":
+    case "session/ended":
+    case "session/created":
+      msmScheduleUpdate(sid);
+      break;
+  }
+  const card = msm.cards.get(msg.sessionId)?.firstElementChild;
+if (card) {
+  card.classList.toggle("subscribed", msm.subs.has(msg.sessionId));
+  card.classList.toggle("focused", Number(els.sessionId.value)===msg.sessionId);
+}
+
+}
+
+
+  
+function startVoteCountdown(startedAtISO, durationSec) {
+  clearInterval(voteInterval);
+  if (!Number.isFinite(durationSec) || durationSec <= 0 || !startedAtISO) {
+    els.voteTimer.textContent = "∞";
+    els.voteProgress.style.width = "0%";
+    return;
+  }
+  const started = Date.parse(startedAtISO);
+  voteEndsAt = started + durationSec * 1000;
+
+  const tick = () => {
+    const now = Date.now();
+    const remain = Math.max(0, voteEndsAt - now);
+    const total = durationSec * 1000;
+    const percent = Math.max(0, Math.min(100, ((total - remain) / total) * 100));
+    els.voteProgress.style.width = percent.toFixed(1) + "%";
+    const s = Math.ceil(remain / 1000);
+    const mm = String(Math.floor(s / 60)).padStart(2, "0");
+    const ss = String(s % 60).padStart(2, "0");
+    els.voteTimer.textContent = `${mm}:${ss}`;
+    if (remain <= 0) clearInterval(voteInterval);
+  };
+  tick();
+  voteInterval = setInterval(tick, 250);
+}
+
+function stopVoteCountdown() {
+  clearInterval(voteInterval);
+  els.voteTimer.textContent = "—";
+  els.voteProgress.style.width = "0%";
+}
+
+  
+function scheduleRefresh() {
+  clearTimeout(refreshTimer);
+  refreshTimer = setTimeout(async () => {
+    await loadSession();
+    await loadGraph(currentGraphMode);
+  }, 150);
+}
+function flash(el){ if(!el) return; el.classList.remove('flash'); void el.offsetWidth; el.classList.add('flash'); }
+
+function wsConnect() {
+  try { if (ws) ws.close(); } catch {}
+  ws = new WebSocket(WS_URL);
+
+  ws.onopen = () => {
+    // bei bestehender Session erneut subscriben
+    const sid = Number(els.sessionId.value);
+    if (Number.isFinite(sid)) wsSend({ type: "subscribe", sessionId: sid });
+  };
+
+  ws.onmessage = (ev) => {
+    let msg = null;
+    try { msg = JSON.parse(ev.data); } catch { return; }
+    const sid = Number(els.sessionId.value);
+    if (!Number.isFinite(sid) || msg.sessionId !== sid) return;
+
+    switch (msg.type) {
+  case "vote/tally": {
+    // nur Tally live aktualisieren
+    const current = els.voteBox.textContent ? JSON.parse(els.voteBox.textContent) : {};
+    const next = { ...(current || {}), tally: msg.tally };
+    els.voteBox.textContent = JSON.stringify(next, null, 2);
+    flash(els.voteBox);
+    break;
+  }
+  case "vote/started": {
+    currentVoteOptions = new Set((msg.options || []).map(Number));
+    startVoteCountdown(msg.startedAt, msg.durationSec || 0);
+    loadGraph(currentGraphMode);
+    // Statusbox antippen
+    flash(els.graphSvg);
+    break;
+  }
+  case "vote/closed": {
+    currentVoteOptions = new Set();
+    stopVoteCountdown();
+    scheduleRefresh(); // Gewinner angewendet? -> Full refresh
+    break;
+  }
+  case "state/updated": {
+    // State direkt einblenden, ohne HTTP-GET
+    els.stateEditor.value = JSON.stringify(msg.state || {}, null, 2);
+    flash(els.stateEditor);
+    // Optionen können sich durch State-Change ändern -> sanfter Full-Refresh
+    scheduleRefresh();
+    break;
+  }
+  case "ingest/new": {
+  appendIngest({ type:"in", platform: msg.platform, user: msg.username, text: msg.message });
+  break;
+}
+  case "ingest/processed": {
+  appendIngest({ type:"out", platform: msg.platform, user: msg.username, text: msg.message, outcome: msg.outcome });
+  break;
+}
+
+  case "option/added":
+  case "edge/updated":
+  case "decision/applied":
+  case "rewind/applied": {
+    // Graph & Status konsistent neu laden (debounced)
+    scheduleRefresh();
+    break;
+  }
+}
+    msmOnWs(msg);
+
+
+  };
+
+  ws.onclose = () => {
+    ws = null;
+    clearTimeout(wsReconnectTimer);
+    wsReconnectTimer = setTimeout(wsConnect, 1500);
+  };
+
+  ws.onerror = () => { try { ws.close(); } catch {} };
+}
+
+function wsSend(obj) {
+  if (ws && ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify(obj));
+}
+wsConnect(); // sofort verbinden
+
+
 
   // Persistenter Key
   els.apiKey.value = localStorage.getItem("xApiKey") || "dev-secret-change-me";
@@ -268,6 +707,7 @@
   els.baseUrlInfo.textContent = BASE_URL;
   els.baseUrlFoot.textContent = BASE_URL;
 
+  // Toggle Target Mode
   els.optTargetMode.onchange = () => {
     const mode = els.optTargetMode.value;
     els.targetNew.style.display = mode === "new" ? "block" : "none";
@@ -288,78 +728,25 @@
     if (!res.ok) throw data || { error: "http_error", status: res.status };
     return data;
   }
-  function showStatus(obj) { els.status.textContent = JSON.stringify(obj, null, 2); }
-  function showNodes(obj)  { els.nodes.textContent  = JSON.stringify(obj, null, 2); }
-  function showSnaps(obj)  { els.snaps.textContent  = JSON.stringify(obj, null, 2); }
+  function showStatus(obj) {
+    els.status.textContent = JSON.stringify(obj, null, 2);
+  }
+  function showNodes(obj) {
+    els.nodes.textContent = JSON.stringify(obj, null, 2);
+  }
+  
+function showSnaps(obj) {
+  els.snaps.textContent = JSON.stringify(obj, null, 2);
+}
+  
 
-  // Utils
-  function safeJSON(text, fallback) {
-    try { return JSON.parse(text); } catch { return fallback; }
-  }
-  function getByPath(obj, path) {
-    if (!obj || !path) return undefined;
-    const parts = String(path).split(".");
-    let cur = obj;
-    for (const p of parts) {
-      if (cur == null || typeof cur !== "object") return undefined;
-      cur = cur[p];
-    }
-    return cur;
-  }
-  function evalCondition(cond, state) {
-    if (!cond || !Array.isArray(cond.requires) || cond.requires.length === 0) {
-      return { met: true, unmet: [] };
-    }
-    const unmet = [];
-    for (const r of cond.requires) {
-      const key = r?.key, op = r?.op || "==", val = r?.value;
-      const actual = getByPath(state, key);
-      let ok = false;
-      switch (op) {
-        case "==": ok = (actual === val); break;
-        case "!=": ok = (actual !== val); break;
-        case ">":  ok = (typeof actual === "number" && actual >  val); break;
-        case ">=": ok = (typeof actual === "number" && actual >= val); break;
-        case "<":  ok = (typeof actual === "number" && actual <  val); break;
-        case "<=": ok = (typeof actual === "number" && actual <= val); break;
-        case "exists":     ok = (actual !== undefined && actual !== null); break;
-        case "not_exists": ok = (actual === undefined || actual === null); break;
-        default: ok = false;
-      }
-      if (!ok) {
-        const need = (op === "exists" || op === "not_exists")
-          ? `${key} ${op}`
-          : `${key} ${op} ${JSON.stringify(val)}`;
-        unmet.push(need);
-      }
-    }
-    return { met: unmet.length === 0, unmet };
-  }
-
-  // Session
+  // Session anlegen
   els.btnNewSession.onclick = async () => {
     try {
-      const r = await api("/sessions", { method:"POST", headers: headers(), body: JSON.stringify({ startNodeId: null }) });
+      const body = { startNodeId: null };
+      const r = await api("/sessions", { method:"POST", headers: headers(), body: JSON.stringify(body) });
       els.sessionId.value = r.id;
       await loadSession();
-    } catch (e) { showStatus(e); }
-  };
-  els.btnLoadSession.onclick = loadSession;
-  async function loadSession() {
-    const sid = Number(els.sessionId.value);
-    if (!Number.isFinite(sid)) return alert("Session-ID fehlt/ungültig.");
-    try {
-      const r = await api(`/sessions/${sid}`, { headers: headers() });
-      showStatus(r);
-      els.stateEditor.value = JSON.stringify(r.state || {}, null, 2);
-    } catch (e) { showStatus(e); }
-  }
-  els.btnHistory.onclick = async () => {
-    const sid = Number(els.sessionId.value);
-    if (!Number.isFinite(sid)) return alert("Session-ID fehlt/ungültig.");
-    try {
-      const r = await api(`/sessions/${sid}/history`, { headers: headers() });
-      showStatus(r);
     } catch (e) { showStatus(e); }
   };
 
@@ -371,114 +758,229 @@
         nodeTitle: els.startTitle.value || "Start",
         nodeContent: safeJSON(els.startContent.value, { text: "Start..." })
       };
-      await api(`/sessions/${sid}/start`, { method:"POST", headers: headers(), body: JSON.stringify(body) });
+      const r = await api(`/sessions/${sid}/start`, { method:"POST", headers: headers(), body: JSON.stringify(body) });
       await loadSession();
     } catch (e) { showStatus(e); }
   };
 
-  // Option hinzufügen (new/existing, mit Condition/Effect)
-  els.optTargetMode.onchange();
-  els.btnAddOption.onclick = async () => {
-    try {
-      const sid = Number(els.sessionId.value);
-      const mode = els.optTargetMode.value;
-      const label = (els.optLabel.value || "").trim();
-      if (!label) return alert("Label fehlt.");
+ // Option hinzufügen
+els.btnAddOption.onclick = async () => {
+  try {
+    const sid = Number(els.sessionId.value);
+    const mode = els.optTargetMode.value;
+    const label = (els.optLabel.value || "").trim();
+    if (!label) return alert("Label fehlt.");
 
-      const cond = safeJSON(els.optCondition.value || "{}", null);
-      const eff  = safeJSON(els.optEffect.value || "{}", null);
-      let body;
+    let body;
+    if (mode === "new") {
+      body = {
+        label,
+        nodeTitle: els.optNodeTitle.value || "Neuer Knoten",
+        nodeContent: safeJSON(els.optNodeContent.value, { text: "" }),
+        condition: safeJSON((document.getElementById("optCondition")?.value || "{}"), null),
+        effect:    safeJSON((document.getElementById("optEffect")?.value || "{}"), null)
+      };
+      if (body.condition && Object.keys(body.condition).length === 0) body.condition = null;
+      if (body.effect    && Object.keys(body.effect).length    === 0) body.effect    = null;
 
-      if (mode === "new") {
-        body = {
+      await api(`/sessions/${sid}/add-option`, {
+        method:"POST", headers: headers(), body: JSON.stringify(body)
+      });
+    } else {
+      const toNodeId = Number(els.optToNodeId.value);
+      if (!Number.isFinite(toNodeId)) return alert("toNodeId ist ungültig.");
+      body = {
+        edges: [{
           label,
-          nodeTitle: els.optNodeTitle.value || "Neuer Knoten",
-          nodeContent: safeJSON(els.optNodeContent.value, { text: "" }),
-          condition: (cond && Object.keys(cond).length ? cond : null),
-          effect:    (eff  && Object.keys(eff).length  ? eff  : null)
-        };
-        await api(`/sessions/${sid}/add-option`, { method:"POST", headers: headers(), body: JSON.stringify(body) });
-      } else {
-        const toNodeId = Number(els.optToNodeId.value);
-        if (!Number.isFinite(toNodeId)) return alert("toNodeId ist ungültig.");
-        body = {
-          edges: [{
-            label, toNodeId,
-            condition: (cond && Object.keys(cond).length ? cond : null),
-            effect:    (eff  && Object.keys(eff).length  ? eff  : null)
-          }]
-        };
-        await api(`/sessions/${sid}/expand`, { method:"POST", headers: headers(), body: JSON.stringify(body) });
-      }
-      await loadSession();
-    } catch (e) { showStatus(e); }
-  };
+          toNodeId,
+          condition: safeJSON((document.getElementById("optCondition")?.value || "{}"), null),
+          effect:    safeJSON((document.getElementById("optEffect")?.value || "{}"), null)
+        }]
+      };
+      if (body.edges[0].condition && Object.keys(body.edges[0].condition).length === 0) body.edges[0].condition = null;
+      if (body.edges[0].effect    && Object.keys(body.edges[0].effect).length    === 0) body.edges[0].effect    = null;
 
-  // Decision & Rewind
+      await api(`/sessions/${sid}/expand`, {
+        method:"POST", headers: headers(), body: JSON.stringify(body)
+      });
+    }
+    await loadSession();
+  } catch (e) { showStatus(e); }
+};
+
+  // Entscheidung ausführen
   els.btnDecide.onclick = async () => {
     try {
       const sid = Number(els.sessionId.value);
       const edgeId = Number(els.edgeId.value);
       if (!Number.isFinite(edgeId)) return alert("edgeId fehlt/ungültig.");
-      await api(`/sessions/${sid}/decision`, { method:"POST", headers: headers(), body: JSON.stringify({ edgeId }) });
+      const body = { edgeId };
+      await api(`/sessions/${sid}/decision`, { method:"POST", headers: headers(), body: JSON.stringify(body) });
       await loadSession();
-      await loadGraph(window.currentGraphMode);
     } catch (e) { showStatus(e); }
   };
+
+  // Rewind
   els.btnRewind.onclick = async () => {
     try {
       const sid = Number(els.sessionId.value);
       const steps = Number(els.rewindSteps.value || "1");
-      await api(`/sessions/${sid}/rewind`, { method:"POST", headers: headers(), body: JSON.stringify({ steps }) });
+      const body = { steps };
+      const r = await api(`/sessions/${sid}/rewind`, { method:"POST", headers: headers(), body: JSON.stringify(body) });
       await loadSession();
-      await loadGraph(window.currentGraphMode);
     } catch (e) { showStatus(e); }
   };
 
-  // Snapshots
-  els.btnMakeSnap.onclick = async () => {
-    const sid = Number(els.sessionId.value);
-    if (!Number.isFinite(sid)) return alert("Session-ID fehlt/ungültig.");
-    const label = (els.snapLabel.value || "").trim();
-    const body = label ? { label } : {};
-    try {
-      await api(`/sessions/${sid}/snapshot`, { method: "POST", headers: headers(), body: JSON.stringify(body) });
-      await listSnaps();
-    } catch (e) { showStatus(e); }
-  };
-  async function listSnaps() {
-    const sid = Number(els.sessionId.value);
-    if (!Number.isFinite(sid)) return alert("Session-ID fehlt/ungültig.");
-    try {
-      const r = await api(`/sessions/${sid}/snapshots`, { headers: headers() });
-      showSnaps(r);
-      if (Array.isArray(r.snapshots) && r.snapshots.length) {
-        els.snapId.value = r.snapshots[0].id;
-      }
-    } catch (e) { showSnaps(e); }
-  }
-  els.btnListSnaps.onclick = listSnaps;
-  els.btnRestoreSnap.onclick = async () => {
-    const sid = Number(els.sessionId.value);
-    const snapId = Number(els.snapId.value);
-    if (!Number.isFinite(sid) || !Number.isFinite(snapId)) return alert("IDs prüfen.");
-    try {
-      await api(`/sessions/${sid}/restore/${snapId}`, { method:"POST", headers: headers(), body: JSON.stringify({ clearHistory: false }) });
-      await loadSession();
-      await listSnaps();
-    } catch (e) { showStatus(e); }
-  };
-  els.btnDeleteSnap.onclick = async () => {
-    const sid = Number(els.sessionId.value);
-    const snapId = Number(els.snapId.value);
-    if (!Number.isFinite(sid) || !Number.isFinite(snapId)) return alert("IDs prüfen.");
-    try {
-      await api(`/sessions/${sid}/snapshots/${snapId}`, { method:"DELETE", headers: headers() });
-      await listSnaps();
-    } catch (e) { showSnaps(e); }
-  };
+// Snapshot anlegen
+els.btnMakeSnap.onclick = async () => {
+  const sid = Number(els.sessionId.value);
+  if (!Number.isFinite(sid)) return alert("Session-ID fehlt/ungültig.");
+  const label = (els.snapLabel.value || "").trim();
+  const body = label ? { label } : {};
+  try {
+    const r = await api(`/sessions/${sid}/snapshot`, {
+      method: "POST", headers: headers(), body: JSON.stringify(body)
+    });
+    await listSnaps(); // direkt aktualisieren
+  } catch (e) { showStatus(e); }
+};
 
-  // Edge Patch/Delete
+// Snapshots auflisten
+async function listSnaps() {
+  const sid = Number(els.sessionId.value);
+  if (!Number.isFinite(sid)) return alert("Session-ID fehlt/ungültig.");
+  try {
+    const r = await api(`/sessions/${sid}/snapshots`, { headers: headers() });
+    showSnaps(r);
+    // Bequemlichkeit: neueste snapId vorbefüllen
+    if (Array.isArray(r.snapshots) && r.snapshots.length) {
+      els.snapId.value = r.snapshots[0].id;
+    }
+  } catch (e) { showSnaps(e); }
+}
+els.btnListSnaps.onclick = listSnaps;
+
+function appendIngest(ev) {
+  const box = document.getElementById("ingestFeed");
+  if (!box) return;
+  const time = new Date().toLocaleTimeString();
+  const line = (ev.type === "in")
+    ? `[${time}] ⬅ ${ev.platform} | ${ev.user}: ${ev.text || ""}`
+    : `[${time}] ✅ ${ev.platform} | ${ev.user}: ${ev.text || ""}  → ${ev.outcome}`;
+  const el = document.createElement("div");
+  el.textContent = line;
+  box.prepend(el);
+  // trim
+  const max = 200;
+  while (box.childElementCount > max) box.removeChild(box.lastChild);
+}
+
+  
+// Snapshot wiederherstellen
+els.btnRestoreSnap.onclick = async () => {
+  const sid = Number(els.sessionId.value);
+  const snapId = Number(els.snapId.value);
+  if (!Number.isFinite(sid) || !Number.isFinite(snapId)) return alert("IDs prüfen.");
+  try {
+    const body = { clearHistory: false }; // bei Bedarf true
+    const r = await api(`/sessions/${sid}/restore/${snapId}`, {
+      method: "POST", headers: headers(), body: JSON.stringify(body)
+    });
+    await loadSession();
+    await listSnaps();
+  } catch (e) { showStatus(e); }
+};
+
+// Snapshot löschen
+els.btnDeleteSnap.onclick = async () => {
+  const sid = Number(els.sessionId.value);
+  const snapId = Number(els.snapId.value);
+  if (!Number.isFinite(sid) || !Number.isFinite(snapId)) return alert("IDs prüfen.");
+  try {
+    await api(`/sessions/${sid}/snapshots/${snapId}`, { method: "DELETE", headers: headers() });
+    await listSnaps();
+  } catch (e) { showSnaps(e); }
+};
+
+  // Voting: Start
+els.btnVoteStart.onclick = async () => {
+  const sid = Number(els.sessionId.value);
+  if (!Number.isFinite(sid)) return alert("Session-ID fehlt/ungültig.");
+
+  // Optionen: CSV -> Zahlen
+  const csv = (els.voteOptionsCsv.value || "").trim();
+  const options = csv ? csv.split(",").map(s => Number(s.trim())).filter(Number.isFinite) : undefined;
+
+  const durationSec = Number(els.voteDuration.value || "0");
+  const body = {};
+  if (options) body.options = options;
+  if (Number.isFinite(durationSec) && durationSec > 0) body.durationSec = durationSec;
+
+  try {
+    const r = await api(`/sessions/${sid}/vote/start`, {
+      method: "POST", headers: headers(), body: JSON.stringify(body)
+    });
+    els.voteBox.textContent = JSON.stringify(r, null, 2);
+    // Edge-IDs für Graph-Highlight merken
+    currentVoteOptions = new Set((r.vote?.options || []).map(Number));
+    loadGraph(currentGraphMode);
+
+      // r.vote.startedAt / r.vote.durationSec kommen vom Server
+startVoteCountdown(r.vote?.startedAt, r.vote?.durationSec || 0);
+    
+  } catch (e) { els.voteBox.textContent = JSON.stringify(e, null, 2); }
+};
+
+
+
+// Voting: Status
+els.btnVoteStatus.onclick = async () => {
+  const sid = Number(els.sessionId.value);
+  if (!Number.isFinite(sid)) return alert("Session-ID fehlt/ungültig.");
+  try {
+    const r = await api(`/sessions/${sid}/vote`, { headers: headers() });
+    els.voteBox.textContent = JSON.stringify(r, null, 2);
+    currentVoteOptions = new Set((r.options || []).map(Number));
+    loadGraph(currentGraphMode);
+    startVoteCountdown(r.startedAt, r.durationSec || 0);
+
+  } catch (e) { els.voteBox.textContent = JSON.stringify(e, null, 2); }
+};
+
+// Voting: Cast
+els.btnVoteCast.onclick = async () => {
+  const sid = Number(els.sessionId.value);
+  const edgeId = Number(els.voteEdgeId.value);
+  if (!Number.isFinite(sid) || !Number.isFinite(edgeId)) return alert("IDs prüfen.");
+  const voterId = (els.voteVoterId.value || "").trim();
+  const body = voterId ? { edgeId, voterId } : { edgeId };
+  try {
+    const r = await api(`/sessions/${sid}/vote/cast`, {
+      method: "POST", headers: headers(), body: JSON.stringify(body)
+    });
+    els.voteBox.textContent = JSON.stringify(r, null, 2);
+    // Status aktualisieren
+    const st = await api(`/sessions/${sid}/vote`, { headers: headers() });
+    els.voteBox.textContent = JSON.stringify(st, null, 2);
+  } catch (e) { els.voteBox.textContent = JSON.stringify(e, null, 2); }
+};
+
+// Voting: Close (apply winner)
+els.btnVoteClose.onclick = async () => {
+  const sid = Number(els.sessionId.value);
+  if (!Number.isFinite(sid)) return alert("Session-ID fehlt/ungültig.");
+  try {
+    const r = await api(`/sessions/${sid}/vote/close`, {
+      method: "POST", headers: headers(), body: JSON.stringify({ apply: true })
+    });
+    els.voteBox.textContent = JSON.stringify(r, null, 2);
+    currentVoteOptions = new Set(); // Voting beendet
+    await loadSession();            // Ansicht + Graph aktualisieren
+  } catch (e) { els.voteBox.textContent = JSON.stringify(e, null, 2); }
+};
+
+  
+  // Edge patch
   els.btnPatchEdge.onclick = async () => {
     try {
       const edgeId = Number(els.editEdgeId.value);
@@ -497,198 +999,438 @@
       if (effTxt) body.effect = safeJSON(effTxt, {});
       await api(`/edges/${edgeId}`, { method:"PATCH", headers: headers(), body: JSON.stringify(body) });
       await loadSession();
-      await loadGraph(window.currentGraphMode);
     } catch (e) { showStatus(e); }
   };
+
+  // Edge delete
   els.btnDeleteEdge.onclick = async () => {
     try {
       const edgeId = Number(els.editEdgeId.value);
       if (!Number.isFinite(edgeId)) return alert("edgeId fehlt/ungültig.");
       await api(`/edges/${edgeId}`, { method:"DELETE", headers: headers() });
       await loadSession();
-      await loadGraph(window.currentGraphMode);
     } catch (e) { showStatus(e); }
   };
 
   // Admin
   els.btnListNodes.onclick = async () => {
-    try { const r = await api(`/admin/nodes`, { headers: headers() }); showNodes(r); }
-    catch (e) { showNodes(e); }
-  };
-  els.btnResetSeed.onclick = async () => {
     try {
-      const r = await api(`/admin/reset`, { method: "POST", headers: headers(), body: JSON.stringify({ seed: true }) });
-      showNodes(r); els.sessionId.value = ""; els.status.textContent = "Reset (mit Seed) done."; els.stateEditor.value = "{}";
-    } catch (e) { showNodes(e); }
-  };
-  els.btnResetNoSeed.onclick = async () => {
-    try {
-      const r = await api(`/admin/reset`, { method: "POST", headers: headers(), body: JSON.stringify({ seed: false }) });
-      showNodes(r); els.sessionId.value = ""; els.status.textContent = "Reset (ohne Seed) done."; els.stateEditor.value = "{}";
-    } catch (e) { showNodes(e); }
-  };
-  els.btnClear.onclick = async () => {
-    try {
-      const r = await api(`/admin/clear`, { method: "POST", headers: headers() });
-      showNodes(r); els.sessionId.value = ""; els.status.textContent = "Clear done."; els.stateEditor.value = "{}";
+      const r = await api(`/admin/nodes`, { headers: headers() });
+      showNodes(r);
     } catch (e) { showNodes(e); }
   };
 
-  // State
-  els.btnStateRefresh.onclick = async () => {
+
+  // Reset mit Seed
+els.btnResetSeed.onclick = async () => {
+  try {
+    const r = await api(`/admin/reset`, {
+      method: "POST",
+      headers: headers(),
+      body: JSON.stringify({ seed: true })
+    });
+    showNodes(r);
+    els.sessionId.value = "";
+    els.status.textContent = "Reset (mit Seed) done.";
+    els.stateEditor.value = "{}";
+  } catch (e) { showNodes(e); }
+};
+
+// Reset ohne Seed (leer)
+els.btnResetNoSeed.onclick = async () => {
+  try {
+    const r = await api(`/admin/reset`, {
+      method: "POST",
+      headers: headers(),
+      body: JSON.stringify({ seed: false })
+    });
+    showNodes(r);
+    els.sessionId.value = "";
+    els.status.textContent = "Reset (ohne Seed) done.";
+    els.stateEditor.value = "{}";
+    
+    currentGraphMode = "visited";
+
+  } catch (e) { showNodes(e); }
+};
+
+// Nur leeren (falls Endpoint existiert)
+els.btnClear.onclick = async () => {
+  try {
+    const r = await api(`/admin/clear`, { method: "POST", headers: headers() });
+    showNodes(r);
+    els.sessionId.value = "";
+    els.status.textContent = "Clear done.";
+    els.stateEditor.value = "{}";
+  } catch (e) { showNodes(e); }
+};
+
+
+  // Loader
+  els.btnLoadSession.onclick = loadSession;
+  async function loadSession() {
     const sid = Number(els.sessionId.value);
     if (!Number.isFinite(sid)) return alert("Session-ID fehlt/ungültig.");
-    try {
-      const r = await api(`/sessions/${sid}`, { headers: headers() });
-      els.stateEditor.value = JSON.stringify(r.state || {}, null, 2);
-      showStatus(r);
-    } catch (e) { showStatus(e); }
-  };
-  els.btnStateApply.onclick = async () => {
-    const sid = Number(els.sessionId.value);
-    if (!Number.isFinite(sid)) return alert("Session-ID fehlt/ungültig.");
-    let body = {};
-    try { body = JSON.parse(els.stateEditor.value || "{}"); } catch { return alert("Ungültiges JSON."); }
-    try {
-      const r = await api(`/sessions/${sid}/state`, { method: "PATCH", headers: headers(), body: JSON.stringify(body) });
-      els.stateEditor.value = JSON.stringify(r.state || {}, null, 2);
-      await loadSession();
-      await loadGraph(window.currentGraphMode);
-    } catch (e) { showStatus(e); }
-  };
+    const prevSid = Number(els.sessionId.dataset.prev || "NaN");
+    if (Number.isFinite(prevSid) && prevSid !== sid) {
+      wsSend({ type: "unsubscribe", sessionId: prevSid });
+    }
+    if (Number.isFinite(sid)) {
+      wsSend({ type: "subscribe", sessionId: sid });
+      els.sessionId.dataset.prev = String(sid);
+    }
+  
+    const r = await api(`/sessions/${sid}`, { headers: headers() });
 
-  // Graph-Steuerung
-  els.btnGraphVisited.onclick = () => loadGraph("visited");
-  els.btnGraphAll.onclick     = () => loadGraph("all");
+    // Nach erfolgreichem New-Session:
+if (ws && ws.readyState === 1) ws.send(JSON.stringify({ type:"subscribe", sessionId: r.id }));
 
-  function sessionColor(sid) {
-    if (!Number.isFinite(sid)) return "#22c55e";
-    const hue = (sid * 57) % 360;
-    return `hsl(${hue} 75% 45%)`;
+    
+   showStatus(r);
+    
+    if (Array.isArray(r.options) && r.options.length) {
+  els.edgeId.value = r.options[0].id;     // schon vorhanden
+  els.voteEdgeId.value = r.options[0].id; // neu: Voting-Eingabefeld vorfüllen
+}
+
+els.stateEditor.value = JSON.stringify(r.state || {}, null, 2);
+if (Array.isArray(r.options) && r.options.length) els.edgeId.value = r.options[0].id;
+// Optional: Graph direkt anzeigen (visited)
+// vorher: loadGraph("visited");
+loadGraph(currentGraphMode);
+
+
+await listSnaps(); // Snapshots parallel anzeigen
+
+  }
+  // History laden
+els.btnHistory.onclick = async () => {
+  const sid = Number(els.sessionId.value);
+  if (!Number.isFinite(sid)) return alert("Session-ID fehlt/ungültig.");
+  try {
+    const r = await api(`/sessions/${sid}/history`, { headers: headers() });
+    showStatus(r);
+  } catch (e) {
+    showStatus(e);
+  }
+};
+  // State neu laden (aus GET /sessions/:id)
+els.btnStateRefresh.onclick = async () => {
+  const sid = Number(els.sessionId.value);
+  if (!Number.isFinite(sid)) return alert("Session-ID fehlt/ungültig.");
+  try {
+    const r = await api(`/sessions/${sid}`, { headers: headers() });
+    els.stateEditor.value = JSON.stringify(r.state || {}, null, 2);
+    showStatus(r);
+  } catch (e) { showStatus(e); }
+};
+
+// State patchen (PATCH /sessions/:id/state)
+els.btnStateApply.onclick = async () => {
+  const sid = Number(els.sessionId.value);
+  if (!Number.isFinite(sid)) return alert("Session-ID fehlt/ungültig.");
+
+  // Originaltext sichern, falls etwas schiefgeht
+  const prev = els.stateEditor.value;
+  let body;
+
+  // 1) JSON validieren
+  try {
+    const raw = els.stateEditor.value || "{}";
+    body = JSON.parse(raw);
+    if (typeof body !== "object" || body === null) {
+      alert("JSON muss ein Objekt sein.");
+      return;
+    }
+  } catch (err) {
+    alert("Ungültiges JSON im State-Feld.");
+    return;
   }
 
-  function renderGraph(payload, sessionMarkers = []) {
-    try {
-      const { nodes = [], edges = [], currentNodeId = null, visitedNodeIds = [] } = payload || {};
-      const visitedSet = new Set(Array.isArray(visitedNodeIds) ? visitedNodeIds : []);
-      const state = safeJSON(els.stateEditor?.value || "{}", {});
+  // 2) PATCH schicken
+  try {
+    const r = await api(`/sessions/${sid}/state`, {
+      method: "PATCH",
+      headers: headers(),
+      body: JSON.stringify(body)
+    });
 
-      const g = new dagreD3.graphlib.Graph().setGraph({ rankdir: "LR", nodesep: 30, ranksep: 60 });
+    // 3) Response auswerten: bevorzugt r.state verwenden
+    if (r && typeof r === "object" && "state" in r) {
+      els.stateEditor.value = JSON.stringify(r.state || {}, null, 2);
+    } else {
+      // Fallback: Session neu laden und State daraus nehmen
+      const s = await api(`/sessions/${sid}`, { headers: headers() });
+      els.stateEditor.value = JSON.stringify(s.state || {}, null, 2);
+    }
 
-      // Nodes
-      nodes.forEach(n => {
-        let fill = "#0f172a", stroke = "#334155";
-        const sid = Number(els.sessionId.value);
-        const sessCol = sessionColor(sid);
-        if (n.id === currentNodeId) { fill = sessCol; stroke = sessCol; }
-        else if (visitedSet.has(n.id)) { fill = "#2563eb"; stroke = "#1e3a8a"; }
+    // Optional: Statuspanel aktualisieren
+    await loadSession();
+  } catch (e) {
+    // Fehler: alten Text wiederherstellen & anzeigen
+    els.stateEditor.value = prev;
+    showStatus(e);
+  }
+};
 
-        const label = `${n.id}\n${n.title || ""}`;
-        g.setNode(String(n.id), {
-          label,
-          rx: 8, ry: 8,
-          style: `fill:${fill};stroke:${stroke};stroke-width:2px;color:#0b1220`,
-          labelStyle: "fill:#e2e8f0"
-        });
-      });
+// State neu laden (GET /sessions/:id)
+els.btnStateRefresh.onclick = async () => {
+  const sid = Number(els.sessionId.value);
+  if (!Number.isFinite(sid)) return alert("Session-ID fehlt/ungültig.");
+  try {
+    const r = await api(`/sessions/${sid}`, { headers: headers() });
+    els.stateEditor.value = JSON.stringify(r.state || {}, null, 2);
+    showStatus(r);
+  } catch (e) {
+    showStatus(e);
+  }
+};
 
-      // Edges
-      const voteSet = (currentVoteOptions && typeof currentVoteOptions.has === "function") ? currentVoteOptions : new Set();
 
-      edges.forEach(e => {
-        try {
-          const inVote = voteSet.has(Number(e.id));
-          let edgeText = `[${e.id}] ${e.label || ""}`;
-          let style = inVote ? "stroke:#f59e0b;stroke-width:2.2px;fill:none" : "stroke:#475569;fill:none";
-          let arrowStyle = inVote ? "fill:#f59e0b" : "fill:#475569";
-          let labelStyle = "fill:#cbd5e1;font-size:12px";
+  // Sichtbare Optionen
+els.btnListOptions.onclick = async () => {
+  const sid = Number(els.sessionId.value);
+  if (!Number.isFinite(sid)) return alert("Session-ID fehlt/ungültig.");
+  try {
+    const r = await api(`/sessions/${sid}/options`, { headers: headers() });
+    showStatus(r);
+    // QoL: erste Option in Felder übernehmen
+    if (Array.isArray(r.options) && r.options.length) {
+      els.edgeId.value = r.options[0].id;
+      els.voteEdgeId.value = r.options[0].id;
+    }
+  } catch (e) { showStatus(e); }
+};
 
-          if (window.currentGraphMode === "all") {
-            const cond = (e && (e.condition_json || e.condition)) || null;
-            const res = evalCondition(cond, state);
-            if (!res.met) {
-              edgeText += `\n(needs ${res.unmet.join(", ") || "condition"})`;
-              labelStyle = "fill:#ef4444;font-size:12px"; // nur Label rot
-            }
-          }
+// Jump
+els.btnJump.onclick = async () => {
+  const sid = Number(els.sessionId.value);
+  const toNodeId = Number(els.jumpToNodeId.value);
+  if (!Number.isFinite(sid) || !Number.isFinite(toNodeId)) return alert("IDs prüfen.");
+  try {
+    const r = await api(`/sessions/${sid}/jump`, {
+      method: "POST", headers: headers(), body: JSON.stringify({ toNodeId })
+    });
+    showStatus(r);
+    await loadSession();
+    loadGraph(currentGraphMode);
+  } catch (e) { showStatus(e); }
+};
 
-          g.setEdge(String(e.from_node_id), String(e.to_node_id), {
-            label: edgeText,
-            lineInterpolate: "basis",
-            style,
-            arrowheadStyle: arrowStyle,
-            labelStyle
-          });
-        } catch (edgeErr) {
-          console.warn("Edge skipped:", edgeErr, e);
-        }
-      });
+// End Session
+els.btnEndSession.onclick = async () => {
+  const sid = Number(els.sessionId.value);
+  if (!Number.isFinite(sid)) return alert("Session-ID fehlt/ungültig.");
+  try {
+    const r = await api(`/sessions/${sid}/end`, { method: "POST", headers: headers() });
+    showStatus(r);
+    await loadSession();
+  } catch (e) { showStatus(e); }
+};
 
-      // Rendern
-      const svg = d3.select(els.graphSvg);
-      svg.selectAll("*").remove();
-      const inner = svg.append("g");
-      const render = new dagreD3.render();
-      render(inner, g);
 
-      // Session-Marker (optional)
-      try {
-        const groupByNode = new Map();
-        (sessionMarkers || []).forEach(m => {
-          if (!m || m.nodeId == null) return;
-          const arr = groupByNode.get(m.nodeId) || [];
-          arr.push(m);
-          groupByNode.set(m.nodeId, arr);
-        });
-        groupByNode.forEach((arr, nodeId) => {
-          const nodeG = d3.select(els.graphSvg).selectAll("g.node")
-            .filter(function() {
-              const t = d3.select(this).select("tspan").text() || "";
-              return t.startsWith(String(nodeId));
-            });
-          if (nodeG.empty()) return;
+ async function loadGraph(mode) {
+  currentGraphMode = mode; // <— merken
+  const sid = Number(els.sessionId.value);
+  if (!Number.isFinite(sid)) return alert("Session-ID fehlt/ungültig.");
+  try {
+    const data = await api(`/sessions/${sid}/graph?mode=${mode}`, { headers: headers() });
+    renderGraph(data, collectSessionMarkers?.() || []); // falls du sessionMarkers nutzt
+  } catch (e) { showStatus(e); }
+}
 
-          const markersG = nodeG.append("g").attr("class", "session-markers");
-          const rect = nodeG.select("rect");
-          const w = Number(rect.attr("width") || 80);
-          const h = Number(rect.attr("height") || 30);
-          const offset = 8;
 
-          arr.forEach((m, idx) => {
-            const cx = (w/2) - 8 - (idx * offset);
-            const cy = -(h/2) + 8;
-            const isFocused = Number(els.sessionId.value) === Number(m.sid);
-            const r = isFocused ? 7.5 : 6;
-            markersG.append("circle")
-              .attr("cx", cx).attr("cy", cy).attr("r", r)
-              .attr("fill", m.color || "#22c55e")
-              .attr("stroke", "#0b1220").attr("stroke-width", 2)
-              .append("title").text(`Session #${m.sid}`);
-          });
-        });
-      } catch (markerErr) {
-        console.warn("Markers skipped:", markerErr);
+els.btnGraphVisited.onclick = () => { currentGraphMode = "visited"; loadGraph(currentGraphMode); };
+els.btnGraphAll.onclick     = () => { currentGraphMode = "all";     loadGraph(currentGraphMode); };
+
+
+function getByPath(obj, path) {
+  if (!obj || !path) return undefined;
+  const parts = String(path).split(".");
+  let cur = obj;
+  for (const p of parts) {
+    if (cur == null || typeof cur !== "object") return undefined;
+    cur = cur[p];
+  }
+  return cur;
+}
+
+// wertet cond.requires[] gegen state aus
+function evalCondition(cond, state) {
+  if (!cond || !Array.isArray(cond.requires) || cond.requires.length === 0) {
+    return { met: true, unmet: [] };
+  }
+  const unmet = [];
+  for (const r of cond.requires) {
+    const key = r?.key, op = r?.op || "==", val = r?.value;
+    const actual = getByPath(state, key);
+    let ok = false;
+    switch (op) {
+      case "==": ok = (actual === val); break;
+      case "!=": ok = (actual !== val); break;
+      case ">":  ok = (typeof actual === "number" && actual >  val); break;
+      case ">=": ok = (typeof actual === "number" && actual >= val); break;
+      case "<":  ok = (typeof actual === "number" && actual <  val); break;
+      case "<=": ok = (typeof actual === "number" && actual <= val); break;
+      case "exists": ok = (actual !== undefined && actual !== null); break;
+      case "not_exists": ok = (actual === undefined || actual === null); break;
+      default: ok = false;
+    }
+    if (!ok) {
+      const need = (op === "exists" || op === "not_exists")
+        ? `${key} ${op}`
+        : `${key} ${op} ${JSON.stringify(val)}`;
+      unmet.push(need);
+    }
+  }
+  return { met: unmet.length === 0, unmet };
+}
+
+
+
+function renderGraph(payload, sessionMarkers = []) {
+  const { nodes = [], edges = [], currentNodeId = null, visitedNodeIds = [] } = payload;
+  const visitedSet = new Set(Array.isArray(visitedNodeIds) ? visitedNodeIds : []);
+
+  const g = new dagreD3.graphlib.Graph().setGraph({ rankdir: "LR", nodesep: 30, ranksep: 60 });
+
+ nodes.forEach(n => {
+  let fill = "#0f172a";   // default
+  let stroke = "#334155"; // default
+
+  const sid = Number(els.sessionId.value);
+  const sessCol = sessionColor(sid);  // <- WERT der Farbe (z. B. "hsl(...)")
+
+  if (n.id === currentNodeId) {
+    // nur der aktuelle Node bekommt die Session-Farbe
+    fill = sessCol;
+    stroke = sessCol;
+  } else if (visitedSet.has(n.id)) {
+    fill = "#2563eb";
+    stroke = "#1e3a8a";
+  }
+
+  const label = `${n.id}\n${n.title || ""}`;
+  g.setNode(String(n.id), {
+    label,
+    rx: 8, ry: 8,
+    style: `fill:${fill};stroke:${stroke};stroke-width:2px;color:#0b1220`,
+    labelStyle: "fill:#e2e8f0"
+  });
+});
+
+
+
+  // aktuellen State aus dem Editor ziehen (für Condition‑Check)
+const state = safeJSON(els.stateEditor.value || "{}", {});
+
+edges.forEach(e => {
+  const inVote = currentVoteOptions.has(Number(e.id));
+  let edgeText = `[${e.id}] ${e.label || ""}`;
+
+  let style = inVote ? "stroke:#f59e0b;stroke-width:2.2px;fill:none" : "stroke:#475569;fill:none";
+  let arrowStyle = inVote ? "fill:#f59e0b" : "fill:#475569";
+  let labelStyle = "fill:#cbd5e1;font-size:12px";
+
+  // Nur in Graph: all Conditions prüfen & markieren
+  if (currentGraphMode === "all") {
+    const cond = e.condition_json || e.condition || null; // je nach API-Feld
+    const { met, unmet } = evalCondition(cond, state);
+    if (!met) {
+      if (unmet.length) {
+        edgeText += `\n(needs ${unmet.join(", ")})`; // kurze Begründung
+      } else {
+        edgeText += `\n(needs condition)`;
       }
-
-      // Auto-Zoom/Center
-      const graphDims = g.graph();
-      const width  = graphDims.width  || 1;
-      const height = graphDims.height || 1;
-      const svgWidth  = els.graphSvg.clientWidth  || 800;
-      const svgHeight = els.graphSvg.clientHeight || 480;
-      const scale = Math.min((svgWidth - 40) / width, (svgHeight - 40) / height, 1.2);
-      const x = (svgWidth - (width * scale)) / 2;
-      const y = (svgHeight - (height * scale)) / 2;
-      d3.select(els.graphSvg).select("g")
-        .attr("transform", `translate(${x},${y}) scale(${scale})`);
-    } catch (err) {
-      console.error("renderGraph failed:", err, payload);
+      // NUR Label rot, Linie bleibt wie gewünscht neutral/gelb im Vote
+      labelStyle = "fill:#ef4444;font-size:12px";
+      // Wenn du zusätzlich die Linie rot willst:
+      // style = "stroke:#ef4444;fill:none"; arrowStyle = "fill:#ef4444";
     }
   }
 
-  // Graph Buttons
-  els.btnGraphVisited.onclick = () => loadGraph("visited");
-  els.btnGraphAll.onclick     = () => loadGraph("all");
+  g.setEdge(String(e.from_node_id), String(e.to_node_id), {
+    label: edgeText,
+    lineInterpolate: "basis",
+    style,
+    arrowheadStyle: arrowStyle,
+    labelStyle
+  });
+});
+
+
+
+  const svg = d3.select(els.graphSvg);
+  svg.selectAll("*").remove();
+  const inner = svg.append("g");
+  const render = new dagreD3.render();
+  render(inner, g);
+  // --- Session-Marker in Graph: all ---
+// mehrere Sessions können auf demselben Node stehen -> Dots leicht versetzt
+const groupByNode = new Map();
+sessionMarkers.forEach(m => {
+  const arr = groupByNode.get(m.nodeId) || [];
+  arr.push(m);
+  groupByNode.set(m.nodeId, arr);
+});
+
+groupByNode.forEach((arr, nodeId) => {
+  const nodeSel = d3.select(els.graphSvg).select(`g.node[id="${nodeId}"]`);
+  // dagre-d3 gibt keine id-Attribute auf <g.node>; fallback: selektiere über key:
+  const nodeG = d3.select(els.graphSvg).selectAll("g.node")
+    .filter(function() { return d3.select(this).select("tspan").text().startsWith(String(nodeId)); });
+
+  const target = nodeG.empty() ? null : nodeG;
+  if (!target) return;
+
+  // Marker-Gruppe anlegen
+  const markersG = target.append("g").attr("class", "session-markers");
+
+  const offset = 8; // Abstand zwischen Dots
+  arr.forEach((m, idx) => {
+    // kleine Kreise oben rechts am Node platzieren
+    // wir nehmen die Box des Rects zur Positionierung
+    const rect = target.select("rect");
+    const w = Number(rect.attr("width") || 80);
+    const h = Number(rect.attr("height") || 30);
+
+    const cx = (w/2) - 8 - (idx * offset);
+    const cy = -(h/2) + 8;
+    const isFocused = Number(els.sessionId.value) === m.sid;
+    const r = isFocused ? 7.5 : 6;
+    
+    markersG.append("circle")
+      .attr("cx", cx)
+      .attr("cy", cy)
+      .attr("r", r)
+      .attr("fill", m.color)
+      .attr("stroke", "#0b1220")
+      .attr("stroke-width", 2)
+      .append("title")
+      .text(`Session #${m.sid}`);
+  });
+});
+
+
+  // Auto-Zoom/Center
+  const graphDims = g.graph();
+  const width = graphDims.width || 1;
+  const height = graphDims.height || 1;
+  const svgWidth = els.graphSvg.clientWidth || 800;
+  const svgHeight = els.graphSvg.clientHeight || 420;
+  const scale = Math.min((svgWidth - 40) / width, (svgHeight - 40) / height, 1.2);
+  const x = (svgWidth - (width * scale)) / 2;
+  const y = (svgHeight - (height * scale)) / 2;
+  inner.attr("transform", `translate(${x},${y}) scale(${scale})`);
+}
+
+
+  
+
+
+  function safeJSON(text, fallback) {
+    try { return JSON.parse(text); } catch { return fallback; }
+  }
 </script>
 </body>
 </html>
