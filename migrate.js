@@ -126,6 +126,15 @@ await pool.query(`
       ON chat_event(processed_at);
   `);
 
+    await pool.query(`
+  ALTER TABLE edge
+    ALTER COLUMN condition_json DROP NOT NULL,
+    ALTER COLUMN condition_json SET DEFAULT '{}'::jsonb,
+    ALTER COLUMN effect_json DROP NOT NULL,
+    ALTER COLUMN effect_json SET DEFAULT '{}'::jsonb
+`);
+
+
 
 
     console.log("[DB] Migration erfolgreich abgeschlossen ✅");
