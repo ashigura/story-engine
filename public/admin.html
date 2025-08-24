@@ -295,6 +295,11 @@ footer { padding:10px 16px; color:#64748b; font-size:12px; }
 
 <script>
 
+  window.addEventListener('error', (e) => {
+  console.error('Admin-UI error:', e.message);
+});
+
+  
 window.addEventListener("error", (e) => {
   const pre = document.createElement("pre");
   pre.textContent = "JS ERROR: " + e.message;
@@ -375,10 +380,8 @@ window.addEventListener("error", (e) => {
     msmFilter: document.getElementById("msmFilter"),
     msmGrid: document.getElementById("msmGrid")
 
-
-
-
   };
+
 
   
 if (typeof window.currentGraphMode === "undefined") window.currentGraphMode = "visited";
