@@ -804,9 +804,6 @@ function showSnaps(obj) {
     }
     await loadSession();
   } catch (e) { showStatus(e); }
-};
-
-
         };
         await api(`/sessions/${sid}/add-option`, { method:"POST", headers: headers(), body: JSON.stringify(body) });
       } else {
