@@ -384,8 +384,9 @@ window.addEventListener("error", (e) => {
 
 
   
-if (typeof window.currentGraphMode === "undefined") window.currentGraphMode = "visited";
-if (typeof window.currentVoteOptions === "undefined") window.currentVoteOptions = new Set();
+
+let currentVoteOptions = new Set();
+let currentGraphMode = "visited";
 
 
   const WS_URL = BASE_URL.replace(/^http/, "ws") + "/ws";
@@ -1236,7 +1237,10 @@ els.btnEndSession.onclick = async () => {
   try {
     const data = await api(`/sessions/${sid}/graph?mode=${mode}`, { headers: headers() });
     renderGraph(data, collectSessionMarkers?.() || []); // falls du sessionMarkers nutzt
-  } catch (e) { showStatus(e); }
+  } catch (e) {
+    console.error("GRAPH ERROR", e);
+    showStatus(e);
+  }
 }
 
 
