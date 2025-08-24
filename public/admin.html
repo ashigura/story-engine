@@ -759,19 +759,6 @@ function showSnaps(obj) {
 
   // Option hinzufügen
   els.btnAddOption.onclick = async () => {
-    try {
-      const sid = Number(els.sessionId.value);
-      const mode = els.optTargetMode.value;
-      const label = (els.optLabel.value || "").trim();
-      if (!label) return alert("Label fehlt.");
-
-      let body;
-      if (mode === "new") {
-        body = {
-          label,
-          nodeTitle: els.optNodeTitle.value || "Neuer Knoten",
-          nodeContent: safeJSON(els.optNodeContent.value, { text: "" })
-          els.btnAddOption.onclick = async () => {
   try {
     const sid = Number(els.sessionId.value);
     const mode = els.optTargetMode.value;
@@ -818,6 +805,7 @@ function showSnaps(obj) {
     await loadSession();
   } catch (e) { showStatus(e); }
 };
+
 
         };
         await api(`/sessions/${sid}/add-option`, { method:"POST", headers: headers(), body: JSON.stringify(body) });
