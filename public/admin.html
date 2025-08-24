@@ -112,6 +112,12 @@ footer { padding:10px 16px; color:#64748b; font-size:12px; }
           <input id="optNodeTitle" placeholder="Am Flussufer" />
           <label>Neuer Node: Content (JSON)</label>
           <textarea id="optNodeContent">{ "text": "Kalter Wind ..." }</textarea>
+          <label>Condition (JSON, optional)</label>
+          <textarea id="optCondition">{}</textarea>
+
+<label>Effect (JSON, optional)</label>
+<textarea id="optEffect">{}</textarea>
+
         </div>
         <div id="targetExisting" style="display:none">
           <label>toNodeId (existiert bereits)</label>
@@ -765,6 +771,54 @@ function showSnaps(obj) {
           label,
           nodeTitle: els.optNodeTitle.value || "Neuer Knoten",
           nodeContent: safeJSON(els.optNodeContent.value, { text: "" })
+          els.btnAddOption.onclick = async () => {
+  try {
+    const sid = Number(els.sessionId.value);
+    const mode = els.optTargetMode.value;
+    const label = (els.optLabel.value || "").trim();
+    if (!label) return alert("Label fehlt.");
+
+    let body;
+    if (mode === "new") {
+      body = {
+        label,
+        nodeTitle: els.optNodeTitle.value || "Neuer Knoten",
+        nodeContent: safeJSON(els.optNodeContent.value, { text: "" }),
+        // NEU:
+        condition: safeJSON((document.getElementById("optCondition")?.value || "{}"), null),
+        effect:    safeJSON((document.getElementById("optEffect")?.value || "{}"), null)
+      };
+      // leere Objekte als null senden (optional, sauberer)
+      if (body && body.condition && Object.keys(body.condition).length === 0) body.condition = null;
+      if (body && body.effect    && Object.keys(body.effect).length    === 0) body.effect    = null;
+
+      await api(`/sessions/${sid}/add-option`, {
+        method:"POST", headers: headers(), body: JSON.stringify(body)
+      });
+    } else {
+      const toNodeId = Number(els.optToNodeId.value);
+      if (!Number.isFinite(toNodeId)) return alert("toNodeId ist ungültig.");
+      // Für "existing" verwenden wir weiterhin /expand – hier kannst du Condition/Effect je Edge mitschicken,
+      // falls dein /expand-Endpoint bereits angepasst ist. Sonst weglassen.
+      body = {
+        edges: [{
+          label,
+          toNodeId,
+          condition: safeJSON((document.getElementById("optCondition")?.value || "{}"), null),
+          effect:    safeJSON((document.getElementById("optEffect")?.value || "{}"), null)
+        }]
+      };
+      if (body.edges[0].condition && Object.keys(body.edges[0].condition).length === 0) body.edges[0].condition = null;
+      if (body.edges[0].effect    && Object.keys(body.edges[0].effect).length    === 0) body.edges[0].effect    = null;
+
+      await api(`/sessions/${sid}/expand`, {
+        method:"POST", headers: headers(), body: JSON.stringify(body)
+      });
+    }
+    await loadSession();
+  } catch (e) { showStatus(e); }
+};
+
         };
         await api(`/sessions/${sid}/add-option`, { method:"POST", headers: headers(), body: JSON.stringify(body) });
       } else {
