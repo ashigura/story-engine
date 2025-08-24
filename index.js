@@ -539,9 +539,9 @@ app.post("/sessions/:id/expand", async (req, res) => {
       const effect    = item?.effect ?? null;
 
       const insEdge = await client.query(
-        `insert into edge (from_node_id, to_node_id, label, condition_json, effect_json)
-         values ($1, $2, $3, $4::jsonb, $5::jsonb)
-         returning id, from_node_id, to_node_id, label, condition_json, effect_json`,
+         `insert into edge (from_node_id, to_node_id, label, condition_json, effect_json)
+   values ($1, $2, $3, COALESCE($4::jsonb, '{}'::jsonb), COALESCE($5::jsonb, '{}'::jsonb))
+   returning id, from_node_id, to_node_id, label, condition_json, effect_json`,
         [
           session.current_node_id,
           toNodeId,
@@ -772,9 +772,9 @@ app.post("/sessions/:id/add-option", async (req, res) => {
 
     // Edge anlegen (inkl. Condition/Effect, falls vorhanden)
     const insEdge = await client.query(
-      `insert into edge (from_node_id, to_node_id, label, condition_json, effect_json)
-       values ($1, $2, $3, $4::jsonb, $5::jsonb)
-       returning id, from_node_id, to_node_id, label, condition_json, effect_json`,
+       `insert into edge (from_node_id, to_node_id, label, condition_json, effect_json)
+   values ($1, $2, $3, COALESCE($4::jsonb, '{}'::jsonb), COALESCE($5::jsonb, '{}'::jsonb))
+   returning id, from_node_id, to_node_id, label, condition_json, effect_json`,
       [
         session.current_node_id,
         newNode.id,
