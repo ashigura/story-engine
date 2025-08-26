@@ -89,6 +89,35 @@ function applyEffect(state, effect = {}) {
   return next;
 }
 
+
+function resolveEdgeByVoteMap(options, text) {
+  if (!text) return null;
+  const t = String(text).toLowerCase();
+
+  for (const opt of options) {
+    const map = opt.vote_map_json || {};
+    const aliases = Array.isArray(map.aliases) ? map.aliases : [];
+    const regexes = Array.isArray(map.regex) ? map.regex : [];
+
+    // 1) Alias-Substring (einfach/pragmatisch)
+    for (const a of aliases) {
+      const aa = String(a).toLowerCase();
+      if (aa && t.includes(aa)) return Number(opt.id);
+    }
+    // 2) Regex
+    for (const r of regexes) {
+      try {
+        const re = new RegExp(r, "i");
+        if (re.test(t)) return Number(opt.id);
+      } catch {}
+    }
+  }
+  return null;
+}
+
+
+
+
 // ----- Vote Parsing (sehr einfach, MVP) -----
 const EMOJI_MAP = new Map([ ["👍",1], ["👎",2], ["1️⃣",1], ["2️⃣",2], ["3️⃣",3], ["4️⃣",4] ]);
 function parseVoteIndex(text) {
@@ -101,6 +130,33 @@ function parseVoteIndex(text) {
   return null;
 }
 
+const idx = parseVoteIndex(ev.message || (ev.payload_json?.reaction || ""));
+let edgeIdByIdx = null;
+if (idx && idx >= 1 && idx <= options.length) {
+  edgeIdByIdx = Number(options[idx - 1].id);
+}
+
+// NEU: Falls keine Zahl/Emoji erkannt -> per Mapping versuchen
+let edgeId = edgeIdByIdx;
+if (!edgeId) {
+  edgeId = resolveEdgeByVoteMap(options, ev.message || "");
+}
+
+if (edgeId) {
+  if (now - last >= VOTE_COOLDOWN_MS) {
+    const r = await castVote(ev.session_id, edgeId, `${ev.platform}:${ev.user_id}`);
+    handled = !!r.ok;
+    outcome = r.ok ? `vote->edge:${edgeId}` : r.error;
+    if (r.ok) lastVoteMap.set(key, now);
+  } else {
+    handled = true;
+    outcome = "cooldown";
+  }
+}
+
+
+
+
 // Sichtbare Optionen (wie im GET /sessions/:id)
 async function getVisibleOptions(sessionId) {
   const s = await pool.query(`select current_node_id, state_json from session where id=$1`, [sessionId]);
@@ -108,9 +164,13 @@ async function getVisibleOptions(sessionId) {
   const { current_node_id, state_json } = s.rows[0];
   if (!current_node_id) return { currentNodeId: null, options: [] };
   const e = await pool.query(
-    `select id, label, to_node_id, condition_json from edge where from_node_id=$1 order by id asc`,
-    [current_node_id]
-  );
+  `select id, label, to_node_id, condition_json, vote_map_json
+     from edge
+    where from_node_id=$1
+    order by id asc`,
+  [current_node_id]
+);
+
   const st = state_json || {};
   const visible = e.rows.filter(row => evalCondition(st, row.condition_json));
   return { currentNodeId: current_node_id, options: visible };
@@ -536,20 +596,26 @@ app.post("/sessions/:id/expand", async (req, res) => {
 
       // Optional: Condition/Effect übernehmen
       const condition = item?.condition ?? null;
-      const effect    = item?.effect ?? null;
+const effect    = item?.effect    ?? null;
+const voteMap   = item?.voteMap   ?? null;
 
-      const insEdge = await client.query(
-         `insert into edge (from_node_id, to_node_id, label, condition_json, effect_json)
-   values ($1, $2, $3, COALESCE($4::jsonb, '{}'::jsonb), COALESCE($5::jsonb, '{}'::jsonb))
-   returning id, from_node_id, to_node_id, label, condition_json, effect_json`,
-        [
-          session.current_node_id,
-          toNodeId,
-          label,
-          condition ? JSON.stringify(condition) : null,
-          effect    ? JSON.stringify(effect)    : null
-        ]
-      );
+const insEdge = await client.query(
+  `insert into edge (from_node_id, to_node_id, label, condition_json, effect_json, vote_map_json)
+   values ($1, $2, $3,
+           coalesce($4::jsonb, '{}'::jsonb),
+           coalesce($5::jsonb, '{}'::jsonb),
+           coalesce($6::jsonb, '{}'::jsonb))
+   returning id, from_node_id, to_node_id, label, condition_json, effect_json, vote_map_json`,
+  [
+    session.current_node_id,
+    toNodeId,
+    label,
+    condition ? JSON.stringify(condition) : null,
+    effect    ? JSON.stringify(effect)    : null,
+    voteMap   ? JSON.stringify(voteMap)   : null
+  ]
+);
+
 
       created.push({ edge: insEdge.rows[0], node: newNode });
     }
@@ -739,9 +805,10 @@ app.post("/sessions/:id/add-option", async (req, res) => {
   const nodeTitle = (req.body?.nodeTitle || "").trim();
   const nodeContent = req.body?.nodeContent ?? {};
 
-  // NEU: optional gleich mitgeben
-  const condition = req.body?.condition ?? null; // JSON-Objekt oder null
-  const effect    = req.body?.effect    ?? null; // JSON-Objekt oder null
+    // Optional gleich übernehmen:
+const condition = req.body?.condition ?? null;
+const effect    = req.body?.effect    ?? null;
+const voteMap   = req.body?.voteMap   ?? null;
 
   const client = await pool.connect();
   try {
@@ -771,18 +838,25 @@ app.post("/sessions/:id/add-option", async (req, res) => {
     const newNode = insNode.rows[0];
 
     // Edge anlegen (inkl. Condition/Effect, falls vorhanden)
-    const insEdge = await client.query(
-       `insert into edge (from_node_id, to_node_id, label, condition_json, effect_json)
-   values ($1, $2, $3, COALESCE($4::jsonb, '{}'::jsonb), COALESCE($5::jsonb, '{}'::jsonb))
-   returning id, from_node_id, to_node_id, label, condition_json, effect_json`,
-      [
-        session.current_node_id,
-        newNode.id,
-        label,
-        condition ? JSON.stringify(condition) : null,
-        effect    ? JSON.stringify(effect)    : null
-      ]
-    );
+
+
+const insEdge = await client.query(
+  `insert into edge (from_node_id, to_node_id, label, condition_json, effect_json, vote_map_json)
+   values ($1, $2, $3,
+           coalesce($4::jsonb, '{}'::jsonb),
+           coalesce($5::jsonb, '{}'::jsonb),
+           coalesce($6::jsonb, '{}'::jsonb))
+   returning id, from_node_id, to_node_id, label, condition_json, effect_json, vote_map_json`,
+  [
+    session.current_node_id,
+    newNode.id,
+    label,
+    condition ? JSON.stringify(condition) : null,
+    effect    ? JSON.stringify(effect)    : null,
+    voteMap   ? JSON.stringify(voteMap)   : null
+  ]
+);
+
     const newEdge = insEdge.rows[0];
 
     await client.query("COMMIT");
@@ -799,13 +873,16 @@ app.post("/sessions/:id/add-option", async (req, res) => {
 
 // 📍 In Datei: index.js — Edge bearbeiten (Label / Ziel / Condition / Effect)
 app.patch("/edges/:edgeId", async (req, res) => {
+
+  
   const edgeId = Number(req.params.edgeId);
   if (!Number.isFinite(edgeId)) return res.status(400).json({ error: "invalid_edge_id" });
 
-  const { label, toNodeId, condition, effect } = req.body || {};
-  if (label === undefined && toNodeId === undefined && condition === undefined && effect === undefined) {
-    return res.status(400).json({ error: "no_fields_to_update" });
-  }
+  const { label, toNodeId, condition, effect, voteMap } = req.body || {};
+if (label === undefined && toNodeId === undefined && condition === undefined && effect === undefined && voteMap === undefined) {
+  return res.status(400).json({ error: "no_fields_to_update" });
+}
+
 
   const client = await pool.connect();
   try {
@@ -855,18 +932,22 @@ app.patch("/edges/:edgeId", async (req, res) => {
 
     const newCondition = condition !== undefined ? condition : edge.condition_json ?? {};
     const newEffect    = effect    !== undefined ? effect    : edge.effect_json ?? {};
+    const newVoteMap   = voteMap   !== undefined ? voteMap   : edge.vote_map_json ?? {};
+
 
     const upd = await client.query(
-      `update edge
-         set label=$1,
-             to_node_id=$2,
-             condition_json=$3,
-             effect_json=$4,
-             updated_at=now()
-       where id=$5
-       returning id, from_node_id, to_node_id, label, condition_json, effect_json`,
-      [newLabel, newToNodeId, newCondition, newEffect, edgeId]
-    );
+  `update edge
+     set label=$1,
+         to_node_id=$2,
+         condition_json=$3,
+         effect_json=$4,
+         vote_map_json=$5,
+         updated_at=now()
+   where id=$6
+   returning id, from_node_id, to_node_id, label, condition_json, effect_json, vote_map_json`,
+  [newLabel, newToNodeId, newCondition, newEffect, newVoteMap, edgeId]
+);
+
 
     await client.query("COMMIT");
     publish(sessionId, "edge/updated", { edgeId }); // bzw. deleted
