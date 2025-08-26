@@ -117,6 +117,10 @@ footer { padding:10px 16px; color:#64748b; font-size:12px; }
 
 <label>Effect (JSON, optional)</label>
 <textarea id="optEffect">{}</textarea>
+          
+         <label>Voting Map (JSON, optional)</label>
+<textarea id="editVoteMap">{}</textarea>
+
 
         </div>
         <div id="targetExisting" style="display:none">
@@ -766,6 +770,10 @@ els.btnAddOption.onclick = async () => {
     const sid = Number(els.sessionId.value);
     const mode = els.optTargetMode.value;
     const label = (els.optLabel.value || "").trim();
+
+    const vmTxt = (document.getElementById("optVoteMap")?.value || "{}");
+    const voteMap = safeJSON(vmTxt, null);
+    
     if (!label) return alert("Label fehlt.");
 
     let body;
@@ -775,10 +783,12 @@ els.btnAddOption.onclick = async () => {
         nodeTitle: els.optNodeTitle.value || "Neuer Knoten",
         nodeContent: safeJSON(els.optNodeContent.value, { text: "" }),
         condition: safeJSON((document.getElementById("optCondition")?.value || "{}"), null),
-        effect:    safeJSON((document.getElementById("optEffect")?.value || "{}"), null)
+        effect:    safeJSON((document.getElementById("optEffect")?.value || "{}"), null),
+        voteMap
       };
       if (body.condition && Object.keys(body.condition).length === 0) body.condition = null;
       if (body.effect    && Object.keys(body.effect).length    === 0) body.effect    = null;
+      if (body.voteMap   && Object.keys(body.voteMap).length   === 0) body.voteMap   = null;
 
       await api(`/sessions/${sid}/add-option`, {
         method:"POST", headers: headers(), body: JSON.stringify(body)
@@ -791,11 +801,13 @@ els.btnAddOption.onclick = async () => {
           label,
           toNodeId,
           condition: safeJSON((document.getElementById("optCondition")?.value || "{}"), null),
-          effect:    safeJSON((document.getElementById("optEffect")?.value || "{}"), null)
+          effect:    safeJSON((document.getElementById("optEffect")?.value || "{}"), null),
+          voteMap
         }]
       };
       if (body.edges[0].condition && Object.keys(body.edges[0].condition).length === 0) body.edges[0].condition = null;
       if (body.edges[0].effect    && Object.keys(body.edges[0].effect).length    === 0) body.edges[0].effect    = null;
+      if (body.edges[0].voteMap   && Object.keys(body.edges[0].voteMap).length   === 0) body.edges[0].voteMap   = null;
 
       await api(`/sessions/${sid}/expand`, {
         method:"POST", headers: headers(), body: JSON.stringify(body)
@@ -994,6 +1006,9 @@ els.btnVoteClose.onclick = async () => {
       if (condTxt) body.condition = safeJSON(condTxt, {});
       const effTxt = els.editEffect.value.trim();
       if (effTxt) body.effect = safeJSON(effTxt, {});
+      const mapTxt = (document.getElementById("editVoteMap")?.value || "").trim();
+      if (mapTxt) body.voteMap = safeJSON(mapTxt, {});
+
       await api(`/edges/${edgeId}`, { method:"PATCH", headers: headers(), body: JSON.stringify(body) });
       await loadSession();
     } catch (e) { showStatus(e); }
