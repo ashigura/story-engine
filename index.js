@@ -223,32 +223,49 @@ setInterval(async () => {
       let handled = false;
       let outcome = null;
 
-      // Nur wenn ein aktives Voting läuft: versuche Mapping
+      // Sichtbare Optionen am aktuellen Node
       const { options } = await getVisibleOptions(ev.session_id);
+
+      // Textquelle bestimmen (Nachricht oder z.B. Reaktions-Name)
+      const text =
+        (ev.message || "").toString() ||
+        (ev.payload_json?.reaction_text || ev.payload_json?.reaction || "").toString();
+
+      // Nur wenn Optionen vorhanden & Vote aktiv: versuchen zu mappen
       if (options.length) {
-        // parse Index aus Text oder Reaction
-        const idx = parseVoteIndex(ev.message || (ev.payload_json?.reaction || ""));
-        if (idx && idx >= 1 && idx <= options.length) {
-          // Cooldown
+        // 1) Alias/Regex-Mapping über vote_map_json
+        let edgeId = resolveEdgeByVoteMap(options, text);
+
+        // 2) Fallback: numerische Indizes (!vote 2, #2, 1️⃣, …)
+        if (!edgeId) {
+          const idx = parseVoteIndex(text);
+          if (idx && idx >= 1 && idx <= options.length) {
+            edgeId = Number(options[idx - 1].id);
+          }
+        }
+
+        // Wenn wir eine Option erkannt haben → Stimme abgeben (mit Cooldown)
+        if (edgeId) {
           if (now - last >= VOTE_COOLDOWN_MS) {
-            const edgeId = Number(options[idx - 1].id);
             const r = await castVote(ev.session_id, edgeId, `${ev.platform}:${ev.user_id}`);
             handled = !!r.ok;
             outcome = r.ok ? `vote->edge:${edgeId}` : r.error;
             if (r.ok) lastVoteMap.set(key, now);
           } else {
-            handled = true; // aber gedrosselt
+            handled = true;
             outcome = "cooldown";
           }
         }
       }
 
       await pool.query(
-        `update chat_event set processed_at = now(), payload_json = jsonb_set(payload_json,'{outcome}', to_jsonb($1::text), true) where id=$2`,
+        `update chat_event
+            set processed_at = now(),
+                payload_json = jsonb_set(coalesce(payload_json,'{}'::jsonb),'{outcome}', to_jsonb($1::text), true)
+          where id=$2`,
         [ outcome || "ignored", ev.id ]
       );
 
-      // Live-Feed in Admin-UI
       if (typeof publish === "function") {
         publish(ev.session_id, "ingest/processed", {
           platform: ev.platform,
@@ -262,6 +279,7 @@ setInterval(async () => {
     console.error("ingest worker error", e);
   }
 }, 200);
+
 
 
 
