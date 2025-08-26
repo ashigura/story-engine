@@ -134,18 +134,12 @@ await pool.query(`
     ALTER COLUMN effect_json SET DEFAULT '{}'::jsonb
     ADD COLUMN IF NOT EXISTS vote_map_json 
 `);
+    
     // --- Migration: add vote_map_json to edge (idempotent) ---
-async function addVoteMapColumn(client) {
   await client.query(`
     alter table edge
       add column if not exists vote_map_json jsonb
   `);
-  console.log("✓ edge.vote_map_json present");
-}
-
-// Am Ende der main()-Kette aufrufen:
-await addVoteMapColumn(client);
-
 
 
 
