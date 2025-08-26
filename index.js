@@ -96,24 +96,35 @@ function resolveEdgeByVoteMap(options, text) {
 
   for (const opt of options) {
     const map = opt.vote_map_json || {};
-    const aliases = Array.isArray(map.aliases) ? map.aliases : [];
-    const regexes = Array.isArray(map.regex) ? map.regex : [];
 
-    // 1) Alias-Substring (einfach/pragmatisch)
+    // Unterstütze ALLE Felder: aliases, patterns (Alt), regex
+    const aliases = Array.isArray(map.aliases)  ? map.aliases  : [];
+    const patterns = Array.isArray(map.patterns) ? map.patterns : []; // <- Alt
+    const regexes = Array.isArray(map.regex)    ? map.regex    : [];
+
+    // 1) aliases
     for (const a of aliases) {
-      const aa = String(a).toLowerCase();
+      const aa = String(a || '').toLowerCase();
       if (aa && t.includes(aa)) return Number(opt.id);
     }
-    // 2) Regex
+
+    // 2) patterns (Alt-Schema, identisch wie aliases behandeln)
+    for (const p of patterns) {
+      const pp = String(p || '').toLowerCase();
+      if (pp && t.includes(pp)) return Number(opt.id);
+    }
+
+    // 3) regex
     for (const r of regexes) {
       try {
         const re = new RegExp(r, "i");
         if (re.test(t)) return Number(opt.id);
-      } catch {}
+      } catch {} // invalid regex? skip
     }
   }
   return null;
 }
+
 
 
 
