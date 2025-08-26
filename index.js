@@ -1222,7 +1222,7 @@ app.get("/sessions/:id/graph", async (req, res) => {
     // mode = all  → alle Knoten/Edges inkl. condition_json/effect_json
     const [nodesQ, edgesQ, visitedQ] = await Promise.all([
       pool.query(`select id, title from node order by id asc`),
-      pool.query(`select id, from_node_id, to_node_id, label, condition_json, effect_json from edge order by id asc`),
+      pool.query(`select id, from_node_id, to_node_id, label, condition_json, effect_json, vote_map_json from edge order by id asc`),
       pool.query(
         `
         with decs as (
