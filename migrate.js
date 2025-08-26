@@ -134,7 +134,17 @@ await pool.query(`
     ALTER COLUMN effect_json SET DEFAULT '{}'::jsonb,
     ADD COLUMN IF NOT EXISTS vote_map_json  jsonb
 `);
-    
+
+    // vote_map_json an edge anhängen
+await pool.query(`
+  ALTER TABLE edge
+  ADD COLUMN IF NOT EXISTS vote_map_json jsonb NOT NULL DEFAULT '{}'::jsonb;
+`);
+
+await pool.query(`
+  CREATE INDEX IF NOT EXISTS ix_edge_vote_map ON edge USING gin (vote_map_json);
+`);
+
 
 
 
