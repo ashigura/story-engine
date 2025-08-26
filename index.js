@@ -922,18 +922,25 @@ if (label === undefined && toNodeId === undefined && condition === undefined && 
     const newVoteMap   = voteMap   !== undefined ? voteMap   : edge.vote_map_json ?? {};
 
 
-    const upd = await client.query(
-  `update edge
-     set label=$1,
-         to_node_id=$2,
-         condition_json=$3,
-         effect_json=$4,
-         vote_map_json=$5,
-         updated_at=now()
-   where id=$6
-   returning id, from_node_id, to_node_id, label, condition_json, effect_json, vote_map_json`,
-  [newLabel, newToNodeId, newCondition, newEffect, newVoteMap, edgeId]
-);
+      const upd = await client.query(
+      `update edge
+          set label=$1,
+              to_node_id=$2,
+              condition_json=$3::jsonb,
+              effect_json=$4::jsonb,
+              vote_map_json=$5::jsonb,
+              updated_at=now()
+        where id=$6
+        returning id, from_node_id, to_node_id, label, condition_json, effect_json, vote_map_json`,
+      [
+        newLabel,
+        newToNodeId,
+        JSON.stringify(newCondition),
+        JSON.stringify(newEffect),
+        JSON.stringify(newVoteMap),
+        edgeId
+      ]
+    );
 
 
     await client.query("COMMIT");
