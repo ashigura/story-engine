@@ -130,33 +130,6 @@ function parseVoteIndex(text) {
   return null;
 }
 
-const idx = parseVoteIndex(ev.message || (ev.payload_json?.reaction || ""));
-let edgeIdByIdx = null;
-if (idx && idx >= 1 && idx <= options.length) {
-  edgeIdByIdx = Number(options[idx - 1].id);
-}
-
-// NEU: Falls keine Zahl/Emoji erkannt -> per Mapping versuchen
-let edgeId = edgeIdByIdx;
-if (!edgeId) {
-  edgeId = resolveEdgeByVoteMap(options, ev.message || "");
-}
-
-if (edgeId) {
-  if (now - last >= VOTE_COOLDOWN_MS) {
-    const r = await castVote(ev.session_id, edgeId, `${ev.platform}:${ev.user_id}`);
-    handled = !!r.ok;
-    outcome = r.ok ? `vote->edge:${edgeId}` : r.error;
-    if (r.ok) lastVoteMap.set(key, now);
-  } else {
-    handled = true;
-    outcome = "cooldown";
-  }
-}
-
-
-
-
 // Sichtbare Optionen (wie im GET /sessions/:id)
 async function getVisibleOptions(sessionId) {
   const s = await pool.query(`select current_node_id, state_json from session where id=$1`, [sessionId]);
@@ -686,8 +659,11 @@ app.post("/sessions/:id/decision", async (req, res) => {
     );
 
 
-    await client.query("COMMIT");
-    publish(id, "decision/applied", { toNodeId: edge.to_node_id, edgeId: edge.id });
+   await client.query("COMMIT");
+if (typeof publish === "function") {
+  publish(sessionId, "decision/applied", { toNodeId: edge.to_node_id, edgeId: edge.id });
+}
+
 
     res.json({ ok: true, toNodeId: edge.to_node_id });
   } catch (e) {
@@ -950,7 +926,19 @@ if (label === undefined && toNodeId === undefined && condition === undefined && 
 
 
     await client.query("COMMIT");
-    publish(sessionId, "edge/updated", { edgeId }); // bzw. deleted
+
+// optional: betroffene Sessions benachrichtigen
+if (typeof publish === "function") {
+  const fromId = edge.from_node_id; // 'edge' hast du oben vor dem Update geladen
+  const qSess = await pool.query(
+    `select id from session where current_node_id = $1`,
+    [fromId]
+  );
+  for (const r of qSess.rows) {
+    publish(r.id, "edge/updated", { edgeId });
+  }
+}
+
 
 
     res.json({ ok: true, edge: upd.rows[0] });
