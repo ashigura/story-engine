@@ -126,22 +126,15 @@ await pool.query(`
       ON chat_event(processed_at);
   `);
 
-    await pool.query(`
+await pool.query(`
   ALTER TABLE edge
     ALTER COLUMN condition_json DROP NOT NULL,
     ALTER COLUMN condition_json SET DEFAULT '{}'::jsonb,
     ALTER COLUMN effect_json DROP NOT NULL,
-    ALTER COLUMN effect_json SET DEFAULT '{}'::jsonb
-    ADD COLUMN IF NOT EXISTS vote_map_json 
+    ALTER COLUMN effect_json SET DEFAULT '{}'::jsonb,
+    ADD COLUMN IF NOT EXISTS vote_map_json  jsonb
 `);
     
-    // --- Migration: add vote_map_json to edge (idempotent) ---
-  await client.query(`
-    alter table edge
-      add column if not exists vote_map_json jsonb
-  `);
-
-
 
 
 
