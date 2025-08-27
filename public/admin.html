@@ -207,30 +207,49 @@ footer { padding:10px 16px; color:#64748b; font-size:12px; }
     
 
     <div style="margin-top:12px">
-      <h2>Edges bearbeiten/löschen</h2>
-      <div class="grid3">
-        <div>
-          <label>edgeId</label>
-          <input id="editEdgeId" placeholder="z. B. 24" />
-        </div>
-        <div>
-          <label>Neues Label</label>
-          <input id="editLabel" placeholder="Neues Label..." />
-        </div>
-        <div>
-          <label>Neues toNodeId</label>
-          <input id="editToNodeId" placeholder="z. B. 32" />
-        </div>
-      </div>
-      <label>Condition (JSON)</label>
-      <textarea id="editCondition">{}</textarea>
-      <label>Effect (JSON)</label>
-      <textarea id="editEffect">{}</textarea>
-      <div class="row">
-        <button class="btn" id="btnPatchEdge">PATCH /edges/:edgeId</button>
-        <button class="btn red" id="btnDeleteEdge">DELETE /edges/:edgeId</button>
-      </div>
+  <h2>Edges bearbeiten/löschen</h2>
+
+  <div class="row" style="align-items:flex-end; gap:8px;">
+    <div>
+      <label>edgeId</label>
+      <input id="editEdgeId" placeholder="z. B. 24" />
     </div>
+    <div>
+      <!-- Neuer Button: Edge laden -->
+      <button class="btn gray" id="btnLoadEdge">Edge laden</button>
+    </div>
+  </div>
+
+  <div class="grid3" style="margin-top:8px">
+    <div>
+      <label>Neues Label</label>
+      <input id="editLabel" placeholder="Neues Label..." />
+    </div>
+    <div>
+      <label>Neues toNodeId</label>
+      <input id="editToNodeId" placeholder="z. B. 32" />
+    </div>
+    <div>
+      <label class="muted">from_node_id (read-only)</label>
+      <input id="editFromNodeId" placeholder="wird beim Laden befüllt" disabled />
+    </div>
+  </div>
+
+  <label>Condition (JSON)</label>
+  <textarea id="editCondition">{}</textarea>
+
+  <label>Effect (JSON)</label>
+  <textarea id="editEffect">{}</textarea>
+
+  <!-- Neu: Voting Map -->
+  <label>Voting Map (JSON, optional)</label>
+  <textarea id="editVoteMap">{ "aliases": ["#1","!norden"], "regex": ["\\b!angriff\\b"] }</textarea>
+
+  <div class="row" style="margin-top:8px">
+    <button class="btn" id="btnPatchEdge">PATCH /edges/:edgeId</button>
+    <button class="btn red" id="btnDeleteEdge">DELETE /edges/:edgeId</button>
+  </div>
+</div>
 
     <div style="margin-top:12px">
       <h2>Admin</h2>
@@ -382,7 +401,11 @@ window.addEventListener("error", (e) => {
     msmSubAll: document.getElementById("msmSubAll"),
     msmUnsubAll: document.getElementById("msmUnsubAll"),
     msmFilter: document.getElementById("msmFilter"),
-    msmGrid: document.getElementById("msmGrid")
+    msmGrid: document.getElementById("msmGrid"),
+    editVoteMap: document.getElementById("editVoteMap"),
+    btnLoadEdge: document.getElementById("btnLoadEdge"),
+    editFromNodeId: document.getElementById("editFromNodeId")
+
 
   };
 
@@ -1006,13 +1029,21 @@ els.btnVoteClose.onclick = async () => {
       if (condTxt) body.condition = safeJSON(condTxt, {});
       const effTxt = els.editEffect.value.trim();
       if (effTxt) body.effect = safeJSON(effTxt, {});
-      const mapTxt = (document.getElementById("editVoteMap")?.value || "").trim();
+      const mapTxt = els.editVoteMap.value.trim();
       if (mapTxt) body.voteMap = safeJSON(mapTxt, {});
+      
+      const r = await api(`/edges/${edgeId}`, {
+      method: "PATCH",
+      headers: headers(),
+      body: JSON.stringify(body)
+    });
 
-      await api(`/edges/${edgeId}`, { method:"PATCH", headers: headers(), body: JSON.stringify(body) });
-      await loadSession();
-    } catch (e) { showStatus(e); }
-  };
+    showStatus(r);
+    await loadSession();
+  } catch (e) {
+    showStatus(e);
+  }
+};
 
   // Edge delete
   els.btnDeleteEdge.onclick = async () => {
@@ -1239,6 +1270,44 @@ els.btnEndSession.onclick = async () => {
     await loadSession();
   } catch (e) { showStatus(e); }
 };
+
+  // Edge laden: liest Graph(all) und füllt die Edit-Felder
+els.btnLoadEdge.onclick = async () => {
+  const sid = Number(els.sessionId.value);
+  const eid = Number(els.editEdgeId.value);
+  if (!Number.isFinite(sid)) return alert("Session-ID fehlt/ungültig.");
+  if (!Number.isFinite(eid)) return alert("edgeId fehlt/ungültig.");
+
+  try {
+    const g = await api(`/sessions/${sid}/graph?mode=all`, { headers: headers() });
+    const edge = (g.edges || []).find(e => Number(e.id) === eid);
+    if (!edge) {
+      alert(`Edge #${eid} nicht im Graph gefunden.`);
+      return;
+    }
+
+    // Felder befüllen
+    els.editLabel.value = edge.label || "";
+    els.editToNodeId.value = edge.to_node_id ?? "";
+    els.editFromNodeId.value = edge.from_node_id ?? "";
+
+    // JSON-Felder hübsch machen
+    const cond = edge.condition_json || {};
+    const eff  = edge.effect_json    || {};
+    const vmap = edge.vote_map_json  || {};
+
+    els.editCondition.value = JSON.stringify(cond, null, 2);
+    els.editEffect.value    = JSON.stringify(eff,  null, 2);
+    els.editVoteMap.value   = JSON.stringify(vmap, null, 2);
+
+    // Optional: rechts im Status anzeigen
+    showStatus({ loadedEdge: edge });
+  } catch (e) {
+    showStatus(e);
+    alert("Edge laden fehlgeschlagen (siehe Status).");
+  }
+};
+
 
 
   async function loadGraph(mode) {
