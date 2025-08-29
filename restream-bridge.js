@@ -41,6 +41,39 @@ let totalWsReceived = 0;
 let lastWsAt = null;
 let lastEventPreview = null;
 
+const actionCounters = {};
+const lastActions = []; // Ringpuffer der letzten 20 Actions
+
+function getConnectionsSnapshot() {
+  const out = [];
+  for (const [cid, info] of connections.entries()) {
+    out.push({ connectionIdentifier: cid, ...info });
+  }
+  return out;
+}
+
+module.exports.getConnectionsSnapshot = getConnectionsSnapshot;
+module.exports.getBridgeStatusExtra = function () {
+  return {
+    totalWsReceived,
+    lastWsAt,
+    lastEventPreview,
+    actionCounters,
+    lastActions,
+    connections: getConnectionsSnapshot()
+  };
+};
+
+
+
+function bumpActionCounter(name) {
+  const k = String(name||'unknown').toLowerCase();
+  actionCounters[k] = (actionCounters[k] || 0) + 1;
+  lastActions.push({ at: new Date().toISOString(), action: k });
+  if (lastActions.length > 20) lastActions.shift();
+}
+
+
 function getBridgeStatus() {
   return { ...state };
 }
@@ -229,6 +262,8 @@ function startRestreamBridge({
 
       const action = String(actionObj.action || "").toLowerCase();
       const payload = actionObj.payload || {};
+      bumpActionCounter(action);
+
 
       // Debug (optional):
       // console.log("[RESTREAM]", action, payload?.connectionIdentifier || "");
