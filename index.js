@@ -1804,6 +1804,8 @@ app.get("/bridge/status", async (_req, res) => {
 });
 
 // Bridge Start – nutzt DB-Token + Auto-Refresh
+(async () => {
+  try {
 const tokenExists = await getRestreamToken().catch(() => null);
 if (tokenExists) {
   startRestreamBridge({
@@ -1825,7 +1827,10 @@ if (tokenExists) {
 } else {
   console.log("ℹ️ Kein Restream-Token in DB – bitte OAuth starten: /restream/login");
 }
-
+} catch (err) {
+    console.error("❌ Fehler beim Start der Restream-Bridge:", err);
+  }
+})();
 
 
 
