@@ -1876,7 +1876,7 @@ app.get("/bridge/token", async (req, res) => {
     const masked =
       raw.length <= 12
         ? "***"
-        : raw.slice(0, 6) + "…" + raw.slice(-4);
+        : raw;
 
     res.json({
       ok: true,
