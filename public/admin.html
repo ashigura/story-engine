@@ -425,8 +425,14 @@ window.addEventListener("error", (e) => {
     msmGrid: document.getElementById("msmGrid"),
     editVoteMap: document.getElementById("editVoteMap"),
     btnLoadEdge: document.getElementById("btnLoadEdge"),
-    editFromNodeId: document.getElementById("editFromNodeId")
-
+    editFromNodeId: document.getElementById("editFromNodeId"),
+    bridgeUseFocused: document.getElementById("bridgeUseFocused"),
+    bridgeDefaultSid: document.getElementById("bridgeDefaultSid"),
+    bridgeMapJson:    document.getElementById("bridgeMapJson"),
+    btnBridgeApply:   document.getElementById("btnBridgeApply"),
+    btnBridgeStatus:  document.getElementById("btnBridgeStatus"),
+    btnBridgeFocus:   document.getElementById("btnBridgeFocus"),
+    bridgeOut:        document.getElementById("bridgeOut")
 
   };
 
@@ -452,6 +458,66 @@ const msm = {
   subs: new Set(),        // aktuell abonnierte sids
 };
 
+
+function showBridge(obj) {
+  els.bridgeOut.textContent = JSON.stringify(obj, null, 2);
+}
+
+// Bridge: Status
+els.btnBridgeStatus.onclick = async () => {
+  try {
+    const r = await api(`/bridge/status`, { headers: headers() });
+    showBridge(r);
+    // aktuelle Config auch in Felder spiegeln:
+    const cfg = r?.config || {};
+    els.bridgeUseFocused.checked = !!cfg.useFocused;
+    els.bridgeDefaultSid.value = (cfg.defaultSessionId ?? "") + "";
+    els.bridgeMapJson.value = JSON.stringify(cfg.platformSessionMap || {}, null, 0);
+  } catch (e) { showBridge(e); }
+};
+
+// Bridge: Apply
+els.btnBridgeApply.onclick = async () => {
+  let map = {};
+  try {
+    map = els.bridgeMapJson.value.trim() ? JSON.parse(els.bridgeMapJson.value.trim()) : {};
+  } catch {
+    return alert("Platform→Session JSON ungültig.");
+  }
+  const body = {
+    useFocused: !!els.bridgeUseFocused.checked,
+    defaultSessionId: Number(els.bridgeDefaultSid.value || 0),
+    platformSessionMap: map
+  };
+  try {
+    const r = await api(`/bridge/config`, {
+      method: "PATCH",
+      headers: headers(),
+      body: JSON.stringify(body)
+    });
+    showBridge(r);
+  } catch (e) { showBridge(e); }
+};
+
+// Bridge: Fokus = aktuelle Session
+els.btnBridgeFocus.onclick = async () => {
+  const sid = Number(els.sessionId.value);
+  if (!Number.isFinite(sid)) return alert("Session-ID fehlt/ungültig.");
+  try {
+    const r = await api(`/bridge/focus`, {
+      method: "PATCH",
+      headers: headers(),
+      body: JSON.stringify({ sessionId: sid })
+    });
+    showBridge(r);
+  } catch (e) { showBridge(e); }
+};
+
+
+
+
+
+  
 // Deterministische Session-Farbe (HSL) aus ID
 function sessionHueFromId(id){ // 0..360 verteilt
   let x = Number(id) >>> 0;
