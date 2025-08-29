@@ -478,42 +478,57 @@ els.btnBridgeStatus.onclick = async () => {
 
 // Bridge: Apply
 els.btnBridgeApply.onclick = async () => {
-  let map = {};
   try {
-    map = els.bridgeMapJson.value.trim() ? JSON.parse(els.bridgeMapJson.value.trim()) : {};
-  } catch {
-    return alert("Platform→Session JSON ungültig.");
-  }
-  const body = {
-    useFocused: !!els.bridgeUseFocused.checked,
-    defaultSessionId: Number(els.bridgeDefaultSid.value || 0),
-    platformSessionMap: map
-  };
-  try {
+    const defaultSessionId = Number(document.getElementById("bridgeDefaultSid").value || "0");
+    const useFocused = !!document.getElementById("bridgeUseFocused").checked;
+
+    // platform map als JSON, z.B. {"twitch":59,"youtube":61}
+    let platformSessionMap = {};
+    const raw = (document.getElementById("bridgeMapJson").value || "").trim();
+    if (raw) {
+      try { platformSessionMap = JSON.parse(raw); } catch { return alert("platformSessionMap: ungültiges JSON"); }
+    }
+
+    const body = { defaultSessionId, useFocused, platformSessionMap };
     const r = await api(`/bridge/config`, {
       method: "PATCH",
       headers: headers(),
       body: JSON.stringify(body)
     });
-    showBridge(r);
-  } catch (e) { showBridge(e); }
+    alert("Bridge-Konfig gespeichert.");
+    console.log(r.config);
+  } catch(e) {
+    console.error(e);
+    alert("Fehler bei PATCH /bridge/config (siehe Console).");
+  }
 };
 
 // Bridge: Fokus = aktuelle Session
 els.btnBridgeFocus.onclick = async () => {
-  const sid = Number(els.sessionId.value);
-  if (!Number.isFinite(sid)) return alert("Session-ID fehlt/ungültig.");
-  try {
+ try {
+    const sid = Number(els.sessionId.value);
+    if (!Number.isFinite(sid) || sid <= 0) return alert("Session-ID fehlt/ungültig.");
     const r = await api(`/bridge/focus`, {
-      method: "PATCH",
+      method: "POST",
       headers: headers(),
       body: JSON.stringify({ sessionId: sid })
     });
-    showBridge(r);
-  } catch (e) { showBridge(e); }
+    alert(`Fokus auf Session #${sid} gesetzt.`);
+    console.log(r.config);
+  } catch(e) {
+    console.error(e);
+    alert("Fehler bei POST /bridge/focus (siehe Console).");
+  }
 };
 
-
+// Bridge-Konfig laden (z.B. beim UI-Start)
+async function loadBridgeConfig() {
+  try {
+    const r = await api(`/bridge/config`, { headers: headers() });
+    console.log("Bridge config:", r.config);
+    // Optional: Felder im UI vorbelegen…
+  } catch(e) { console.error(e); }
+}
 
 
 
