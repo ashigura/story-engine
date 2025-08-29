@@ -655,6 +655,38 @@ const insEdge = await client.query(
 const https = require("https");
 const querystring = require("querystring");
 
+function fetchRestream(path, token) {
+  return new Promise((resolve, reject) => {
+    const req = https.request({
+      method: "GET",
+      hostname: "api.restream.io",
+      path,
+      headers: { "Authorization": `Bearer ${token}` }
+    }, res => {
+      let data = "";
+      res.on("data", c => data += c);
+      res.on("end", () => {
+        try { resolve({ status: res.statusCode, json: JSON.parse(data) }); }
+        catch { resolve({ status: res.statusCode, text: data }); }
+      });
+    });
+    req.on("error", reject);
+    req.end();
+  });
+}
+
+app.get("/restream/webchat-url", async (req, res) => {
+  try {
+    const tok = await getRestreamToken(); // <- deine existierende Token-Funktion
+    if (!tok?.access_token) return res.status(401).json({ error: "no_access_token" });
+    const r = await fetchRestream("/v2/user/webchat/url", tok.access_token);
+    res.status(r.status).json(r.json || { raw: r.text });
+  } catch (e) {
+    res.status(500).json({ error: "webchat_url_failed", message: String(e) });
+  }
+});
+
+
 // GET /restream/login -> redirect zu Restream OAuth
 app.get("/restream/login", (req, res) => {
   const cid   = process.env.RESTREAM_CLIENT_ID;
