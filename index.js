@@ -1783,6 +1783,9 @@ app.post("/ingest/message", async (req, res) => {
 });
 
 
+
+
+
 // Static Admin-UI (serves files from /public)
 const path = require("path");
 app.use("/admin-ui", express.static(path.join(__dirname, "public")));
@@ -1797,11 +1800,67 @@ const bridgeConfig = {
   focusedSessionId: 0
 };
 
+function normPlatform(p) {
+  return String(p || "").trim().toLowerCase();
+}
+
 // Bridge Status-Route (optional)
 app.get("/bridge/status", async (_req, res) => {
   const tok = await getRestreamToken();
   res.json({ status: getBridgeStatus(), token_exists: !!tok, expires_at: tok?.expires_at, config: bridgeConfig });
 });
+
+// ---- Bridge Config API ----
+
+// GET aktuelle Konfig
+app.get("/bridge/config", (req, res) => {
+  res.json({ ok: true, config: bridgeConfig });
+});
+
+// PATCH Teile der Konfig ändern
+app.patch("/bridge/config", express.json(), (req, res) => {
+  const b = req.body || {};
+
+  if (b.defaultSessionId !== undefined) {
+    const n = Number(b.defaultSessionId);
+    if (!Number.isFinite(n) || n < 0) return res.status(400).json({ error: "invalid_defaultSessionId" });
+    bridgeConfig.defaultSessionId = n;
+  }
+
+  if (b.useFocused !== undefined) {
+    bridgeConfig.useFocused = !!b.useFocused;
+  }
+
+  if (b.focusedSessionId !== undefined) {
+    const n = Number(b.focusedSessionId);
+    if (!Number.isFinite(n) || n < 0) return res.status(400).json({ error: "invalid_focusedSessionId" });
+    bridgeConfig.focusedSessionId = n;
+  }
+
+  if (b.platformSessionMap && typeof b.platformSessionMap === "object") {
+    const map = {};
+    for (const [k, v] of Object.entries(b.platformSessionMap)) {
+      const p = normPlatform(k);
+      const n = Number(v);
+      if (!p) continue;
+      if (!Number.isFinite(n) || n < 0) return res.status(400).json({ error: "invalid_platformSessionMap_value", key: k, value: v });
+      map[p] = n;
+    }
+    bridgeConfig.platformSessionMap = map;
+  }
+
+  res.json({ ok: true, config: bridgeConfig });
+});
+
+// POST Fokus direkt setzen (praktisch für Button "Set focus")
+app.post("/bridge/focus", express.json(), (req, res) => {
+  const sid = Number((req.body || {}).sessionId);
+  if (!Number.isFinite(sid) || sid < 0) return res.status(400).json({ error: "invalid_sessionId" });
+  bridgeConfig.useFocused = true;
+  bridgeConfig.focusedSessionId = sid;
+  res.json({ ok: true, config: bridgeConfig });
+});
+
 
 // Bridge Start – nutzt DB-Token + Auto-Refresh
 (async () => {
@@ -1811,12 +1870,16 @@ if (tokenExists) {
   startRestreamBridge({
     // Session Routing
     getSessionIdFor: (platform) => {
-      if (bridgeConfig.useFocused && bridgeConfig.focusedSessionId) return bridgeConfig.focusedSessionId;
-      const mapped = bridgeConfig.platformSessionMap?.[platform];
-      if (Number.isFinite(Number(mapped))) return Number(mapped);
-      if (Number.isFinite(Number(bridgeConfig.defaultSessionId))) return Number(bridgeConfig.defaultSessionId);
-      return 0;
-    },
+      const p = normPlatform(platform);
+          if (bridgeConfig.useFocused && bridgeConfig.focusedSessionId) return bridgeConfig.focusedSessionId;
+          if (bridgeConfig.platformSessionMap && Number.isFinite(Number(bridgeConfig.platformSessionMap[p]))) {
+            return Number(bridgeConfig.platformSessionMap[p]);
+          }
+          if (Number.isFinite(Number(bridgeConfig.defaultSessionId))) {
+            return Number(bridgeConfig.defaultSessionId);
+          }
+          return 0; // deaktiviert, wenn nichts konfiguriert
+        },
     // Token-Mgmt (DB)
     tokenGetter: async () => await getRestreamToken(),
     tokenSaver:  async (t)   => await saveRestreamToken(t),
