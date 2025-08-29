@@ -40,14 +40,16 @@ export function getBridgeStatus() {
 // Startet die Bridge, wenn Token gesetzt ist
 export function startRestreamBridge({
   accessToken,
-  // Wenn nicht gesetzt, posten wir intern auf localhost -> /ingest/message
   engineIngestUrl = `http://127.0.0.1:${process.env.PORT || 8080}/ingest/message`,
   ingestKey,
-  defaultSessionId = 0,
-  platformSessionMap = {}
+  getSessionIdFor // <- NEU: Funktion (platform) => sessionId (Zahl)
 }) {
-  if (!accessToken) return console.log('ℹ️  Restream-Bridge: kein RESTREAM_ACCESS_TOKEN -> deaktiviert.');
-  if (!ingestKey)   return console.log('ℹ️  Restream-Bridge: kein INGEST_KEY -> deaktiviert.');
+  if (!accessToken)  { console.log('ℹ️  Restream-Bridge: kein RESTREAM_ACCESS_TOKEN -> deaktiviert.'); return; }
+  if (!ingestKey)    { console.log('ℹ️  Restream-Bridge: kein INGEST_KEY -> deaktiviert.'); return; }
+  if (typeof getSessionIdFor !== "function") {
+    console.log('ℹ️  Restream-Bridge: getSessionIdFor fehlt -> deaktiviert.');
+    return;
+  }
 
   state.enabled = true;
 
@@ -80,7 +82,6 @@ export function startRestreamBridge({
     });
 
     ws.on('message', async (data) => {
-      // Erwartet: { action: "event", payload: { eventSourceId, eventPayload } }
       let msg;
       try { msg = JSON.parse(String(data)); } catch { return; }
       const { action, payload } = msg || {};
@@ -88,13 +89,12 @@ export function startRestreamBridge({
 
       const platform = PLATFORM_BY_ID[payload.eventSourceId] || 'unknown';
       const eventPayload = payload.eventPayload || {};
-
       const text = extractText(eventPayload);
       if (!text) return;
 
       const author = extractAuthor(eventPayload);
-      const sessionId = routeToSession(platform);
-      if (!sessionId) return; // keine Ziel-Session hinterlegt
+      const sessionId = Number(getSessionIdFor(platform) || 0);
+      if (!sessionId) return;
 
       state.lastMessageAt = new Date().toISOString();
 
