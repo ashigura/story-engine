@@ -1,4 +1,5 @@
-import { startRestreamBridge, getBridgeStatus } from "./restream-bridge.js";
+const { startRestreamBridge, getBridgeStatus } = require("./restream-bridge.js");
+
 
 // --- Condition/Effekt: Evaluator ---
 function getAtPath(state, path) {
