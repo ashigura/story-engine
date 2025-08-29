@@ -145,6 +145,34 @@ await pool.query(`
   CREATE INDEX IF NOT EXISTS ix_edge_vote_map ON edge USING gin (vote_map_json);
 `);
 
+// --- Restream Token Storage (Singleton: id=1)
+await pool.query(`
+  create table if not exists restream_token (
+    id            int primary key,
+    access_token  text not null,
+    refresh_token text not null,
+    expires_at    timestamptz not null,
+    created_at    timestamptz not null default now(),
+    updated_at    timestamptz not null default now()
+  );
+`);
+
+await pool.query(`
+  create or replace function trg_restream_token_updated_at()
+  returns trigger as $$
+  begin
+    new.updated_at = now();
+    return new;
+  end
+  $$ language plpgsql;
+`);
+
+await pool.query(`
+  drop trigger if exists restream_token_set_updated on restream_token;
+  create trigger restream_token_set_updated
+  before update on restream_token
+  for each row execute function trg_restream_token_updated_at();
+`);
 
 
 
