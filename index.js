@@ -313,7 +313,7 @@ const port = process.env.PORT || 8080;
 app.use((req, res, next) => {
   // Public: health + statische Admin-UI
   if (req.path === "/health" || req.path.startsWith("/admin-ui") || req.path === "/ws" || req.path === "/restream/login" || req.path === "/oauth/restream/callback" || req.path === "/bridge/status" ||
-    req.path === "/ingest/message") return next();
+  req.path === "/restream" ||  req.path === "/ingest/message") return next();
 
 
   // Key aus Header ODER Query (falls mal nötig ?key=...)
