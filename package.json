@@ -3,6 +3,7 @@
   "name": "story-engine",
   "version": "1.0.1",
   "main": "index.js",
+  "type": "commonjs",
   "license": "MIT",
   "dependencies": {
     "express": "^4.19.0",
