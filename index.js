@@ -1704,6 +1704,32 @@ app.post("/ingest/message", async (req, res) => {
 const path = require("path");
 app.use("/admin-ui", express.static(path.join(__dirname, "public")));
 
+
+// ---- Restream Bridge Start ----
+const RESTREAM_TOKEN = process.env.RESTREAM_ACCESS_TOKEN || "";
+if (RESTREAM_TOKEN) {
+  startRestreamBridge({
+    accessToken: RESTREAM_TOKEN,
+    ingestKey: process.env.INGEST_KEY,
+    // hier entscheidest du, in welche Session Nachrichten gehen sollen
+    getSessionIdFor: (platform) => {
+      // Beispiel: immer die Session 59
+      return 59;
+
+      // später ersetzen wir das dynamisch mit deiner Admin-UI:
+      // if (bridgeConfig.useFocused) return bridgeConfig.focusedSessionId;
+      // return bridgeConfig.defaultSessionId || 0;
+    }
+  });
+  console.log("🔌 Restream-Bridge gestartet");
+} else {
+  console.log("ℹ️ Kein RESTREAM_ACCESS_TOKEN gesetzt -> Bridge deaktiviert");
+}
+
+// optional: Status-Endpunkt für Debug
+app.get("/bridge/status", (_req, res) => res.json(getBridgeStatus()));
+
+
 // ---- Bridge Runtime Config (wird via Admin-UI geändert) ----
 const bridgeConfig = {
   defaultSessionId: Number(process.env.SESSION_ID || 0),
