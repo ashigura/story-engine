@@ -3,6 +3,30 @@ const WebSocket = require("ws");
 const https = require("https");
 const querystring = require("querystring");
 
+let totalWsReceived = 0;
+let lastWsAt = null;
+let lastEventPreview = null;
+
+function markWsReceived(ev) {
+  totalWsReceived++;
+  lastWsAt = new Date().toISOString();
+  try {
+    lastEventPreview = {
+      at: lastWsAt,
+      platform: ev.platform || null,
+      username: ev.user?.displayName || ev.username || null,
+      text: ev.message || ev.text || null
+    };
+  } catch {}
+}
+
+function getBridgeStatusExtra() {
+  return { totalWsReceived, lastWsAt, lastEventPreview };
+}
+
+module.exports.getBridgeStatusExtra = getBridgeStatusExtra;
+
+
 let _fetch = global.fetch;
 if (!_fetch) { try { _fetch = require("node-fetch"); } catch {} }
 const fetchFn = (...a) => _fetch(...a);
