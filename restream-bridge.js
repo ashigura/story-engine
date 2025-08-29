@@ -279,7 +279,7 @@ function startRestreamBridge({
       break;
   }
       
-      const { action, payload } = msg || {};
+      const { payload } = msg || {};
       if (action !== "event" || !payload) return;
 
       const platform = PLATFORM_BY_ID[payload.eventSourceId] || "unknown";
