@@ -1,21 +1,5 @@
 import { startRestreamBridge, getBridgeStatus } from "./restream-bridge.js";
 
-// ---- Bridge Runtime Config (wird via Admin-UI geändert) ----
-const bridgeConfig = {
-  defaultSessionId: Number(process.env.SESSION_ID || 0),
-  platformSessionMap: (() => {
-    try { return JSON.parse(process.env.RESTREAM_PLATFORM_SESSION_MAP || "{}"); }
-    catch { return {}; }
-  })(),
-  useFocused: false,
-  focusedSessionId: 0
-};
-
-
-
-
-
-
 // --- Condition/Effekt: Evaluator ---
 function getAtPath(state, path) {
   // Pfad wie "inventory.key" oder "flags.visitedNorth"
@@ -1729,6 +1713,8 @@ const bridgeConfig = {
   useFocused: false,
   focusedSessionId: 0
 };
+
+
 
 // Bridge: Status
 app.get("/bridge/status", (_req, res) => {
