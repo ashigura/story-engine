@@ -1861,6 +1861,38 @@ app.post("/bridge/focus", express.json(), (req, res) => {
   res.json({ ok: true, config: bridgeConfig });
 });
 
+// GET /bridge/token  -> gibt masked Token + Ablauf zurück (API-Key nötig)
+app.get("/bridge/token", async (req, res) => {
+  try {
+    const key = req.header("x-api-key");
+    if (!process.env.API_KEY || key !== process.env.API_KEY) {
+      return res.status(401).json({ error: "unauthorized" });
+    }
+
+    const tok = await getRestreamToken().catch(() => null);
+    if (!tok) return res.json({ ok: true, token_exists: false });
+
+    const raw = tok.access_token || "";
+    const masked =
+      raw.length <= 12
+        ? "***"
+        : raw.slice(0, 6) + "…" + raw.slice(-4);
+
+    res.json({
+      ok: true,
+      token_exists: true,
+      access_token_masked: masked,
+      token_type: tok.token_type || "bearer",
+      expires_at: tok.expires_at || null,
+      scope: tok.scope || null
+    });
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ error: "token_read_failed", message: String(e) });
+  }
+});
+
+
 
 // Bridge Start – nutzt DB-Token + Auto-Refresh
 (async () => {
