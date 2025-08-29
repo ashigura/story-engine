@@ -259,8 +259,29 @@ footer { padding:10px 16px; color:#64748b; font-size:12px; }
   <button class="btn red" id="btnResetNoSeed">POST /admin/reset (ohne Seed)</button>
   <button class="btn red" id="btnClear" title="Nur wenn /admin/clear existiert">POST /admin/clear</button>
 </div>
-
     </div>
+
+    <div style="margin-top:12px">
+  <h2>Bridge Routing</h2>
+  <label><input type="checkbox" id="bridgeUseFocused" /> Use focused session</label>
+  <div class="row">
+    <div>
+      <label>Default Session</label>
+      <input id="bridgeDefaultSid" placeholder="z.B. 59" />
+    </div>
+    <div>
+      <label>Platform→Session (JSON)</label>
+      <input id="bridgeMapJson" placeholder='{"twitch":59,"youtube":60}' />
+    </div>
+  </div>
+  <div class="row" style="margin-top:8px">
+    <button class="btn" id="btnBridgeApply">Apply</button>
+    <button class="btn gray" id="btnBridgeStatus">Status</button>
+    <button class="btn gray" id="btnBridgeFocus">Set focus = aktuelle Session</button>
+  </div>
+  <div id="bridgeOut" class="mono" style="margin-top:6px"></div>
+</div>
+
   </section>
 
   <section>
