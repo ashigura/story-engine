@@ -1,3 +1,8 @@
+import { startRestreamBridge, getBridgeStatus } from "./restream-bridge.js";
+
+
+
+
 // --- Condition/Effekt: Evaluator ---
 function getAtPath(state, path) {
   // Pfad wie "inventory.key" oder "flags.visitedNorth"
@@ -1700,6 +1705,29 @@ app.post("/ingest/message", async (req, res) => {
 // Static Admin-UI (serves files from /public)
 const path = require("path");
 app.use("/admin-ui", express.static(path.join(__dirname, "public")));
+
+// Restream-Bridge nur starten, wenn Token vorhanden
+const RESTREAM_ACCESS_TOKEN = process.env.RESTREAM_ACCESS_TOKEN || "";
+const PLATFORM_SESSION_MAP = (() => {
+  try { return JSON.parse(process.env.RESTREAM_PLATFORM_SESSION_MAP || "{}"); }
+  catch { return {}; }
+})();
+if (RESTREAM_ACCESS_TOKEN) {
+  startRestreamBridge({
+    accessToken: RESTREAM_ACCESS_TOKEN,
+    // default: intern auf denselben Service posten
+    engineIngestUrl: `http://127.0.0.1:${process.env.PORT || 8080}/ingest/message`,
+    ingestKey: process.env.INGEST_KEY,
+    defaultSessionId: Number(process.env.SESSION_ID || 0),
+    platformSessionMap: PLATFORM_SESSION_MAP
+  });
+}
+
+app.get("/bridge/status", (_req, res) => {
+  res.json(getBridgeStatus());
+});
+
+
 
 //////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////
