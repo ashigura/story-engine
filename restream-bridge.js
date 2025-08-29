@@ -2,10 +2,44 @@
 const WebSocket = require("ws");
 const https = require("https");
 const querystring = require("querystring");
+const connections = new Map(); // connectionIdentifier -> { eventSourceId, target, connectionUuid }
+const PLATFORM_BY_ID = {
+  2: 'twitch',
+  13: 'youtube',
+  19: 'facebook_profile',
+  20: 'facebook_page',
+  21: 'facebook_group',
+  24: 'dlive',
+  25: 'discord',
+  26: 'linkedin',
+  27: 'trovo'
+};
 
 let totalWsReceived = 0;
 let lastWsAt = null;
 let lastEventPreview = null;
+
+function pickText(ev) {
+  // Restream sendet verschiedene Typen: nimm, was da ist.
+  // Häufige Felder laut Doku/Erfahrung:
+  // ev.payload?.text, ev.payload?.message, ev.payload?.html (fallback), ev.payload?.raw
+  const p = ev && ev.payload || {};
+  return (
+    p.text ??
+    p.message ??
+    (typeof p.html === 'string' ? p.html.replace(/<[^>]*>/g, '') : undefined) ??
+    p.raw ??
+    ''
+  );
+}
+function pickAuthor(ev) {
+  const a = (ev && ev.payload && ev.payload.author) || {};
+  return {
+    id: a.id || a.userId || '',
+    name: a.name || a.displayName || a.username || '',
+    username: a.username || a.name || ''
+  };
+}
 
 function markWsReceived(ev) {
   totalWsReceived++;
@@ -171,6 +205,81 @@ function startRestreamBridge({
     ws.on("message", async (data) => {
       let msg;
       try { msg = JSON.parse(String(data)); } catch { return; }
+      let action;
+      try { action = JSON.parse(msg.data); } catch { return; }
+
+      switch (action.action) {
+    case 'connection_info': {
+      const p = action.payload || {};
+      // status: 'connecting' | 'connected' | 'error'
+      connections.set(p.connectionIdentifier, {
+        eventSourceId: p.eventSourceId,
+        target: p.target,
+        connectionUuid: p.connectionUuid,
+        status: p.status,
+        reason: p.reason || null
+      });
+      // Optional: in deinen Status exportieren
+      if (onBridgeStatus) onBridgeStatus({ type: 'connection_info', payload: p });
+      break;
+    }
+
+    case 'connection_closed': {
+      const p = action.payload || {};
+      // Wir kennen nur connectionUuid hier – entferne passende Verbindung
+      for (const [key, info] of connections.entries()) {
+        if (info.connectionUuid === p.connectionUuid) {
+          connections.delete(key);
+          break;
+        }
+      }
+      if (onBridgeStatus) onBridgeStatus({ type: 'connection_closed', payload: p });
+      break;
+    }
+
+    case 'event': {
+      const p = action.payload || {};
+      const ci = connections.get(p.connectionIdentifier);
+      // Ohne connection_info kennen wir die Plattform nicht → trotzdem versuchen
+      const platform = ci ? PLATFORM_BY_ID[ci.eventSourceId] || 'unknown' : 'unknown';
+
+      const ev = p.event || {};
+      const text = pickText(ev);
+      const author = pickAuthor(ev);
+
+      // Nur weiterreichen, wenn wir wirklich Text haben:
+      if (text && typeof handleIncomingMessage === 'function') {
+        // handleIncomingMessage(platform, username, userId, text, rawEvent)
+        handleIncomingMessage(platform, author.username || author.name || 'unknown', author.id, text, ev);
+      }
+
+      // Optional: Status/Log
+      if (onBridgeStatus) onBridgeStatus({ type: 'event', platform, text, author, raw: ev });
+      break;
+    }
+
+    case 'heartbeat': {
+      // kann man für liveness nutzen
+      break;
+    }
+
+    // replies/relay kannst du später ergänzen:
+    case 'reply_created':
+    case 'reply_accepted':
+    case 'reply_confirmed':
+    case 'reply_failed':
+    case 'relay_accepted':
+    case 'relay_confirmed':
+    case 'relay_failed': {
+      if (onBridgeStatus) onBridgeStatus({ type: action.action, payload: action.payload });
+      break;
+    }
+
+    default:
+      // ignore
+      break;
+  }
+      
       const { action, payload } = msg || {};
       if (action !== "event" || !payload) return;
 
