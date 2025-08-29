@@ -65,8 +65,7 @@ let _fetch = global.fetch;
 if (!_fetch) { try { _fetch = require("node-fetch"); } catch {} }
 const fetchFn = (...a) => _fetch(...a);
 
-// Restream Plattform-IDs -> Name (anpassen falls nötig)
-const PLATFORM_BY_ID = { 2: "twitch", 13: "youtube", 25: "discord" };
+
 
 const state = {
   enabled: false,
