@@ -1790,7 +1790,7 @@ app.post("/ingest/message", async (req, res) => {
 const path = require("path");
 app.use("/admin-ui", express.static(path.join(__dirname, "public")));
 
-const { startRestreamBridge, getBridgeStatus } = require("./restream-bridge.js");
+const { startRestreamBridge, getBridgeStatus, getBridgeStatusExtra } = require("./restream-bridge.js");
 
 // Runtime-Config für Session-Routing (falls noch nicht vorhanden)
 const bridgeConfig = {
@@ -1805,10 +1805,18 @@ function normPlatform(p) {
 }
 
 // Bridge Status-Route (optional)
-app.get("/bridge/status", async (_req, res) => {
-  const tok = await getRestreamToken();
-  res.json({ status: getBridgeStatus(), token_exists: !!tok, expires_at: tok?.expires_at, config: bridgeConfig });
+app.get("/bridge/status", (req, res) => {
+  const status = getBridgeStatus ? getBridgeStatus() : { enabled:false };
+  const extra  = getBridgeStatusExtra ? getBridgeStatusExtra() : null;
+  res.json({
+    status,
+    token_exists: !!status.token_exists,
+    expires_at: status.expires_at || null,
+    config: bridgeConfig,
+    ws_debug: extra // <- zeigt totalWsReceived, lastWsAt, lastEventPreview
+  });
 });
+
 
 // ---- Bridge Config API ----
 
