@@ -1,4 +1,4 @@
-const { startRestreamBridge, getBridgeStatus } = require("./restream-bridge.js");
+
 
 
 // --- Condition/Effekt: Evaluator ---
@@ -128,6 +128,22 @@ function resolveEdgeByVoteMap(options, text) {
   return null;
 }
 
+// ---- Restream Token Helpers (DB) ----
+async function getRestreamToken() {
+  const q = await pool.query(`select * from restream_token where id=1`);
+  return q.rowCount ? q.rows[0] : null;
+}
+
+async function saveRestreamToken({ access_token, refresh_token, expires_in }) {
+  const expires_at = new Date(Date.now() + (Math.max(30, Number(expires_in || 3600)) * 1000)); // default 1h
+  await pool.query(`
+    insert into restream_token (id, access_token, refresh_token, expires_at)
+    values (1, $1, $2, $3)
+    on conflict (id) do update
+    set access_token=$1, refresh_token=$2, expires_at=$3
+  `, [access_token, refresh_token, expires_at]);
+  return { access_token, refresh_token, expires_at };
+}
 
 
 
@@ -636,6 +652,73 @@ const insEdge = await client.query(
   }
 });
 
+const https = require("https");
+const querystring = require("querystring");
+
+// GET /restream/login -> redirect zu Restream OAuth
+app.get("/restream/login", (req, res) => {
+  const cid   = process.env.RESTREAM_CLIENT_ID;
+  const ruri  = process.env.RESTREAM_REDIRECT_URI;
+  if (!cid || !ruri) return res.status(500).send("RESTREAM_CLIENT_* / REDIRECT_URI fehlt.");
+  const state = Math.random().toString(36).slice(2);
+  const url = `https://api.restream.io/login?response_type=code&client_id=${encodeURIComponent(cid)}&redirect_uri=${encodeURIComponent(ruri)}&state=${encodeURIComponent(state)}`;
+  res.redirect(url);
+});
+
+// GET /oauth/restream/callback?code=... -> tauscht Code gegen Tokens
+app.get("/oauth/restream/callback", async (req, res) => {
+  const code = req.query.code;
+  if (!code) return res.status(400).send("code fehlt");
+
+  const cid  = process.env.RESTREAM_CLIENT_ID;
+  const csec = process.env.RESTREAM_CLIENT_SECRET;
+  const ruri = process.env.RESTREAM_REDIRECT_URI;
+  if (!cid || !csec || !ruri) return res.status(500).send("RESTREAM_CLIENT_* / REDIRECT_URI fehlt.");
+
+  const body = querystring.stringify({
+    grant_type: "authorization_code",
+    code,
+    redirect_uri: ruri
+  });
+  const auth = Buffer.from(`${cid}:${csec}`).toString("base64");
+
+  const tokenResp = await new Promise((resolve, reject) => {
+    const reqOAuth = https.request({
+      method: "POST",
+      hostname: "api.restream.io",
+      path: "/oauth/token",
+      headers: {
+        "Authorization": `Basic ${auth}`,
+        "Content-Type": "application/x-www-form-urlencoded",
+        "Content-Length": Buffer.byteLength(body)
+      }
+    }, r => {
+      let data = "";
+      r.on("data", c => data += c);
+      r.on("end", () => {
+        if (r.statusCode >= 200 && r.statusCode < 300) {
+          try { resolve(JSON.parse(data)); } catch (e) { reject(e); }
+        } else {
+          reject(new Error(`Token exchange failed ${r.statusCode}: ${data}`));
+        }
+      });
+    });
+    reqOAuth.on("error", reject);
+    reqOAuth.write(body);
+    reqOAuth.end();
+  });
+
+  const saved = await saveRestreamToken(tokenResp); // speichert access+refresh+expires_at
+  res.send(`
+    <h3>Restream verbunden ✅</h3>
+    <pre>${JSON.stringify({
+      access_token: saved.access_token.slice(0,8) + "...",
+      refresh_token: (tokenResp.refresh_token || "").slice(0,8) + "...",
+      expires_at: saved.expires_at
+    }, null, 2)}</pre>
+    <p>Du kannst dieses Fenster schließen.</p>
+  `);
+});
 
 
 
@@ -1704,70 +1787,44 @@ app.post("/ingest/message", async (req, res) => {
 const path = require("path");
 app.use("/admin-ui", express.static(path.join(__dirname, "public")));
 
+const { startRestreamBridge, getBridgeStatus } = require("./restream-bridge.js");
 
-// ---- Restream Bridge Start ----
-const RESTREAM_TOKEN = process.env.RESTREAM_ACCESS_TOKEN || "";
-if (RESTREAM_TOKEN) {
-  startRestreamBridge({
-    accessToken: RESTREAM_TOKEN,
-    ingestKey: process.env.INGEST_KEY,
-    // hier entscheidest du, in welche Session Nachrichten gehen sollen
-    getSessionIdFor: (platform) => {
-      // Beispiel: immer die Session 59
-      return 59;
-
-      // später ersetzen wir das dynamisch mit deiner Admin-UI:
-      // if (bridgeConfig.useFocused) return bridgeConfig.focusedSessionId;
-      // return bridgeConfig.defaultSessionId || 0;
-    }
-  });
-  console.log("🔌 Restream-Bridge gestartet");
-} else {
-  console.log("ℹ️ Kein RESTREAM_ACCESS_TOKEN gesetzt -> Bridge deaktiviert");
-}
-
-// optional: Status-Endpunkt für Debug
-app.get("/bridge/status", (_req, res) => res.json(getBridgeStatus()));
-
-
-// ---- Bridge Runtime Config (wird via Admin-UI geändert) ----
+// Runtime-Config für Session-Routing (falls noch nicht vorhanden)
 const bridgeConfig = {
-  defaultSessionId: Number(process.env.SESSION_ID || 0),
-  platformSessionMap: (() => {
-    try { return JSON.parse(process.env.RESTREAM_PLATFORM_SESSION_MAP || "{}"); }
-    catch { return {}; }
-  })(),
+  defaultSessionId: 0,
+  platformSessionMap: {},
   useFocused: false,
   focusedSessionId: 0
 };
 
-
-
-// Bridge: Status
-app.get("/bridge/status", (_req, res) => {
-  res.json({ status: getBridgeStatus(), config: bridgeConfig });
+// Bridge Status-Route (optional)
+app.get("/bridge/status", async (_req, res) => {
+  const tok = await getRestreamToken();
+  res.json({ status: getBridgeStatus(), token_exists: !!tok, expires_at: tok?.expires_at, config: bridgeConfig });
 });
 
-// Bridge: Config lesen
-app.get("/bridge/config", (_req, res) => {
-  res.json(bridgeConfig);
-});
-
-// Bridge: Config setzen
-app.patch("/bridge/config", (req, res) => {
-  const { defaultSessionId, platformSessionMap, useFocused } = req.body || {};
-  if (defaultSessionId !== undefined) bridgeConfig.defaultSessionId = Number(defaultSessionId) || 0;
-  if (platformSessionMap && typeof platformSessionMap === "object") bridgeConfig.platformSessionMap = platformSessionMap;
-  if (typeof useFocused === "boolean") bridgeConfig.useFocused = useFocused;
-  return res.json({ ok: true, config: bridgeConfig });
-});
-
-// Bridge: Fokus-Session setzen (z.B. aus Admin-UI)
-app.patch("/bridge/focus", (req, res) => {
-  const sid = Number(req.body?.sessionId || 0);
-  bridgeConfig.focusedSessionId = Number.isFinite(sid) ? sid : 0;
-  return res.json({ ok: true, focusedSessionId: bridgeConfig.focusedSessionId });
-});
+// Bridge Start – nutzt DB-Token + Auto-Refresh
+const tokenExists = await getRestreamToken().catch(() => null);
+if (tokenExists) {
+  startRestreamBridge({
+    // Session Routing
+    getSessionIdFor: (platform) => {
+      if (bridgeConfig.useFocused && bridgeConfig.focusedSessionId) return bridgeConfig.focusedSessionId;
+      const mapped = bridgeConfig.platformSessionMap?.[platform];
+      if (Number.isFinite(Number(mapped))) return Number(mapped);
+      if (Number.isFinite(Number(bridgeConfig.defaultSessionId))) return Number(bridgeConfig.defaultSessionId);
+      return 0;
+    },
+    // Token-Mgmt (DB)
+    tokenGetter: async () => await getRestreamToken(),
+    tokenSaver:  async (t)   => await saveRestreamToken(t),
+    clientId:     process.env.RESTREAM_CLIENT_ID,
+    clientSecret: process.env.RESTREAM_CLIENT_SECRET
+  });
+  console.log("🔌 Restream-Bridge gestartet (OAuth/refresh aktiv).");
+} else {
+  console.log("ℹ️ Kein Restream-Token in DB – bitte OAuth starten: /restream/login");
+}
 
 
 
