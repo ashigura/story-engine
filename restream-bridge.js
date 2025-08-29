@@ -44,6 +44,8 @@ let lastEventPreview = null;
 const actionCounters = {};
 const lastActions = []; // Ringpuffer der letzten 20 Actions
 
+
+
 function getConnectionsSnapshot() {
   const out = [];
   for (const [cid, info] of connections.entries()) {
@@ -66,11 +68,13 @@ module.exports.getBridgeStatusExtra = function () {
 
 
 
-function bumpActionCounter(name) {
-  const k = String(name||'unknown').toLowerCase();
+function bumpActionCounter(name, sample) {
+  const k = String(name || 'unknown').toLowerCase();
   actionCounters[k] = (actionCounters[k] || 0) + 1;
-  lastActions.push({ at: new Date().toISOString(), action: k });
-  if (lastActions.length > 20) lastActions.shift();
+  const entry = { at: new Date().toISOString(), action: k };
+  if (sample) entry.sample = sample;
+  lastActions.push(entry);
+  if (lastActions.length > 30) lastActions.shift();
 }
 
 
@@ -248,21 +252,26 @@ function startRestreamBridge({
         return;
       }
 
-      let actionObj = null;
-      if (root && typeof root.data === "string") {
-        try { actionObj = JSON.parse(root.data); } catch { /* ignore */ }
-      }
-      if (!actionObj && root && typeof root.action === "string") {
-        actionObj = root;
-      }
-      if (!actionObj) return;
+      // root kann z.B. { action, payload } sein ODER { data: "<json>" }
+let actionObj = null;
+if (root && typeof root.data === "string") {
+  try { actionObj = JSON.parse(root.data); } catch { /* ignore */ }
+}
+if (!actionObj && root && (root.action || root.type)) {
+  actionObj = root;
+}
+if (!actionObj) return;
 
-      totalWsReceived++;
-      lastWsAt = new Date().toISOString();
+// Manche Streams senden "type" statt "action"
+const rawAction = actionObj.action || actionObj.type || 'unknown';
+const action = String(rawAction).toLowerCase();
+const payload = actionObj.payload || {};
+bumpActionCounter(action);
 
-      const action = String(actionObj.action || "").toLowerCase();
-      const payload = actionObj.payload || {};
-      bumpActionCounter(action);
+// Optionales Sample der ersten Felder für Unbekanntes
+if (!['connection_info','connection_closed','heartbeat','event','reply_created','reply_accepted','reply_confirmed','reply_failed','relay_accepted','relay_confirmed','relay_failed'].includes(action)) {
+  bumpActionCounter('unknown_action', Object.keys(actionObj));
+}
 
 
       // Debug (optional):
@@ -295,8 +304,8 @@ function startRestreamBridge({
       if (action === "heartbeat") {
         return;
       }
-
-      if (action === "event") {
+const isEventLike = (action === 'event' || action === 'message' || action === 'chat_message');
+      if (isEventLike) {
         const ci = connections.get(payload.connectionIdentifier) || null;
 
         // Plattform aus connection_info ermitteln, ansonsten fallback
