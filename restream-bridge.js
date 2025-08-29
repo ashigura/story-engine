@@ -43,6 +43,15 @@ let lastEventPreview = null;
 const actionCounters = {};
 const lastActions = []; // Ringpuffer
 
+// Sammle wenige Rohframes für Diagnose:
+const rawSamples = []; // Ringpuffer der letzten 5 Frames
+function pushRawSample(kind, obj) {
+  try {
+    rawSamples.push({ at: new Date().toISOString(), kind, sample: obj });
+    if (rawSamples.length > 5) rawSamples.shift();
+  } catch {}
+}
+
 function bumpActionCounter(name, sample) {
   const k = String(name || 'unknown').toLowerCase();
   actionCounters[k] = (actionCounters[k] || 0) + 1;
@@ -227,11 +236,16 @@ function startRestreamBridge({
       // Robust: manche Frames sind { data:"<json>" }, manche direkt { action, payload }
       let root;
       try { root = JSON.parse(String(buf)); } catch { return; }
+      pushRawSample("root", root);
+      
 
       let actionObj = null;
       if (root && typeof root.data === "string") {
         try { actionObj = JSON.parse(root.data); } catch {}
       }
+    if (actionObj) pushRawSample("actionObj", { action: actionObj.action || actionObj.type, keys: Object.keys(actionObj) });
+
+      
       if (!actionObj && root && (root.action || root.type)) {
         actionObj = root;
       }
@@ -251,6 +265,67 @@ function startRestreamBridge({
           console.log("[RESTREAM]", action, payload?.connectionIdentifier || "");
         }
       }
+
+      // --- Fallback: Manche Backends liefern Chat im reply_* Payload ---
+if (action === "reply_created" || action === "reply_accepted" || action === "reply_confirmed") {
+  // Suche generisch nach message-ähnlichem Objekt in payload
+  const p = payload || {};
+  const ev = p.event || p.message || p.msg || p.data || null;
+
+  // Falls nichts Explizites: manchmal liegt die Struktur flach mit Feldern wie text/html/raw/sender
+  const maybeText  = (ev && (ev.text || ev.message || (typeof ev.html === 'string' ? ev.html.replace(/<[^>]*>/g, '') : null) || ev.raw)) || p.text || p.raw || null;
+  const maybeAuth  = (ev && (ev.author || ev.sender)) || p.author || p.sender || null;
+  const platformGuess = lowerPlatformGuess((ev && ev.platform) || (p.event && p.event.platform) || (p.platform));
+
+  if (maybeText) {
+    let platform = platformGuess;
+    // Falls keine Platform erkannt: aus der Verbindung ableiten
+    const ci = connections.get(p.connectionIdentifier) || null;
+    if (!platform && ci) platform = (PLATFORM_BY_ID[ci.eventSourceId] || 'unknown');
+
+    const author = {
+      id: (maybeAuth && (maybeAuth.id || maybeAuth.userId)) || '',
+      name: (maybeAuth && (maybeAuth.displayName || maybeAuth.name || maybeAuth.username)) || ''
+    };
+
+    lastEventPreview = {
+      at: lastWsAt,
+      platform,
+      username: author.name || null,
+      text: maybeText
+    };
+
+    const sessionId = Number(getSessionIdFor(platform) || 0);
+    if (sessionId && maybeText) {
+      state.lastMessageAt = new Date().toISOString();
+      try {
+        const r = await fetchFn(engineIngestUrl, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "x-ingest-key": process.env.INGEST_KEY },
+          body: JSON.stringify({
+            sessionId,
+            platform,
+            userId: author.id || "",
+            username: author.name || "",
+            message: maybeText
+          })
+        });
+        if (!r || !r.ok) {
+          state.totalErrors++;
+          const t = r ? await r.text().catch(()=> "") : "";
+          console.error("❌ ingest (reply_* path)", r && r.status, t);
+        } else {
+          state.totalForwarded++;
+        }
+      } catch (e) {
+        state.totalErrors++;
+        console.error("❌ ingest fetch error (reply_* path):", e && e.message ? e.message : String(e));
+      }
+    }
+  }
+  // Nicht returnen – evtl. kommt zusätzlich noch ein echtes event später im selben Frame-Fluss
+}
+
 
       if (action === "connection_info") {
         connections.set(payload.connectionIdentifier, {
