@@ -1,5 +1,18 @@
 import { startRestreamBridge, getBridgeStatus } from "./restream-bridge.js";
 
+// ---- Bridge Runtime Config (wird via Admin-UI geändert) ----
+const bridgeConfig = {
+  defaultSessionId: Number(process.env.SESSION_ID || 0),
+  platformSessionMap: (() => {
+    try { return JSON.parse(process.env.RESTREAM_PLATFORM_SESSION_MAP || "{}"); }
+    catch { return {}; }
+  })(),
+  useFocused: false,
+  focusedSessionId: 0
+};
+
+
+
 
 
 
@@ -1706,26 +1719,43 @@ app.post("/ingest/message", async (req, res) => {
 const path = require("path");
 app.use("/admin-ui", express.static(path.join(__dirname, "public")));
 
-// Restream-Bridge nur starten, wenn Token vorhanden
-const RESTREAM_ACCESS_TOKEN = process.env.RESTREAM_ACCESS_TOKEN || "";
-const PLATFORM_SESSION_MAP = (() => {
-  try { return JSON.parse(process.env.RESTREAM_PLATFORM_SESSION_MAP || "{}"); }
-  catch { return {}; }
-})();
-if (RESTREAM_ACCESS_TOKEN) {
-  startRestreamBridge({
-    accessToken: RESTREAM_ACCESS_TOKEN,
-    // default: intern auf denselben Service posten
-    engineIngestUrl: `http://127.0.0.1:${process.env.PORT || 8080}/ingest/message`,
-    ingestKey: process.env.INGEST_KEY,
-    defaultSessionId: Number(process.env.SESSION_ID || 0),
-    platformSessionMap: PLATFORM_SESSION_MAP
-  });
-}
+// ---- Bridge Runtime Config (wird via Admin-UI geändert) ----
+const bridgeConfig = {
+  defaultSessionId: Number(process.env.SESSION_ID || 0),
+  platformSessionMap: (() => {
+    try { return JSON.parse(process.env.RESTREAM_PLATFORM_SESSION_MAP || "{}"); }
+    catch { return {}; }
+  })(),
+  useFocused: false,
+  focusedSessionId: 0
+};
 
+// Bridge: Status
 app.get("/bridge/status", (_req, res) => {
-  res.json(getBridgeStatus());
+  res.json({ status: getBridgeStatus(), config: bridgeConfig });
 });
+
+// Bridge: Config lesen
+app.get("/bridge/config", (_req, res) => {
+  res.json(bridgeConfig);
+});
+
+// Bridge: Config setzen
+app.patch("/bridge/config", (req, res) => {
+  const { defaultSessionId, platformSessionMap, useFocused } = req.body || {};
+  if (defaultSessionId !== undefined) bridgeConfig.defaultSessionId = Number(defaultSessionId) || 0;
+  if (platformSessionMap && typeof platformSessionMap === "object") bridgeConfig.platformSessionMap = platformSessionMap;
+  if (typeof useFocused === "boolean") bridgeConfig.useFocused = useFocused;
+  return res.json({ ok: true, config: bridgeConfig });
+});
+
+// Bridge: Fokus-Session setzen (z.B. aus Admin-UI)
+app.patch("/bridge/focus", (req, res) => {
+  const sid = Number(req.body?.sessionId || 0);
+  bridgeConfig.focusedSessionId = Number.isFinite(sid) ? sid : 0;
+  return res.json({ ok: true, focusedSessionId: bridgeConfig.focusedSessionId });
+});
+
 
 
 
