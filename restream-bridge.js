@@ -147,7 +147,8 @@ function getBridgeStatusExtra() {
     lastEventPreview,
     actionCounters,
     lastActions,
-    connections: getConnectionsSnapshot()
+    connections: getConnectionsSnapshot(),
+    rawSamples
   };
 }
 module.exports.getBridgeStatus = getBridgeStatus;
