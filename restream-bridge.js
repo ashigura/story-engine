@@ -52,6 +52,76 @@ function pushRawSample(kind, obj) {
   } catch {}
 }
 
+
+// ---------- Utility: HTML -> Text ----------
+function stripHtmlToText(html) {
+  if (!html || typeof html !== 'string') return '';
+  return html.replace(/<[^>]*>/g, '').replace(/\s+/g, ' ').trim();
+}
+
+// ---------- Event-Normalisierung (robust) ----------
+function extractText(ev) {
+  const p = (ev && ev.payload) || ev || {};
+
+  // 1) KOI/Restream: fragments[].text
+  if (Array.isArray(p.fragments) && p.fragments.length) {
+    const t = p.fragments.map(f => (f && (f.text || stripHtmlToText(f.html) || f.raw) || '')).join(' ').trim();
+    if (t) return t;
+  }
+
+  // 2) message.* Varianten
+  if (p.message) {
+    if (typeof p.message === 'string' && p.message.trim()) return p.message.trim();
+    if (typeof p.message === 'object') {
+      const mt = p.message.text || stripHtmlToText(p.message.html) || p.message.raw;
+      if (mt && String(mt).trim()) return String(mt).trim();
+    }
+  }
+
+  // 3) plain fields
+  const t3 = p.text || stripHtmlToText(p.html) || p.raw;
+  if (t3 && String(t3).trim()) return String(t3).trim();
+
+  // 4) event.* verschachtelt
+  if (p.event) {
+    const e = p.event;
+    if (Array.isArray(e.fragments) && e.fragments.length) {
+      const tt = e.fragments.map(f => (f && (f.text || stripHtmlToText(f.html) || f.raw) || '')).join(' ').trim();
+      if (tt) return tt;
+    }
+    const t4 = e.text || (e.message && (e.message.text || stripHtmlToText(e.message.html) || e.message.raw)) || stripHtmlToText(e.html) || e.raw;
+    if (t4 && String(t4).trim()) return String(t4).trim();
+  }
+
+  return '';
+}
+
+function extractAuthor(ev) {
+  const p = (ev && ev.payload) || ev || {};
+  const cand = p.sender || p.author || (p.event && (p.event.sender || p.event.author)) || {};
+  const id = cand.id || cand.userId || '';
+  const username = cand.username || cand.name || '';
+  const name = cand.displayName || cand.name || username || '';
+  return { id, name, username };
+}
+
+function extractPlatform(payload, connections, PLATFORM_BY_ID) {
+  // 1) über connectionIdentifier → eventSourceId → Mapping
+  const ci = payload && payload.connectionIdentifier ? connections.get(payload.connectionIdentifier) : null;
+  if (ci && ci.eventSourceId != null) {
+    const p = PLATFORM_BY_ID[ci.eventSourceId];
+    if (p) return p;
+  }
+  // 2) direkt aus payload/event
+  const fromEvent = (payload && payload.event && payload.event.platform) || (payload && payload.platform) || '';
+  if (fromEvent) return String(fromEvent).toLowerCase();
+
+  return 'unknown';
+}
+
+
+
+
 function bumpActionCounter(name, sample) {
   const k = String(name || 'unknown').toLowerCase();
   actionCounters[k] = (actionCounters[k] || 0) + 1;
@@ -272,57 +342,47 @@ if (action === "reply_created" || action === "reply_accepted" || action === "rep
   const p = payload || {};
   const ev = p.event || p.message || p.msg || p.data || null;
 
-  // Falls nichts Explizites: manchmal liegt die Struktur flach mit Feldern wie text/html/raw/sender
-  const maybeText  = (ev && (ev.text || ev.message || (typeof ev.html === 'string' ? ev.html.replace(/<[^>]*>/g, '') : null) || ev.raw)) || p.text || p.raw || null;
-  const maybeAuth  = (ev && (ev.author || ev.sender)) || p.author || p.sender || null;
-  const platformGuess = lowerPlatformGuess((ev && ev.platform) || (p.event && p.event.platform) || (p.platform));
+ const text = extractText(payload.event || payload);
+if (text) {
+  const author = extractAuthor(payload.event || payload);
+  const platform = extractPlatform(payload, connections, PLATFORM_BY_ID);
 
-  if (maybeText) {
-    let platform = platformGuess;
-    // Falls keine Platform erkannt: aus der Verbindung ableiten
-    const ci = connections.get(p.connectionIdentifier) || null;
-    if (!platform && ci) platform = (PLATFORM_BY_ID[ci.eventSourceId] || 'unknown');
+  lastEventPreview = {
+    at: lastWsAt,
+    platform,
+    username: author.name || author.username || null,
+    text
+  };
 
-    const author = {
-      id: (maybeAuth && (maybeAuth.id || maybeAuth.userId)) || '',
-      name: (maybeAuth && (maybeAuth.displayName || maybeAuth.name || maybeAuth.username)) || ''
-    };
-
-    lastEventPreview = {
-      at: lastWsAt,
-      platform,
-      username: author.name || null,
-      text: maybeText
-    };
-
-    const sessionId = Number(getSessionIdFor(platform) || 0);
-    if (sessionId && maybeText) {
-      state.lastMessageAt = new Date().toISOString();
-      try {
-        const r = await fetchFn(engineIngestUrl, {
-          method: "POST",
-          headers: { "Content-Type": "application/json", "x-ingest-key": process.env.INGEST_KEY },
-          body: JSON.stringify({
-            sessionId,
-            platform,
-            userId: author.id || "",
-            username: author.name || "",
-            message: maybeText
-          })
-        });
-        if (!r || !r.ok) {
-          state.totalErrors++;
-          const t = r ? await r.text().catch(()=> "") : "";
-          console.error("❌ ingest (reply_* path)", r && r.status, t);
-        } else {
-          state.totalForwarded++;
-        }
-      } catch (e) {
+  const sessionId = Number(getSessionIdFor(platform) || 0);
+  if (sessionId) {
+    state.lastMessageAt = new Date().toISOString();
+    try {
+      const r = await fetchFn(engineIngestUrl, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "x-ingest-key": process.env.INGEST_KEY },
+        body: JSON.stringify({
+          sessionId,
+          platform,
+          userId: author.id || author.username || "",
+          username: author.name || author.username || "",
+          message: text
+        })
+      });
+      if (!r || !r.ok) {
         state.totalErrors++;
-        console.error("❌ ingest fetch error (reply_* path):", e && e.message ? e.message : String(e));
+        const t = r ? await r.text().catch(()=>"") : "";
+        console.error("❌ ingest (reply_* path)", r && r.status, t);
+      } else {
+        state.totalForwarded++;
       }
+    } catch (e) {
+      state.totalErrors++;
+      console.error("❌ ingest fetch error (reply_* path):", e?.message || String(e));
     }
   }
+}
+
   // Nicht returnen – evtl. kommt zusätzlich noch ein echtes event später im selben Frame-Fluss
 }
 
@@ -363,9 +423,10 @@ if (action === "reply_created" || action === "reply_accepted" || action === "rep
           if (p1) platform = p1;
         }
 
-        const ev = payload.event || {};
-        const text = pickTextFromEvent(ev);
-        const author = pickAuthorFromEvent(ev);
+        const text = extractText(payload.event || payload);
+        const author = extractAuthor(payload.event || payload);
+        platform = extractPlatform(payload, connections, PLATFORM_BY_ID);
+
 
         lastEventPreview = {
           at: lastWsAt,
