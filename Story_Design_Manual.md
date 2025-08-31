@@ -1,5 +1,5 @@
-# Story Design Manual – Modul 2A
-**Version 1.2 (mit Auswahlmöglichkeiten & Twist-Ebene)**  
+# Story Design Manual – Modul 2A  
+**Version 2.0 (mit Auswahlmöglichkeiten, Twist-Ebene & modularem Kodex)**  
 Dieses Dokument definiert die generische, logische Struktur für Storys.  
 Es ist KI-modellunabhängig und wird als lebendes Dokument gepflegt.  
 
@@ -18,14 +18,14 @@ Es ist KI-modellunabhängig und wird als lebendes Dokument gepflegt.
 **MUSS**
 - Titel / Pitch (1 Satz, frei)
 - **Genre (Auswahl):**
-  - Abenteuer · Fantasy · Science-Fiction · Mystery · Krimi · Thriller · Horror  
-  - Drama · Liebesgeschichte · Komödie · Historisch · Western · Kriegsstory  
-  - Sport · Slice-of-Life · Familiengeschichte · Coming-of-Age  
-  - Politisches Drama · Justiz/Anwaltsstory · Medizin/Spital
+  Abenteuer · Fantasy · Science-Fiction · Mystery · Krimi · Thriller · Horror  
+  Drama · Liebesgeschichte · Komödie · Historisch · Western · Kriegsstory  
+  Sport · Slice-of-Life · Familiengeschichte · Coming-of-Age  
+  Politisches Drama · Justiz/Anwaltsstory · Medizin/Spital
 - **Tonalität (Auswahl):**
-  - Episch · Düster · Hoffnungsvoll · Humorvoll · Tragisch · Leichtfüßig  
-  - Spannend · Beklemmend · Gritty · Warmherzig · Melancholisch · Satirisch  
-  - Ominös · Inspirierend · Gelassen
+  Episch · Düster · Hoffnungsvoll · Humorvoll · Tragisch · Leichtfüßig  
+  Spannend · Beklemmend · Gritty · Warmherzig · Melancholisch · Satirisch  
+  Ominös · Inspirierend · Gelassen
 - **Zielgruppe (Auswahl):** Kinder · Mittelstufe · Teen · Young Adult · Erwachsene · All Ages
 - **Dauer / Umfang (Auswahl):** Kurz (3–5 Szenen) · Mittel (3 Kapitel) · Lang (10 Kapitel) · Staffel/Endlos
 
@@ -163,20 +163,46 @@ Es ist KI-modellunabhängig und wird als lebendes Dokument gepflegt.
 
 ## 3. Übergreifende Normen (Kodex)
 
-**MUSS**
-- Klarheit (Intent, Konflikt, Outcome erkennbar)
-- Kausalität (Ursache → Wirkung, kein Deus ex machina)
-- Fairness (keine Fake Choices)
-- Pacing (Abwechslung, kein Überladen)
-- Kontinuität (Canon & Figuren konsistent)
-- Safety / Brand Fit (Plattformregeln beachten)
+### K1: Gewalt & Hass (altersabhängig)
+- **ab 12:** keine explizite Gewalt/Gore, Kämpfe angedeutet, Hass nur abstrakt  
+- **ab 16:** leichte Gewalt mit Blut möglich, psychologische Bedrohung, Hass abstrakt/symbolisch  
+- **ab 18:** Gewalt explizit, aber nicht verherrlichend, keine sexualisierte Gewalt, Hass nur kritisch  
 
-**OPTIONAL**
-- Foreshadowing
-- Chekhov’s Gun
-- Symbolik / Motive
-- Ambivalenz
-- Meta-Ebenen
+### K2: Altersfreigabe & Detailgrad
+- **ab 12:** PG-13 → Gewalt abstrakt, kein Sex, Sprache jugendfrei  
+- **ab 16:** PG-16 → moderate Gewalt, Sex angedeutet, moderate Schimpfwörter  
+- **ab 18:** PG-18 → explizite Gewalt (nicht verherrlichend), Sex angedeutet (keine Pornografie), Sprache frei (außer Hard Bans)  
+
+### K3: Entscheidungs-Filter
+- Keine Option darf Hard Bans (z. B. Folter, Vergewaltigung, Suizid-Anleitung) erzwingen  
+- Jede Entscheidung hat ≥ 1 ethisch vertretbare Option  
+
+### K4: Magie/Tech-Budget
+- Jede übernatürliche/technische Lösung hat Kosten  
+- Keine Allmacht, keine deus-ex-machina Lösungen  
+
+### K5: Bias-/Stereotypie-Limit
+- Keine Ethnie/Religion/Orientierung als Negativ-Trope  
+- Antagonisten über Motive, nicht Herkunft definieren  
+- Machtgefälle-Beziehungen nicht romantisieren  
+
+### K6: Kontinuität/Kausalität
+- Twists nur, wenn kausal logisch  
+- Entscheidungen behalten Wirkung, keine völlige Annulierung  
+
+### K7: Sprache/Ton
+- Alters- & plattformabhängig  
+  - ab 12: keine Schimpfwörter  
+  - ab 16: leichte Schimpfwörter, keine Slurs  
+  - ab 18: starke Schimpfwörter möglich, aber keine diskriminierenden Slurs  
+- Plattformregeln setzen ggf. strengere Grenzen  
+
+### K8: Plattform-Safe
+- Plattform-AGB haben Priorität  
+- Twitch: kein Sex-Content, keine Drogen, kein „extreme gore“  
+- TikTok: strengere Sprache/Gewalt-Filter  
+- YouTube: mittlere Toleranz (zwischen Twitch & TikTok)  
+- (Weitere Plattformmodule erweiterbar)  
 
 ---
 
@@ -189,7 +215,7 @@ Es ist KI-modellunabhängig und wird als lebendes Dokument gepflegt.
 ---
 
 ## 5. Fazit
-- Vollständiges, generisches Grundgerüst (Version 1.2)
-- Jede Story kann mit diesen Bausteinen beschrieben werden
-- Twists integriert: über **Allgemeine Muster** oder **Generisch erzeugt**
+- Vollständiges, generisches Grundgerüst (Version 2.0)  
+- Modularer Kodex mit Alters- und Plattformregeln → Flexibilität + Kontrolle  
+- Twists integriert: über **Allgemeine Muster** oder **Generisch erzeugt**  
 - Dokument ist lebendiges Manual → erweiterbar für spätere Versionen
