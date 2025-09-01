@@ -11,10 +11,10 @@ Es ist KI-modellunabhängig und wird als lebendes Dokument gepflegt.
 - Generischer Baukasten für Stories
 - KI-unabhängig
 
-# 1.2 Parsing-Regeln
+### 1.2 Parsing-Regeln
 @SECTION:ParsingRules
 
-### **Grundsätze** @REQUIRED
+#### **Grundsätze** @REQUIRED
 1. **Sektionen**
    - Beginn mit `@SECTION:<id>`
    - Ende beim nächsten `@SECTION` oder Dokumentende
@@ -54,7 +54,6 @@ Es ist KI-modellunabhängig und wird als lebendes Dokument gepflegt.
    - Duplikate → Warnung
 
 ---
-
 # 2.1 StoryFrame
 @SECTION:StoryFrame
 
