@@ -63,7 +63,11 @@ Es ist KI-modellunabhängig und wird als lebendes Dokument gepflegt.
 - **Sprache (Auswahl)**  `@FIELD:sprache`
   
   [deutsch | englisch]
-
+  
+- **Alter (Auswahl)**  `@FIELD:age`
+  
+  [12 | 16 | 18]
+  
 - **Genre (Auswahl)**  `@FIELD:genre`
   
   [Abenteuer | Fantasy | Science-Fiction | Mystery | Krimi | Thriller | Horror | Drama | Liebesgeschichte | Komödie | Historisch | Western | Kriegsstory | Sport | Slice-of-Life | Familiengeschichte | Coming-of-Age | Politisches Drama | Justiz/Anwaltsstory | Medizin/Spital]
