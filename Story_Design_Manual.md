@@ -219,3 +219,40 @@ Es ist KI-modellunabhängig und wird als lebendes Dokument gepflegt.
 - Modularer Kodex mit Alters- und Plattformregeln → Flexibilität + Kontrolle  
 - Twists integriert: über **Allgemeine Muster** oder **Generisch erzeugt**  
 - Dokument ist lebendiges Manual → erweiterbar für spätere Versionen
+- 
+
+
+
+## 2.1 StoryFrame  
+#SECTION:StoryFrame  
+
+### **MUSS**  
+- **Titel / Pitch (1 Satz, frei)**  #FIELD:titel  
+
+- **Genre (Auswahl)**  #FIELD:genre  
+  ➝ [**Abenteuer** | **Fantasy** | Science-Fiction | Mystery | Krimi | Thriller | Horror | Drama | Liebesgeschichte | Komödie | Historisch | Western | Kriegsstory | Sport | Slice-of-Life | Familiengeschichte | Coming-of-Age | Politisches Drama | Justiz/Anwaltsstory | Medizin/Spital]  
+
+- **Tonalität (Auswahl)**  #FIELD:tonalität  
+  ➝ [**Episch** | Düster | Hoffnungsvoll | Humorvoll | Tragisch | Leichtfüßig | Spannend | Beklemmend | Gritty | Warmherzig | Melancholisch | Satirisch | Ominös | Inspirierend | Gelassen]  
+
+- **Zielgruppe (Auswahl)**  #FIELD:zielgruppe  
+  ➝ [Kinder | Mittelstufe | Teen | Young Adult | Erwachsene | All Ages]  
+
+- **Dauer / Umfang (Auswahl)**  #FIELD:dauer_umfang  
+  ➝ [Kurz (3–5 Szenen) | Mittel (3 Kapitel) | Lang (10 Kapitel) | Staffel/Endlos]  
+
+---
+
+### *OPTIONAL*  
+- **Themenmotive (Liste)**  #FIELD:themenmotive  
+  ➝ [Freiheit vs. Kontrolle | Vertrauen vs. Misstrauen | Identität | Gerechtigkeit | Opfer | Verrat | Loyalität | Macht | Erlösung | Rache | Hoffnung vs. Verzweiflung | Tradition vs. Wandel | Schicksal vs. freier Wille | Wahrheit vs. Lüge | Liebe vs. Hass | Leben vs. Tod]  
+
+- **Tabus / No-Gos (Auswahl)**  #FIELD:tabus  
+  ➝ [Explizite Gewalt | Sexualisierte Inhalte | Kindeswohlgefährdung | Diskriminierung | Suizid | Religion | Politik | Terrorismus | Kriegsverherrlichung | Folter | Drogenmissbrauch | Alkohol-Glorifizierung | Glücksspiel | Vulgärsprache]  
+
+- **Inspirationsanker**  #FIELD:inspirationsanker  
+  ➝ [auto(Genre+Themenmotive) → mehrere reale Werke (Filme, Serien, Bücher) als Vergleich]  
+
+- **Darstellungsstil**  #FIELD:darstellungsstil  
+  ➝ [Kurz & knapp | Detailliert | Kreativ/poetisch]  
+
