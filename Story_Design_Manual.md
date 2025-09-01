@@ -54,7 +54,7 @@ Es ist KI-modellunabhängig und wird als lebendes Dokument gepflegt.
    - Duplikate → Warnung
 
 ---
-# 2.1 Story-Builder
+# 2 Story-Builder
 ## 2.1 StoryFrame
 @SECTION:StoryFrame
 
@@ -74,8 +74,8 @@ Es ist KI-modellunabhängig und wird als lebendes Dokument gepflegt.
 - **Dauer / Umfang (Auswahl)**  @FIELD:dauer_umfang
   [Kurz (3-5 Szenen) | Mittel (3 Kapitel) | Lang (10 Kapitel) | Staffel/Endlos]
 
----
 
+  
 ### *OPTIONAL* @OPTIONAL
 - **Themenmotive (Liste)**  @FIELD:themenmotive
   [Freiheit vs. Kontrolle | Vertrauen vs. Misstrauen | Identität | Gerechtigkeit | Opfer | Verrat | Loyalität | Macht | Erlösung | Rache | Hoffnung vs. Verzweiflung | Tradition vs. Wandel | Schicksal vs. freier Wille | Wahrheit vs. Lüge | Liebe vs. Hass | Leben vs. Tod]
@@ -109,7 +109,7 @@ Es ist KI-modellunabhängig und wird als lebendes Dokument gepflegt.
 - **Werteordnung / Tabus (Auswahl)**  @FIELD:werteordnung
   [Ehre > Leben | Familie > Individuum | Macht > Moral | Freiheit > Sicherheit | Religion > Staat | Schicksal > freier Wille]
 
----
+
 
 ### *OPTIONAL* @OPTIONAL
 - **Weltmotive / Symbolik**  @FIELD:weltmotive
@@ -128,109 +128,253 @@ Es ist KI-modellunabhängig und wird als lebendes Dokument gepflegt.
 
 ---
 
-### 2.3 Cast
-**MUSS**
-- **Protagonist(en):** Ziel · Need · Schwäche (generisch aus Genre + Themenmotive)
-- **Antagonist(en):** Gegenziel · Bedrohung · Limit (generisch aus Genre + Themenmotive)
-- **Beziehung Prota ↔ Anta:** Kernkonflikt (1–2 Sätze, generisch abgeleitet)
+## 2.3 Cast
+@SECTION:Cast
 
-**OPTIONAL**
-- **Nebenfiguren (Archetypen zur Auswahl):**
-  Mentor · Unterstützer · Rival · Trickster/Narr · Neutraler Beobachter · Katalysator  
-  Anführer · Verführer · Opfer · Schiedsrichter · Rebell · Wächter · Visionär  
-  Gefallener Held · Schatten-Doppelgänger · Kind/Unschuld · Gestaltwandler · Herold
-- **Nebenarcs:** entstehen automatisch aus Archetypen
-- **Beziehungsnetz:** Matrix (Vertrauen, Rivalität, Abhängigkeit, Loyalität, Verrat)
+### **MUSS** @REQUIRED
+- **Protagonist – Ziel**  @FIELD:protagonist_ziel  
+  automatisch generiert aus Genre + Themenmotive  
+  @AUTO:protagonist_ziel mode=synth from=genre,themenmotive k=1 output=text format=text locale=de
 
----
+- **Protagonist – Need**  @FIELD:protagonist_need  
+  automatisch generiert aus Genre + Themenmotive  
+  @AUTO:protagonist_need mode=synth from=genre,themenmotive k=1 output=text format=text locale=de
 
-### 2.4 Arcs
-**MUSS**
-- Hauptarc: Startzustand → Wendepunkte → Finale (generisch abgeleitet)
+- **Protagonist – Schwäche**  @FIELD:protagonist_schwaeche  
+  automatisch generiert aus Genre + Themenmotive  
+  @AUTO:protagonist_schwaeche mode=synth from=genre,themenmotive k=1 output=text format=text locale=de
 
-**OPTIONAL**
-- Nebenarcs: Beziehung · Figurenentwicklung · Nebenquest
-- Parallelarcs: parallele Handlungsstränge
-- **Thematische Arcs (Auswahl):**
-  Vertrauen vs. Misstrauen · Freiheit vs. Kontrolle · Liebe vs. Hass · Leben vs. Tod · Wahrheit vs. Lüge · Tradition vs. Wandel · Opfer vs. Egoismus · Gerechtigkeit vs. Korruption · Mensch vs. Natur · Individuum vs. Gesellschaft · Schicksal vs. freier Wille
-- **Twist-Arcs (Allgemeine Muster):**
-  Anta wird Verbündeter · Verbündeter Verräter · Opfer war Täter · Held Teil des Problems · Mentor eigene Agenda · „Alles nur ein Test“ · Doppelte Täuschung · Identitätstausch · Verborgene Herkunft · Vergessene Erinnerung · Prophezeiung falsch · Bösewicht = Spiegelbild · Ziel entpuppt sich als Fluch
-- **Twist-Arcs (Generisch):** automatisch aus Genre + Themenmotive
-- **Spiegelarcs:** Figuren entwickeln sich gegensätzlich
+- **Antagonist – Gegenziel**  @FIELD:antagonist_gegenziel  
+  automatisch generiert aus Genre + Themenmotive  
+  @AUTO:antagonist_gegenziel mode=synth from=genre,themenmotive k=1 output=text format=text locale=de
 
----
+- **Antagonist – Bedrohung**  @FIELD:antagonist_bedrohung  
+  automatisch generiert aus Genre + Themenmotive  
+  @AUTO:antagonist_bedrohung mode=synth from=genre,themenmotive k=1 output=text format=text locale=de
 
-### 2.5 Chapters
-**MUSS**
-- mind. 3 Kapitel (Anfang – Mitte – Ende)
-- Jedes mit Ziel, Hauptkonflikt, Cliffhanger
+- **Antagonist – Limit**  @FIELD:antagonist_limit  
+  automatisch generiert aus Genre + Themenmotive  
+  @AUTO:antagonist_limit mode=synth from=genre,themenmotive k=1 output=text format=text locale=de
 
-**OPTIONAL**
-- **Rhythmus / Pacing (Auswahl):**
-  Ruhe → Spannung → Auflösung · Exposition → Konflikt → Eskalation  
-  Wechsel Action/Ruhe · Steigende Intensität · Zirkulär (Beginn = Ende)
-- **Kapitel-Labels:** Nummeriert · Thematisch · Symbolisch
-- Parallele Kapitelstränge
-- **Thematische Kapitel-Bögen (Auswahl):**
-  Einführung → Konfrontation → Entscheidung · Hoffnung → Verrat → Opfer  
-  Aufstieg → Krise → Transformation · Harmonie → Konflikt → Zerstörung · Ordnung → Chaos → neue Ordnung
-- **Twist-Kapitel (Allgemeine Muster):**
-  Perspektivwechsel · Verlust wichtiger Figur · Enthüllung falscher Infos · Rückblende mit neuer Bedeutung · abruptes Ende in scheinbar gelöster Szene
-- **Twist-Kapitel (Generisch):** automatisch aus Genre + Themenmotive
+- **Beziehung Prota ↔ Anta – Kernkonflikt (1-2 Sätze)**  @FIELD:konflikt  
+  automatisch generiert aus Protagonist- und Antagonist-Feldern  
+  @AUTO:konflikt mode=synth from=protagonist_ziel,protagonist_need,protagonist_schwaeche,antagonist_gegenziel,antagonist_bedrohung,antagonist_limit k=1 output=text format=text locale=de
+
+
+
+### *OPTIONAL* @OPTIONAL
+- **Nebenfiguren (Archetypen zur Auswahl)**  @FIELD:nebenfiguren  
+  [Mentor | Unterstützer | Rival | Trickster/Narr | Neutraler Beobachter | Katalysator | Anführer | Verführer | Opfer | Schiedsrichter | Rebell | Wächter | Visionär | Gefallener Held | Schatten-Doppelgänger | Kind/Unschuld | Gestaltwandler | Herold]
+
+- **Nebenarcs**  @FIELD:nebenarcs  
+  automatisch generiert aus Archetypen  
+  @AUTO:nebenarcs mode=synth from=nebenfiguren k=3 output=bullets format=list locale=de
+
+- **Beziehungsnetz (Matrix: Vertrauen, Rivalität, Abhängigkeit, Loyalität, Verrat)**  @FIELD:beziehungsnetz  
+  automatisch generiert aus Protagonist-, Antagonist- und Nebenfiguren-Feldern  
+  @AUTO:beziehungsnetz mode=synth from=protagonist_ziel,protagonist_need,protagonist_schwaeche,antagonist_gegenziel,antagonist_bedrohung,antagonist_limit,nebenfiguren k=1 output=json format=json locale=de
+
 
 ---
 
-### 2.6 Scenes
-**MUSS**
-- Ort & Timebox
-- Intent
-- Konflikt / Hindernis
-- **Stakes (Auswahl):** Leben/Gefahr · Beziehung/Vertrauen · Ressourcen · Moral/Integrität
-- Hook / Mini-Cliff
+## 2.4 Arcs
+@SECTION:Arcs
 
-**OPTIONAL**
-- Figureneinführung/-entwicklung
-- **Emotionale Farbe (Auswahl):**
-  Humorvoll · Romantisch · Bedrohlich · Tragisch · Hoffnungsvoll · Spannend · Düster · Inspirierend
-- Symbolik / Leitmotiv
-- Foreshadowing
-- Parallelität
+### **MUSS** @REQUIRED
+- **Hauptarc – Verlauf**  @FIELD:hauptarc  
+  automatisch generiert: Startzustand → Wendepunkte → Finale  
+  @AUTO:hauptarc mode=synth from=genre,themenmotive,protagonist_ziel,antagonist_gegenziel k=1 output=bullets format=list locale=de
 
-**Twist-Szenen**
-- **Allgemeine Muster:** Sicherheit → Gefahr · Verrat · Vertrauter Ort bedrohlich · Retter = Bedrohung · Naturereignis bricht Konflikt · Perspektivwechsel
-- **Generisch:** automatisch aus Genre + Themenmotive
+
+
+### *OPTIONAL* @OPTIONAL
+- **Nebenarcs**  @FIELD:nebenarcs  
+  automatisch generiert: Beziehung, Figurenentwicklung, Nebenquest  
+  @AUTO:nebenarcs mode=synth from=nebenfiguren,beziehungsnetz k=3 output=bullets format=list locale=de
+
+- **Parallelarcs**  @FIELD:parallelarcs  
+  automatisch generiert: parallele Handlungsstränge  
+  @AUTO:parallelarcs mode=synth from=hauptarc,nebenarcs k=2 output=bullets format=list locale=de
+
+- **Thematische Arcs (Auswahl)**  @FIELD:thematische_arcs  
+  [Vertrauen vs. Misstrauen | Freiheit vs. Kontrolle | Liebe vs. Hass | Leben vs. Tod | Wahrheit vs. Lüge | Tradition vs. Wandel | Opfer vs. Egoismus | Gerechtigkeit vs. Korruption | Mensch vs. Natur | Individuum vs. Gesellschaft | Schicksal vs. freier Wille]
+
+- **Twist-Arcs (Allgemeine Muster)**  @FIELD:twist_arcs_muster  
+  [Antagonist wird Verbündeter | Verbündeter als Verräter | Opfer war Täter | Held ist Teil des Problems | Mentor mit eigener Agenda | „Alles nur ein Test“ | Doppelte Täuschung | Identitätstausch | Verborgene Herkunft | Vergessene Erinnerung | Prophezeiung falsch | Bösewicht als Spiegelbild | Ziel entpuppt sich als Fluch]
+
+- **Twist-Arcs (Generisch)**  @FIELD:twist_arcs_generisch  
+  automatisch generiert aus Genre + Themenmotive  
+  @AUTO:twist_arcs_generisch mode=synth from=genre,themenmotive k=3 output=bullets format=list locale=de
+
+- **Spiegelarcs**  @FIELD:spiegelarcs  
+  automatisch generiert: Figuren entwickeln sich gegensätzlich  
+  @AUTO:spiegelarcs mode=synth from=protagonist_ziel,antagonist_gegenziel k=1 output=bullets format=list locale=de
+
 
 ---
 
-### 2.7 DecisionPoints
-**MUSS**
-- 2–4 valide Optionen (keine Fake-Choice)
-- Unterschiedliche Werte: Risiko vs. Sicherheit · Moral vs. Pragmatik · Nähe vs. Distanz · Egoismus vs. Opfer · Tradition vs. Wandel · Wahrheit vs. Lüge
-- Klare Konsequenzen
-- Relevanz: State-Veränderung
+## 2.5 Chapters
+@SECTION:Chapters
 
-**OPTIONAL**
-- Entscheidungsarten: Strategisch · Moralisch · Beziehungsorientiert · Ressourcenorientiert · Emotional
-- **Twist-Entscheidungen (Allgemeine Muster):**
-  Verdeckte Konsequenz · Doppelte Bedeutung · Falsche Sicherheit · Verzögerte Wirkung · Entscheidung unter Unsicherheit
-- **Twist-Entscheidungen (Generisch):** automatisch aus Genre + Themenmotive
+### **MUSS** @REQUIRED
+- **Kapitelanzahl**  @FIELD:kapitelanzahl  
+  mindestens 3 Kapitel (Anfang – Mitte – Ende)  
+  @AUTO:kapitelanzahl mode=synth from=hauptarc k=1 output=number format=text locale=de
+
+- **Kapitelstruktur**  @FIELD:kapitelstruktur  
+  jedes Kapitel enthält Ziel, Hauptkonflikt, Cliffhanger  
+  @AUTO:kapitelstruktur mode=synth from=hauptarc,protagonist_ziel,antagonist_gegenziel k=3 output=bullets format=list locale=de
+
+
+
+### *OPTIONAL* @OPTIONAL
+- **Rhythmus / Pacing (Auswahl)**  @FIELD:rhythmus_pacing  
+  [Ruhe → Spannung → Auflösung | Exposition → Konflikt → Eskalation | Wechsel Action/Ruhe | Steigende Intensität | Zirkulär (Beginn = Ende)]
+
+- **Kapitel-Labels**  @FIELD:kapitel_labels  
+  [Nummeriert | Thematisch | Symbolisch]
+
+- **Parallele Kapitelstränge**  @FIELD:kapitelstraenge  
+  automatisch generiert, wenn parallele Handlungsbögen existieren  
+  @AUTO:kapitelstraenge mode=synth from=parallelarcs k=2 output=bullets format=list locale=de
+
+- **Thematische Kapitel-Bögen (Auswahl)**  @FIELD:kapitel_boegen  
+  [Einführung → Konfrontation → Entscheidung | Hoffnung → Verrat → Opfer | Aufstieg → Krise → Transformation | Harmonie → Konflikt → Zerstörung | Ordnung → Chaos → neue Ordnung]
+
+- **Twist-Kapitel (Allgemeine Muster)**  @FIELD:twist_kapitel_muster  
+  [Perspektivwechsel | Verlust wichtiger Figur | Enthüllung falscher Infos | Rückblende mit neuer Bedeutung | abruptes Ende in scheinbar gelöster Szene]
+
+- **Twist-Kapitel (Generisch)**  @FIELD:twist_kapitel_generisch  
+  automatisch generiert aus Genre + Themenmotive  
+  @AUTO:twist_kapitel_generisch mode=synth from=genre,themenmotive k=2 output=bullets format=list locale=de
+
 
 ---
 
-### 2.8 Outcomes
-**MUSS – Direkte Folgen**
-- Kurztext (1–2 Sätze)
-- **State-Veränderung (Auswahl):**
-  Vertrauen ± · Beziehung ± · Ressourcen ± · Gesundheit ± · Hinweis/Spur ± · Bekanntheit ±
-- Kausalität
-- Fortführbarkeit
+## 2.6 Scenes
+@SECTION:Scenes
 
-**OPTIONAL – Erweiterte Folgen**
-- Mehrfachwirkung · Symbolik · Ambivalenz · Narrative Flags
+### **MUSS** @REQUIRED
+- **Ort & Timebox**  @FIELD:ort_timebox  
+  automatisch generiert: Szene erhält einen Ort und eine Zeitspanne  
+  @AUTO:ort_timebox mode=synth from=kapitelstruktur,epoche_setting k=1 output=text format=text locale=de
 
-**Twist-Folgen**
-- **Allgemeine Muster:** Verdeckte Wirkung · Unerwartete Belohnung · Kettenreaktion · Opfer = Gewinn · Täuschung
-- **Generisch:** automatisch aus Genre + Themenmotive
+- **Intent**  @FIELD:intent  
+  automatisch generiert: Absicht/Ziel der Szene  
+  @AUTO:intent mode=synth from=hauptarc,kapitelstruktur k=1 output=text format=text locale=de
+
+- **Konflikt / Hindernis**  @FIELD:konflikt_hindernis  
+  automatisch generiert: Konflikt oder Hindernis für die Figuren  
+  @AUTO:konflikt_hindernis mode=synth from=protagonist_ziel,antagonist_gegenziel,kapitelstruktur k=1 output=text format=text locale=de
+
+- **Stakes (Auswahl)**  @FIELD:stakes  
+  [Leben/Gefahr | Beziehung/Vertrauen | Ressourcen | Moral/Integrität]
+
+- **Hook / Mini-Cliff**  @FIELD:hook  
+  automatisch generiert: Spannungsanker am Szenenende  
+  @AUTO:hook mode=synth from=konflikt_hindernis,stakes k=1 output=text format=text locale=de
+
+
+
+### *OPTIONAL* @OPTIONAL
+- **Figureneinführung/-entwicklung**  @FIELD:figurenentwicklung  
+  automatisch generiert: Einführung oder Entwicklung einer Figur  
+  @AUTO:figurenentwicklung mode=synth from=protagonist_ziel,nebenfiguren,kapitelstruktur k=1 output=text format=text locale=de
+
+- **Emotionale Farbe (Auswahl)**  @FIELD:emotionale_farbe  
+  [Humorvoll | Romantisch | Bedrohlich | Tragisch | Hoffnungsvoll | Spannend | Düster | Inspirierend]
+
+- **Symbolik / Leitmotiv**  @FIELD:symbolik  
+  automatisch generiert: symbolische Elemente passend zur Szene  
+  @AUTO:symbolik mode=synth from=themenmotive,weltmotive k=1 output=text format=text locale=de
+
+- **Foreshadowing**  @FIELD:foreshadowing  
+  automatisch generiert: Andeutung auf spätere Ereignisse  
+  @AUTO:foreshadowing mode=synth from=hauptarc,kapitelstruktur k=1 output=text format=text locale=de
+
+- **Parallelität**  @FIELD:parallelitaet  
+  automatisch generiert: Parallele Szenenstränge  
+  @AUTO:parallelitaet mode=synth from=parallelarcs,kapitelstraenge k=1 output=bullets format=list locale=de
+
+- **Twist-Szenen (Allgemeine Muster)**  @FIELD:twist_szenen_muster  
+  [Sicherheit → Gefahr | Verrat | Vertrauter Ort bedrohlich | Retter = Bedrohung | Naturereignis bricht Konflikt | Perspektivwechsel]
+
+- **Twist-Szenen (Generisch)**  @FIELD:twist_szenen_generisch  
+  automatisch generiert aus Genre + Themenmotive  
+  @AUTO:twist_szenen_generisch mode=synth from=genre,themenmotive k=2 output=bullets format=list locale=de
+
+
+---
+
+## 2.7 DecisionPoints
+@SECTION:DecisionPoints
+
+### **MUSS** @REQUIRED
+- **Optionenanzahl**  @FIELD:optionenanzahl  
+  automatisch generiert: 2–4 valide Optionen  
+  @AUTO:optionenanzahl mode=synth from=konflikt_hindernis,stakes k=1 output=number format=text locale=de
+
+- **Optionsvielfalt**  @FIELD:optionsvielfalt  
+  automatisch generiert: Optionen spiegeln unterschiedliche Werte (z. B. Risiko vs. Sicherheit, Moral vs. Pragmatik, Nähe vs. Distanz, Egoismus vs. Opfer, Tradition vs. Wandel, Wahrheit vs. Lüge)  
+  @AUTO:optionsvielfalt mode=synth from=themenmotive,konflikt_hindernis k=3 output=bullets format=list locale=de
+
+- **Konsequenzen**  @FIELD:konsequenzen  
+  automatisch generiert: jede Option hat klare Konsequenzen  
+  @AUTO:konsequenzen mode=synth from=optionsvielfalt,stakes k=3 output=bullets format=list locale=de
+
+- **Relevanz**  @FIELD:relevanz  
+  automatisch generiert: Entscheidung verändert den State  
+  @AUTO:relevanz mode=synth from=optionsvielfalt,konsequenzen k=1 output=text format=text locale=de
+
+
+
+### *OPTIONAL* @OPTIONAL
+- **Entscheidungsarten (Auswahl)**  @FIELD:entscheidungsarten  
+  [Strategisch | Moralisch | Beziehungsorientiert | Ressourcenorientiert | Emotional]
+
+- **Twist-Entscheidungen (Allgemeine Muster)**  @FIELD:twist_entscheidungen_muster  
+  [Verdeckte Konsequenz | Doppelte Bedeutung | Falsche Sicherheit | Verzögerte Wirkung | Entscheidung unter Unsicherheit]
+
+- **Twist-Entscheidungen (Generisch)**  @FIELD:twist_entscheidungen_generisch  
+  automatisch generiert aus Genre + Themenmotive  
+  @AUTO:twist_entscheidungen_generisch mode=synth from=genre,themenmotive k=2 output=bullets format=list locale=de
+
+
+---
+
+## 2.8 Outcomes
+@SECTION:Outcomes
+
+### **MUSS** @REQUIRED
+- **Direkte Folgen (Kurztext 1–2 Sätze)**  @FIELD:direkte_folgen  
+  automatisch generiert für jede Entscheidung  
+  @AUTO:direkte_folgen mode=synth from=konsequenzen,relevanz k=1 output=text format=text locale=de
+
+- **State-Veränderung (Auswahl)**  @FIELD:state_veraenderung  
+  [Vertrauen ± | Beziehung ± | Ressourcen ± | Gesundheit ± | Hinweis/Spur ± | Bekanntheit ±]
+
+- **Kausalität**  @FIELD:kausalitaet  
+  automatisch generiert: logische Verknüpfung zwischen Entscheidung und Folge  
+  @AUTO:kausalitaet mode=synth from=konsequenzen,state_veraenderung k=1 output=text format=text locale=de
+
+- **Fortführbarkeit**  @FIELD:fortfuehrbarkeit  
+  automatisch generiert: wie lässt sich die Story nach dieser Folge fortsetzen  
+  @AUTO:fortfuehrbarkeit mode=synth from=direkte_folgen,kausalitaet k=1 output=text format=text locale=de
+
+
+
+### *OPTIONAL* @OPTIONAL
+- **Erweiterte Folgen**  @FIELD:erweiterte_folgen  
+  automatisch generiert: Mehrfachwirkungen, Symbolik, Ambivalenz, Narrative Flags  
+  @AUTO:erweiterte_folgen mode=synth from=direkte_folgen,konsequenzen k=3 output=bullets format=list locale=de
+
+- **Twist-Folgen (Allgemeine Muster)**  @FIELD:twist_folgen_muster  
+  [Verdeckte Wirkung | Unerwartete Belohnung | Kettenreaktion | Opfer = Gewinn | Täuschung]
+
+- **Twist-Folgen (Generisch)**  @FIELD:twist_folgen_generisch  
+  automatisch generiert aus Genre + Themenmotive  
+  @AUTO:twist_folgen_generisch mode=synth from=genre,themenmotive k=2 output=bullets format=list locale=de
+
 
 ---
 
