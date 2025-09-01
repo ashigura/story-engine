@@ -5,53 +5,126 @@ Es ist KI-modellunabhängig und wird als lebendes Dokument gepflegt.
 
 ---
 
-## 1. Zweck
+## 1. Allgemeine Hinweise
+
+### 1.1 Zweck
 - Generischer Baukasten für Stories
 - KI-unabhängig
-- Technische Umsetzung erfolgt erst in Modul 2B
+
+# 1.2 Parsing-Regeln
+@SECTION:ParsingRules
+
+### **Grundsätze** @REQUIRED
+1. **Sektionen**
+   - Beginn mit `@SECTION:<id>`
+   - Ende beim nächsten `@SECTION` oder Dokumentende
+   - `<id>` nur ASCII (keine Umlaute)
+
+2. **Pflichtgrad**
+   - `@REQUIRED` = Pflichtfelder
+   - `@OPTIONAL` = optionale Felder
+   - Gültig bis zum nächsten `@REQUIRED`, `@OPTIONAL` oder `@SECTION`
+
+3. **Felder**
+   - `@FIELD:<id>` markiert ein Feld
+   - ASCII-IDs (z. B. `tonalitaet` statt `Tonalität`)
+   - Werte folgen als Freitext oder in `[...]`-Listen
+
+4. **Listen**
+   - Syntax: `[A | B | C]`
+   - Parser: split on `|`, trim whitespace
+   - `|` darf in Werten nicht vorkommen
+
+5. **Auto-Direktiven**
+   - `@AUTO:<field_id> key=value …` auf eigener Zeile
+   - Pflicht:
+     - `mode`: `synth` (erfinden), `lookup` (reale Werke), `hybrid`
+     - `from`: Eingabefelder
+     - `k`: Anzahl Elemente
+     - `output`: Typ (`works-real`, `works-generic`, `bullets`, `tags`)
+     - `format`: Ausgabeformat (`list`, `json`, `text`)
+   - Optionale Keys: `locale`, `seed`, `policy`
+
+6. **Zeichenregeln**
+   - Pfeile `->` oder Sonderzeichen sind nur Deko, Parser ignoriert sie
+   - Zahlenbereiche: ASCII `3-5` statt `3–5`
+
+7. **Eindeutigkeit**
+   - Feld-IDs pro Sektion eindeutig
+   - Duplikate → Warnung
 
 ---
 
-## 2. Story-Bausteine
+# 2.1 StoryFrame
+@SECTION:StoryFrame
 
-### 2.1 StoryFrame
-**MUSS**
-- Titel / Pitch (1 Satz, frei)
-- **Genre (Auswahl):**
-  Abenteuer · Fantasy · Science-Fiction · Mystery · Krimi · Thriller · Horror  
-  Drama · Liebesgeschichte · Komödie · Historisch · Western · Kriegsstory  
-  Sport · Slice-of-Life · Familiengeschichte · Coming-of-Age  
-  Politisches Drama · Justiz/Anwaltsstory · Medizin/Spital
-- **Tonalität (Auswahl):**
-  Episch · Düster · Hoffnungsvoll · Humorvoll · Tragisch · Leichtfüßig  
-  Spannend · Beklemmend · Gritty · Warmherzig · Melancholisch · Satirisch  
-  Ominös · Inspirierend · Gelassen
-- **Zielgruppe (Auswahl):** Kinder · Mittelstufe · Teen · Young Adult · Erwachsene · All Ages
-- **Dauer / Umfang (Auswahl):** Kurz (3–5 Szenen) · Mittel (3 Kapitel) · Lang (10 Kapitel) · Staffel/Endlos
+### **MUSS** @REQUIRED
+- **Titel (1 Satz, frei)**  @FIELD:titel
+- **Pitch (1 Satz, frei)**  @FIELD:pitch
 
-**OPTIONAL**
-- **Themenmotive (Liste):**
-  Freiheit vs. Kontrolle · Vertrauen vs. Misstrauen · Identität · Gerechtigkeit · Opfer · Verrat · Loyalität · Macht · Erlösung · Rache · Hoffnung vs. Verzweiflung · Tradition vs. Wandel · Schicksal vs. freier Wille · Wahrheit vs. Lüge · Liebe vs. Hass · Leben vs. Tod
-- **Tabus / No-Gos (Auswahl):**
-  Explizite Gewalt · Sexualisierte Inhalte · Kindeswohlgefährdung · Diskriminierung · Suizid · Religion · Politik · Terrorismus · Kriegsverherrlichung · Folter · Drogenmissbrauch · Alkohol-Glorifizierung · Glücksspiel · Vulgärsprache
-- **Inspirationsanker:** generisch → automatisch generiert aus Genre + Themenmotive, liefert mehrere reale Werke (Filme, Serien, Bücher) als Vergleich
-- **Darstellungsstil:** Kurz & knapp · Detailliert · Kreativ/poetisch
+- **Genre (Auswahl)**  @FIELD:genre
+  [Abenteuer | Fantasy | Science-Fiction | Mystery | Krimi | Thriller | Horror | Drama | Liebesgeschichte | Komödie | Historisch | Western | Kriegsstory | Sport | Slice-of-Life | Familiengeschichte | Coming-of-Age | Politisches Drama | Justiz/Anwaltsstory | Medizin/Spital]
+
+- **Tonalität (Auswahl)**  @FIELD:tonalitaet
+  [Episch | Düster | Hoffnungsvoll | Humorvoll | Tragisch | Leichtfüßig | Spannend | Beklemmend | Gritty | Warmherzig | Melancholisch | Satirisch | Ominös | Inspirierend | Gelassen]
+
+- **Zielgruppe (Auswahl)**  @FIELD:zielgruppe
+  [Kinder | Mittelstufe | Teen | Young Adult | Erwachsene | All Ages]
+
+- **Dauer / Umfang (Auswahl)**  @FIELD:dauer_umfang
+  [Kurz (3-5 Szenen) | Mittel (3 Kapitel) | Lang (10 Kapitel) | Staffel/Endlos]
 
 ---
 
-### 2.2 Canon / World
-**MUSS**
-- **Epoche / Setting (Auswahl):** Antike · Mittelalter · Frühe Neuzeit · Moderne (20. Jh.) · Gegenwart · Zukunft (Sci-Fi) · Alternative Realität · Fantasiewelt
-- **Technologie-/Magie-Level (Auswahl):** Realistisch · Magisch (selten/häufig) · Hochtechnologisch · Mischform
-- **Weltregeln:** generisch → automatisch generiert abhängig von Setting + Technologie/Magie-Level (5–7 Bulletpoints)
-- **Werteordnung / Tabus (Auswahl):**
-  Ehre > Leben · Familie > Individuum · Macht > Moral · Freiheit > Sicherheit · Religion > Staat · Schicksal > freier Wille
+### *OPTIONAL* @OPTIONAL
+- **Themenmotive (Liste)**  @FIELD:themenmotive
+  [Freiheit vs. Kontrolle | Vertrauen vs. Misstrauen | Identität | Gerechtigkeit | Opfer | Verrat | Loyalität | Macht | Erlösung | Rache | Hoffnung vs. Verzweiflung | Tradition vs. Wandel | Schicksal vs. freier Wille | Wahrheit vs. Lüge | Liebe vs. Hass | Leben vs. Tod]
 
-**OPTIONAL**
-- **Weltmotive / Symbolik:** Licht vs. Dunkelheit · Natur vs. Zivilisation · Ordnung vs. Chaos · Tradition vs. Fortschritt
-- **Kulturelle Besonderheiten:** Religion · Politik · Gesellschaftsschichten · Rituale · Sprache · Kleidung
-- **Naturgesetze:** Normal · Verändert (ewige Nacht, toxische Luft) · Übernatürlich (sprechende Tiere, lebendige Elemente)
-- **Inspirationsanker:** generisch → automatisch generiert aus Setting + Tech/Magie-Level + Motiven
+- **Tabus / No-Gos (Auswahl)**  @FIELD:tabus
+  [Explizite Gewalt | Sexualisierte Inhalte | Kindeswohlgefährdung | Diskriminierung | Suizid | Religion | Politik | Terrorismus | Kriegsverherrlichung | Folter | Drogenmissbrauch | Alkohol-Glorifizierung | Glücksspiel | Vulgärsprache]
+
+- **Inspirationsanker**  @FIELD:inspirationsanker  
+  automatisch generiert aus Genre + Themenmotive → liefert reale Werke als Vergleich  
+  @AUTO:inspirationsanker mode=lookup from=genre,themenmotive k=5 output=works-real format=list locale=de
+
+- **Darstellungsstil**  @FIELD:darstellungsstil
+  [Kurz & knapp | Detailliert | Kreativ/poetisch]
+
+---
+
+# 2.2 Canon/World
+@SECTION:CanonWorld
+
+### **MUSS** @REQUIRED
+- **Epoche / Setting (Auswahl)**  @FIELD:epoche_setting
+  [Antike | Mittelalter | Frühe Neuzeit | Moderne (20. Jh.) | Gegenwart | Zukunft (Sci-Fi) | Alternative Realität | Fantasiewelt]
+
+- **Technologie-/Magie-Level (Auswahl)**  @FIELD:tech_magie_level
+  [Realistisch | Magisch (selten) | Magisch (häufig) | Hochtechnologisch | Mischform]
+
+- **Weltregeln**  @FIELD:weltregeln  
+  automatisch generiert abhängig von Setting + Technologie/Magie-Level (5-7 Bulletpoints)  
+  @AUTO:weltregeln mode=synth from=epoche_setting,tech_magie_level k=7 output=bullets format=list locale=de
+
+- **Werteordnung / Tabus (Auswahl)**  @FIELD:werteordnung
+  [Ehre > Leben | Familie > Individuum | Macht > Moral | Freiheit > Sicherheit | Religion > Staat | Schicksal > freier Wille]
+
+---
+
+### *OPTIONAL* @OPTIONAL
+- **Weltmotive / Symbolik**  @FIELD:weltmotive
+  [Licht vs. Dunkelheit | Natur vs. Zivilisation | Ordnung vs. Chaos | Tradition vs. Fortschritt]
+
+- **Kulturelle Besonderheiten**  @FIELD:kulturelle_besonderheiten
+  [Religion | Politik | Gesellschaftsschichten | Rituale | Sprache | Kleidung]
+
+- **Naturgesetze (Auswahl)**  @FIELD:naturgesetze
+  [Normal | Verändert (ewige Nacht, toxische Luft) | Übernatürlich (sprechende Tiere, lebendige Elemente)]
+
+- **Inspirationsanker**  @FIELD:inspirationsanker  
+  automatisch generiert aus Setting + Tech/Magie-Level + Motiven → liefert reale Werke als Vergleich  
+  @AUTO:inspirationsanker mode=lookup from=epoche_setting,tech_magie_level,weltmotive k=5 output=works-real format=list locale=de
+
 
 ---
 
