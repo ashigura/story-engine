@@ -54,7 +54,8 @@ Es ist KI-modellunabhängig und wird als lebendes Dokument gepflegt.
    - Duplikate → Warnung
 
 ---
-# 2.1 StoryFrame
+# 2.1 Story-Builder
+## 2.1 StoryFrame
 @SECTION:StoryFrame
 
 ### **MUSS** @REQUIRED
@@ -91,7 +92,7 @@ Es ist KI-modellunabhängig und wird als lebendes Dokument gepflegt.
 
 ---
 
-# 2.2 Canon/World
+## 2.2 Canon/World
 @SECTION:CanonWorld
 
 ### **MUSS** @REQUIRED
