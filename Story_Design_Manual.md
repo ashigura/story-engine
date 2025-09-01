@@ -63,15 +63,19 @@ Es ist KI-modellunabhängig und wird als lebendes Dokument gepflegt.
 - **Pitch (1 Satz, frei)**  @FIELD:pitch
 
 - **Genre (Auswahl)**  @FIELD:genre
+  
   [Abenteuer | Fantasy | Science-Fiction | Mystery | Krimi | Thriller | Horror | Drama | Liebesgeschichte | Komödie | Historisch | Western | Kriegsstory | Sport | Slice-of-Life | Familiengeschichte | Coming-of-Age | Politisches Drama | Justiz/Anwaltsstory | Medizin/Spital]
 
 - **Tonalität (Auswahl)**  @FIELD:tonalitaet
+  
   [Episch | Düster | Hoffnungsvoll | Humorvoll | Tragisch | Leichtfüßig | Spannend | Beklemmend | Gritty | Warmherzig | Melancholisch | Satirisch | Ominös | Inspirierend | Gelassen]
 
 - **Zielgruppe (Auswahl)**  @FIELD:zielgruppe
+  
   [Kinder | Mittelstufe | Teen | Young Adult | Erwachsene | All Ages]
 
 - **Dauer / Umfang (Auswahl)**  @FIELD:dauer_umfang
+  
   [Kurz (3-5 Szenen) | Mittel (3 Kapitel) | Lang (10 Kapitel) | Staffel/Endlos]
 
 
