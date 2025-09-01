@@ -12,9 +12,9 @@ Es ist KI-modellunabhängig und wird als lebendes Dokument gepflegt.
 - KI-unabhängig
 
 ### 1.2 Parsing-Regeln
-@SECTION:ParsingRules
+`@SECTION:ParsingRules`
 
-#### **Grundsätze** @REQUIRED
+#### **Grundsätze** `@REQUIRED`
 1. **Sektionen**
    - Beginn mit `@SECTION:<id>`
    - Ende beim nächsten `@SECTION` oder Dokumentende
@@ -79,7 +79,7 @@ Es ist KI-modellunabhängig und wird als lebendes Dokument gepflegt.
 
 
   
-### *OPTIONAL* `@OPTIONAL`
+### OPTIONAL `@OPTIONAL`
 - **Themenmotive (Liste)**  `@FIELD:themenmotive`
   
   [Freiheit vs. Kontrolle | Vertrauen vs. Misstrauen | Identität | Gerechtigkeit | Opfer | Verrat | Loyalität | Macht | Erlösung | Rache | Hoffnung vs. Verzweiflung | Tradition vs. Wandel | Schicksal vs. freier Wille | Wahrheit vs. Lüge | Liebe vs. Hass | Leben vs. Tod]
@@ -122,7 +122,7 @@ Es ist KI-modellunabhängig und wird als lebendes Dokument gepflegt.
 
 
 
-### *OPTIONAL* `@OPTIONAL`
+### OPTIONAL `@OPTIONAL`
 - **Weltmotive / Symbolik**  `@FIELD:weltmotive`
   
   [Licht vs. Dunkelheit | Natur vs. Zivilisation | Ordnung vs. Chaos | Tradition vs. Fortschritt]
@@ -184,7 +184,7 @@ Es ist KI-modellunabhängig und wird als lebendes Dokument gepflegt.
 
 
 
-### *OPTIONAL* @OPTIONAL
+### OPTIONAL @OPTIONAL
 - **Nebenfiguren (Archetypen zur Auswahl)**  `@FIELD:nebenfiguren`
   
   [Mentor | Unterstützer | Rival | Trickster/Narr | Neutraler Beobachter | Katalysator | Anführer | Verführer | Opfer | Schiedsrichter | Rebell | Wächter | Visionär | Gefallener Held | Schatten-Doppelgänger | Kind/Unschuld | Gestaltwandler | Herold]
@@ -213,7 +213,7 @@ Es ist KI-modellunabhängig und wird als lebendes Dokument gepflegt.
 
 
 
-### *OPTIONAL* `@OPTIONAL`
+### OPTIONAL `@OPTIONAL`
 - **Nebenarcs**  `@FIELD:nebenarcs`
   
   automatisch generiert: Beziehung, Figurenentwicklung, Nebenquest  
@@ -261,7 +261,7 @@ Es ist KI-modellunabhängig und wird als lebendes Dokument gepflegt.
 
 
 
-### *OPTIONAL* `@OPTIONAL`
+### OPTIONAL `@OPTIONAL`
 - **Rhythmus / Pacing (Auswahl)**  `@FIELD:rhythmus_pacing`
   
   [Ruhe → Spannung → Auflösung | Exposition → Konflikt → Eskalation | Wechsel Action/Ruhe | Steigende Intensität | Zirkulär (Beginn = Ende)]
@@ -321,7 +321,7 @@ Es ist KI-modellunabhängig und wird als lebendes Dokument gepflegt.
 
 
 
-### *OPTIONAL* @OPTIONAL
+### OPTIONAL `@OPTIONAL`
 - **Figureneinführung/-entwicklung**  `@FIELD:figurenentwicklung`
   
   automatisch generiert: Einführung oder Entwicklung einer Figur  
@@ -361,7 +361,7 @@ Es ist KI-modellunabhängig und wird als lebendes Dokument gepflegt.
 ## 2.7 DecisionPoints
 `@SECTION:DecisionPoints`
 
-### **MUSS** @REQUIRED
+### **MUSS** `@REQUIRED`
 - **Optionenanzahl**  `@FIELD:optionenanzahl`
   
   automatisch generiert: 2–4 valide Optionen  
@@ -384,7 +384,7 @@ Es ist KI-modellunabhängig und wird als lebendes Dokument gepflegt.
 
 
 
-### *OPTIONAL* `@OPTIONAL`
+### OPTIONAL `@OPTIONAL`
 - **Entscheidungsarten (Auswahl)**  `@FIELD:entscheidungsarten`
   
   [Strategisch | Moralisch | Beziehungsorientiert | Ressourcenorientiert | Emotional]
@@ -404,7 +404,7 @@ Es ist KI-modellunabhängig und wird als lebendes Dokument gepflegt.
 ## 2.8 Outcomes
 `@SECTION:Outcomes`
 
-### **MUSS** @REQUIRED
+### **MUSS** `@REQUIRED`
 - **Direkte Folgen (Kurztext 1–2 Sätze)**  `@FIELD:direkte_folgen`
   
   automatisch generiert für jede Entscheidung  
@@ -426,7 +426,7 @@ Es ist KI-modellunabhängig und wird als lebendes Dokument gepflegt.
 
 
 
-### *OPTIONAL* `@OPTIONAL`
+### OPTIONAL `@OPTIONAL`
 - **Erweiterte Folgen**  `@FIELD:erweiterte_folgen`
    
   automatisch generiert: Mehrfachwirkungen, Symbolik, Ambivalenz, Narrative Flags  
