@@ -60,7 +60,7 @@ Es ist KI-modellunabhängig und wird als lebendes Dokument gepflegt.
 ### **MUSS** `@REQUIRED`
 - **Titel (1 Satz, frei)**  `@FIELD:titel`
 - **Pitch (1 Satz, frei)** `@FIELD:pitch`
-- - **Sprache (Auswahl)**  `@FIELD:sprache`
+- **Sprache (Auswahl)**  `@FIELD:sprache`
   
   [deutsch | englisch]
 
