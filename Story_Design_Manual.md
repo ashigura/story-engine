@@ -63,7 +63,6 @@ Es ist KI-modellunabhängig und wird als lebendes Dokument gepflegt.
 - **Pitch (1 Satz, frei)**  @FIELD:pitch
 
 - **Genre (Auswahl)**  @FIELD:genre
-
   [Abenteuer | Fantasy | Science-Fiction | Mystery | Krimi | Thriller | Horror | Drama | Liebesgeschichte | Komödie | Historisch | Western | Kriegsstory | Sport | Slice-of-Life | Familiengeschichte | Coming-of-Age | Politisches Drama | Justiz/Anwaltsstory | Medizin/Spital]
 
 - **Tonalität (Auswahl)**  @FIELD:tonalitaet
