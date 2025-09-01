@@ -63,33 +63,35 @@ Es ist KI-modellunabhängig und wird als lebendes Dokument gepflegt.
 - **Titel (1 Satz, frei)**  *@FIELD:titel*
 - **Pitch (1 Satz, frei)**  *@FIELD:pitch*
 
-- **Genre (Auswahl)**  *@FIELD:genre*  
+- **Genre (Auswahl)**  *@FIELD:genre*
   [Abenteuer | Fantasy | Science-Fiction | Mystery | Krimi | Thriller | Horror | Drama | Liebesgeschichte | Komödie | Historisch | Western | Kriegsstory | Sport | Slice-of-Life | Familiengeschichte | Coming-of-Age | Politisches Drama | Justiz/Anwaltsstory | Medizin/Spital]
 
-- **Tonalität (Auswahl)**  *@FIELD:tonalitaet*  
+- **Tonalität (Auswahl)**  *@FIELD:tonalitaet*
   [Episch | Düster | Hoffnungsvoll | Humorvoll | Tragisch | Leichtfüßig | Spannend | Beklemmend | Gritty | Warmherzig | Melancholisch | Satirisch | Ominös | Inspirierend | Gelassen]
 
-- **Zielgruppe (Auswahl)**  *@FIELD:zielgruppe*  
+- **Zielgruppe (Auswahl)**  *@FIELD:zielgruppe*
   [Kinder | Mittelstufe | Teen | Young Adult | Erwachsene | All Ages]
 
-- **Dauer / Umfang (Auswahl)**  *@FIELD:dauer_umfang*  
+- **Dauer / Umfang (Auswahl)**  *@FIELD:dauer_umfang*
   [Kurz (3-5 Szenen) | Mittel (3 Kapitel) | Lang (10 Kapitel) | Staffel/Endlos]
 
 
 
+
 ### OPTIONAL *@OPTIONAL*
-- **Themenmotive (Liste)**  *@FIELD:themenmotive*  
+- **Themenmotive (Liste)**  *@FIELD:themenmotive*
   [Freiheit vs. Kontrolle | Vertrauen vs. Misstrauen | Identität | Gerechtigkeit | Opfer | Verrat | Loyalität | Macht | Erlösung | Rache | Hoffnung vs. Verzweiflung | Tradition vs. Wandel | Schicksal vs. freier Wille | Wahrheit vs. Lüge | Liebe vs. Hass | Leben vs. Tod]
 
-- **Tabus / No-Gos (Auswahl)**  *@FIELD:tabus*  
+- **Tabus / No-Gos (Auswahl)**  *@FIELD:tabus*
   [Explizite Gewalt | Sexualisierte Inhalte | Kindeswohlgefährdung | Diskriminierung | Suizid | Religion | Politik | Terrorismus | Kriegsverherrlichung | Folter | Drogenmissbrauch | Alkohol-Glorifizierung | Glücksspiel | Vulgärsprache]
 
-- **Inspirationsanker**  *@FIELD:inspirationsanker*  
+- **Inspirationsanker**  *@FIELD:inspirationsanker*
   automatisch generiert aus Genre + Themenmotive → liefert reale Werke als Vergleich  
-  *@AUTO:inspirationsanker mode=lookup from=genre,themenmotive k=5 output=works-real format=list locale=de*
+  *@AUTO:inspirationsanker mode=lookup from=genre,themenmotive k=5 output=works-real format=list*
 
-- **Darstellungsstil**  *@FIELD:darstellungsstil*  
+- **Darstellungsstil**  *@FIELD:darstellungsstil*
   [Kurz & knapp | Detailliert | Kreativ/poetisch]
+
 
 
 ---
