@@ -55,392 +55,391 @@ Es ist KI-modellunabhängig und wird als lebendes Dokument gepflegt.
 
 ---
 # 2 Story-Builder
-## 2.1 StoryFrame
-@SECTION:StoryFrame
+## 2.1 StoryFrame `@SECTION:StoryFrame`
 
-### **MUSS** @REQUIRED
-- **Titel (1 Satz, frei)**  @FIELD:titel
-- **Pitch (1 Satz, frei)**  @FIELD:pitch
+### **MUSS** `@REQUIRED`
+- **Titel (1 Satz, frei)**  `@FIELD:titel`
+- **Pitch (1 Satz, frei)** `@FIELD:pitch`
 
 - **Genre (Auswahl)**  `@FIELD:genre`
   
   [Abenteuer | Fantasy | Science-Fiction | Mystery | Krimi | Thriller | Horror | Drama | Liebesgeschichte | Komödie | Historisch | Western | Kriegsstory | Sport | Slice-of-Life | Familiengeschichte | Coming-of-Age | Politisches Drama | Justiz/Anwaltsstory | Medizin/Spital]
 
-- **Tonalität (Auswahl)**  @FIELD:tonalitaet
+- **Tonalität (Auswahl)**  `@FIELD:tonalitaet`
   
   [Episch | Düster | Hoffnungsvoll | Humorvoll | Tragisch | Leichtfüßig | Spannend | Beklemmend | Gritty | Warmherzig | Melancholisch | Satirisch | Ominös | Inspirierend | Gelassen]
 
-- **Zielgruppe (Auswahl)**  @FIELD:zielgruppe
+- **Zielgruppe (Auswahl)**  `@FIELD:zielgruppe`
   
   [Kinder | Mittelstufe | Teen | Young Adult | Erwachsene | All Ages]
 
-- **Dauer / Umfang (Auswahl)**  @FIELD:dauer_umfang
+- **Dauer / Umfang (Auswahl)**  `@FIELD:dauer_umfang`
   
   [Kurz (3-5 Szenen) | Mittel (3 Kapitel) | Lang (10 Kapitel) | Staffel/Endlos]
 
 
   
-### *OPTIONAL* @OPTIONAL
-- **Themenmotive (Liste)**  @FIELD:themenmotive
+### *OPTIONAL* `@OPTIONAL`
+- **Themenmotive (Liste)**  `@FIELD:themenmotive`
   
   [Freiheit vs. Kontrolle | Vertrauen vs. Misstrauen | Identität | Gerechtigkeit | Opfer | Verrat | Loyalität | Macht | Erlösung | Rache | Hoffnung vs. Verzweiflung | Tradition vs. Wandel | Schicksal vs. freier Wille | Wahrheit vs. Lüge | Liebe vs. Hass | Leben vs. Tod]
 
-- **Tabus / No-Gos (Auswahl)**  @FIELD:tabus
+- **Tabus / No-Gos (Auswahl)**  `@FIELD:tabus`
   
   [Explizite Gewalt | Sexualisierte Inhalte | Kindeswohlgefährdung | Diskriminierung | Suizid | Religion | Politik | Terrorismus | Kriegsverherrlichung | Folter | Drogenmissbrauch | Alkohol-Glorifizierung | Glücksspiel | Vulgärsprache]
 
-- **Inspirationsanker**  @FIELD:inspirationsanker
+- **Inspirationsanker**  `@FIELD:inspirationsanker`
   
   automatisch generiert aus Genre + Themenmotive → liefert reale Werke als Vergleich  
-  @AUTO:inspirationsanker mode=lookup from=genre,themenmotive k=5 output=works-real format=list locale=de
+  `@AUTO:inspirationsanker mode=lookup from=genre,themenmotive k=5 output=works-real format=list`
 
-- **Darstellungsstil**  @FIELD:darstellungsstil
+- **Darstellungsstil**  `@FIELD:darstellungsstil`
   
   [Kurz & knapp | Detailliert | Kreativ/poetisch]
 
 ---
 
 ## 2.2 Canon/World
-@SECTION:CanonWorld
+`@SECTION:CanonWorld`
 
-### **MUSS** @REQUIRED
-- **Epoche / Setting (Auswahl)**  @FIELD:epoche_setting
+### **MUSS** `@REQUIRED`
+- **Epoche / Setting (Auswahl)**  `@FIELD:epoche_setting`
   
   [Antike | Mittelalter | Frühe Neuzeit | Moderne (20. Jh.) | Gegenwart | Zukunft (Sci-Fi) | Alternative Realität | Fantasiewelt]
 
-- **Technologie-/Magie-Level (Auswahl)**  @FIELD:tech_magie_level
+- **Technologie-/Magie-Level (Auswahl)**  `@FIELD:tech_magie_level`
   
   [Realistisch | Magisch (selten) | Magisch (häufig) | Hochtechnologisch | Mischform]
 
-- **Weltregeln**  @FIELD:weltregeln
+- **Weltregeln**  `@FIELD:weltregeln`
   
   automatisch generiert abhängig von Setting + Technologie/Magie-Level (5-7 Bulletpoints)  
-  @AUTO:weltregeln mode=synth from=epoche_setting,tech_magie_level k=7 output=bullets format=list locale=de
+  `@AUTO:weltregeln mode=synth from=epoche_setting,tech_magie_level k=7 output=bullets format=list`
 
-- **Werteordnung / Tabus (Auswahl)**  @FIELD:werteordnung
+- **Werteordnung / Tabus (Auswahl)**  `@FIELD:werteordnung`
   
   [Ehre > Leben | Familie > Individuum | Macht > Moral | Freiheit > Sicherheit | Religion > Staat | Schicksal > freier Wille]
 
 
 
-### *OPTIONAL* @OPTIONAL
-- **Weltmotive / Symbolik**  @FIELD:weltmotive
+### *OPTIONAL* `@OPTIONAL`
+- **Weltmotive / Symbolik**  `@FIELD:weltmotive`
   
   [Licht vs. Dunkelheit | Natur vs. Zivilisation | Ordnung vs. Chaos | Tradition vs. Fortschritt]
 
-- **Kulturelle Besonderheiten**  @FIELD:kulturelle_besonderheiten
+- **Kulturelle Besonderheiten**  `@FIELD:kulturelle_besonderheiten`
   
   [Religion | Politik | Gesellschaftsschichten | Rituale | Sprache | Kleidung]
 
-- **Naturgesetze (Auswahl)**  @FIELD:naturgesetze
+- **Naturgesetze (Auswahl)**  `@FIELD:naturgesetze`
   
   [Normal | Verändert (ewige Nacht, toxische Luft) | Übernatürlich (sprechende Tiere, lebendige Elemente)]
 
-- **Inspirationsanker**  @FIELD:inspirationsanker
+- **Inspirationsanker**  `@FIELD:inspirationsanker`
   
   automatisch generiert aus Setting + Tech/Magie-Level + Motiven → liefert reale Werke als Vergleich  
-  @AUTO:inspirationsanker mode=lookup from=epoche_setting,tech_magie_level,weltmotive k=5 output=works-real format=list locale=de
+  `@AUTO:inspirationsanker mode=lookup from=epoche_setting,tech_magie_level,weltmotive k=5 output=works-real format=list`
 
 
 ---
 
 ## 2.3 Cast
-@SECTION:Cast
+`@SECTION:Cast`
 
-### **MUSS** @REQUIRED
-- **Protagonist – Ziel**  @FIELD:protagonist_ziel
+### **MUSS** `@REQUIRED`
+- **Protagonist – Ziel**  `@FIELD:protagonist_ziel`
   
   automatisch generiert aus Genre + Themenmotive  
-  @AUTO:protagonist_ziel mode=synth from=genre,themenmotive k=1 output=text format=text locale=de
+  `@AUTO:protagonist_ziel mode=synth from=genre,themenmotive k=1 output=text format=text`
 
-- **Protagonist – Need**  @FIELD:protagonist_need
+- **Protagonist – Need**  `@FIELD:protagonist_need`
   
   automatisch generiert aus Genre + Themenmotive  
-  @AUTO:protagonist_need mode=synth from=genre,themenmotive k=1 output=text format=text locale=de
+  `@AUTO:protagonist_need mode=synth from=genre,themenmotive k=1 output=text format=text`
 
-- **Protagonist – Schwäche**  @FIELD:protagonist_schwaeche
+- **Protagonist – Schwäche**  `@FIELD:protagonist_schwaeche`
    
   automatisch generiert aus Genre + Themenmotive  
-  @AUTO:protagonist_schwaeche mode=synth from=genre,themenmotive k=1 output=text format=text locale=de
+  `@AUTO:protagonist_schwaeche mode=synth from=genre,themenmotive k=1 output=text format=text`
 
-- **Antagonist – Gegenziel**  @FIELD:antagonist_gegenziel
+- **Antagonist – Gegenziel**  `@FIELD:antagonist_gegenziel`
   
   automatisch generiert aus Genre + Themenmotive  
-  @AUTO:antagonist_gegenziel mode=synth from=genre,themenmotive k=1 output=text format=text locale=de
+  `@AUTO:antagonist_gegenziel mode=synth from=genre,themenmotive k=1 output=text format=text`
 
-- **Antagonist – Bedrohung**  @FIELD:antagonist_bedrohung
+- **Antagonist – Bedrohung**  `@FIELD:antagonist_bedrohung`
   
   automatisch generiert aus Genre + Themenmotive  
-  @AUTO:antagonist_bedrohung mode=synth from=genre,themenmotive k=1 output=text format=text locale=de
+  `@AUTO:antagonist_bedrohung mode=synth from=genre,themenmotive k=1 output=text format=text`
 
-- **Antagonist – Limit**  @FIELD:antagonist_limit
+- **Antagonist – Limit**  `@FIELD:antagonist_limit`
   
   automatisch generiert aus Genre + Themenmotive  
-  @AUTO:antagonist_limit mode=synth from=genre,themenmotive k=1 output=text format=text locale=de
+  `@AUTO:antagonist_limit mode=synth from=genre,themenmotive k=1 output=text format=text`
 
-- **Beziehung Prota ↔ Anta – Kernkonflikt (1-2 Sätze)**  @FIELD:konflikt
+- **Beziehung Prota ↔ Anta – Kernkonflikt (1-2 Sätze)**  `@FIELD:konflikt`
     
   automatisch generiert aus Protagonist- und Antagonist-Feldern  
-  @AUTO:konflikt mode=synth from=protagonist_ziel,protagonist_need,protagonist_schwaeche,antagonist_gegenziel,antagonist_bedrohung,antagonist_limit k=1 output=text format=text locale=de
+  `@AUTO:konflikt mode=synth from=protagonist_ziel,protagonist_need,protagonist_schwaeche,antagonist_gegenziel,antagonist_bedrohung,antagonist_limit k=1 output=text format=text`
 
 
 
 ### *OPTIONAL* @OPTIONAL
-- **Nebenfiguren (Archetypen zur Auswahl)**  @FIELD:nebenfiguren
+- **Nebenfiguren (Archetypen zur Auswahl)**  `@FIELD:nebenfiguren`
   
   [Mentor | Unterstützer | Rival | Trickster/Narr | Neutraler Beobachter | Katalysator | Anführer | Verführer | Opfer | Schiedsrichter | Rebell | Wächter | Visionär | Gefallener Held | Schatten-Doppelgänger | Kind/Unschuld | Gestaltwandler | Herold]
 
-- **Nebenarcs**  @FIELD:nebenarcs
+- **Nebenarcs**  `@FIELD:nebenarcs`
   
   automatisch generiert aus Archetypen  
-  @AUTO:nebenarcs mode=synth from=nebenfiguren k=3 output=bullets format=list locale=de
+  `@AUTO:nebenarcs mode=synth from=nebenfiguren k=3 output=bullets format=list`
 
-- **Beziehungsnetz (Matrix: Vertrauen, Rivalität, Abhängigkeit, Loyalität, Verrat)**  @FIELD:beziehungsnetz
+- **Beziehungsnetz (Matrix: Vertrauen, Rivalität, Abhängigkeit, Loyalität, Verrat)**  `@FIELD:beziehungsnetz`
     
   automatisch generiert aus Protagonist-, Antagonist- und Nebenfiguren-Feldern  
-  @AUTO:beziehungsnetz mode=synth from=protagonist_ziel,protagonist_need,protagonist_schwaeche,antagonist_gegenziel,antagonist_bedrohung,antagonist_limit,nebenfiguren k=1 output=json format=json locale=de
+  `@AUTO:beziehungsnetz mode=synth from=protagonist_ziel,protagonist_need,protagonist_schwaeche,antagonist_gegenziel,antagonist_bedrohung,antagonist_limit,nebenfiguren k=1 output=json format=json`
 
 
 ---
 
 ## 2.4 Arcs
-@SECTION:Arcs
+`@SECTION:Arcs`
 
-### **MUSS** @REQUIRED
-- **Hauptarc – Verlauf**  @FIELD:hauptarc
+### **MUSS** `@REQUIRED`
+- **Hauptarc – Verlauf**  `@FIELD:hauptarc`
    
   automatisch generiert: Startzustand → Wendepunkte → Finale  
-  @AUTO:hauptarc mode=synth from=genre,themenmotive,protagonist_ziel,antagonist_gegenziel k=1 output=bullets format=list locale=de
+  `@AUTO:hauptarc mode=synth from=genre,themenmotive,protagonist_ziel,antagonist_gegenziel k=1 output=bullets format=list`
 
 
 
-### *OPTIONAL* @OPTIONAL
-- **Nebenarcs**  @FIELD:nebenarcs
+### *OPTIONAL* `@OPTIONAL`
+- **Nebenarcs**  `@FIELD:nebenarcs`
   
   automatisch generiert: Beziehung, Figurenentwicklung, Nebenquest  
-  @AUTO:nebenarcs mode=synth from=nebenfiguren,beziehungsnetz k=3 output=bullets format=list locale=de
+ `@AUTO:nebenarcs mode=synth from=nebenfiguren,beziehungsnetz k=3 output=bullets format=list`
 
-- **Parallelarcs**  @FIELD:parallelarcs
+- **Parallelarcs**  `@FIELD:parallelarcs`
    
   automatisch generiert: parallele Handlungsstränge  
-  @AUTO:parallelarcs mode=synth from=hauptarc,nebenarcs k=2 output=bullets format=list locale=de
+  `@AUTO:parallelarcs mode=synth from=hauptarc,nebenarcs k=2 output=bullets format=list`
 
-- **Thematische Arcs (Auswahl)**  @FIELD:thematische_arcs
+- **Thematische Arcs (Auswahl)**  `@FIELD:thematische_arcs`
   
   [Vertrauen vs. Misstrauen | Freiheit vs. Kontrolle | Liebe vs. Hass | Leben vs. Tod | Wahrheit vs. Lüge | Tradition vs. Wandel | Opfer vs. Egoismus | Gerechtigkeit vs. Korruption | Mensch vs. Natur | Individuum vs. Gesellschaft | Schicksal vs. freier Wille]
 
-- **Twist-Arcs (Allgemeine Muster)**  @FIELD:twist_arcs_muster
+- **Twist-Arcs (Allgemeine Muster)**  `@FIELD:twist_arcs_muster`
    
   [Antagonist wird Verbündeter | Verbündeter als Verräter | Opfer war Täter | Held ist Teil des Problems | Mentor mit eigener Agenda | „Alles nur ein Test“ | Doppelte Täuschung | Identitätstausch | Verborgene Herkunft | Vergessene Erinnerung | Prophezeiung falsch | Bösewicht als Spiegelbild | Ziel entpuppt sich als Fluch]
 
-- **Twist-Arcs (Generisch)**  @FIELD:twist_arcs_generisch
+- **Twist-Arcs (Generisch)**  `@FIELD:twist_arcs_generisch`
   
   automatisch generiert aus Genre + Themenmotive  
-  @AUTO:twist_arcs_generisch mode=synth from=genre,themenmotive k=3 output=bullets format=list locale=de
+  `@AUTO:twist_arcs_generisch mode=synth from=genre,themenmotive k=3 output=bullets format=list`
 
-- **Spiegelarcs**  @FIELD:spiegelarcs
+- **Spiegelarcs**  `@FIELD:spiegelarcs`
   
   automatisch generiert: Figuren entwickeln sich gegensätzlich  
-  @AUTO:spiegelarcs mode=synth from=protagonist_ziel,antagonist_gegenziel k=1 output=bullets format=list locale=de
+  `@AUTO:spiegelarcs mode=synth from=protagonist_ziel,antagonist_gegenziel k=1 output=bullets format=list`
 
 
 ---
 
 ## 2.5 Chapters
-@SECTION:Chapters
+`@SECTION:Chapters`
 
-### **MUSS** @REQUIRED
-- **Kapitelanzahl**  @FIELD:kapitelanzahl
+### **MUSS** `@REQUIRED`
+- **Kapitelanzahl**  `@FIELD:kapitelanzahl`
   
   mindestens 3 Kapitel (Anfang – Mitte – Ende)  
-  @AUTO:kapitelanzahl mode=synth from=hauptarc k=1 output=number format=text locale=de
+  `@AUTO:kapitelanzahl mode=synth from=hauptarc k=1 output=number format=text`
 
-- **Kapitelstruktur**  @FIELD:kapitelstruktur
+- **Kapitelstruktur**  `@FIELD:kapitelstruktur`
   
   jedes Kapitel enthält Ziel, Hauptkonflikt, Cliffhanger  
-  @AUTO:kapitelstruktur mode=synth from=hauptarc,protagonist_ziel,antagonist_gegenziel k=3 output=bullets format=list locale=de
+  `@AUTO:kapitelstruktur mode=synth from=hauptarc,protagonist_ziel,antagonist_gegenziel k=3 output=bullets format=list`
 
 
 
-### *OPTIONAL* @OPTIONAL
-- **Rhythmus / Pacing (Auswahl)**  @FIELD:rhythmus_pacing
+### *OPTIONAL* `@OPTIONAL`
+- **Rhythmus / Pacing (Auswahl)**  `@FIELD:rhythmus_pacing`
   
   [Ruhe → Spannung → Auflösung | Exposition → Konflikt → Eskalation | Wechsel Action/Ruhe | Steigende Intensität | Zirkulär (Beginn = Ende)]
 
-- **Kapitel-Labels**  @FIELD:kapitel_labels
+- **Kapitel-Labels**  `@FIELD:kapitel_labels`
   
   [Nummeriert | Thematisch | Symbolisch]
 
-- **Parallele Kapitelstränge**  @FIELD:kapitelstraenge
+- **Parallele Kapitelstränge**  `@FIELD:kapitelstraenge`
   
   automatisch generiert, wenn parallele Handlungsbögen existieren  
-  @AUTO:kapitelstraenge mode=synth from=parallelarcs k=2 output=bullets format=list locale=de
+  `@AUTO:kapitelstraenge mode=synth from=parallelarcs k=2 output=bullets format=list`
 
-- **Thematische Kapitel-Bögen (Auswahl)**  @FIELD:kapitel_boegen
+- **Thematische Kapitel-Bögen (Auswahl)**  `@FIELD:kapitel_boegen`
    
   [Einführung → Konfrontation → Entscheidung | Hoffnung → Verrat → Opfer | Aufstieg → Krise → Transformation | Harmonie → Konflikt → Zerstörung | Ordnung → Chaos → neue Ordnung]
 
-- **Twist-Kapitel (Allgemeine Muster)**  @FIELD:twist_kapitel_muster
+- **Twist-Kapitel (Allgemeine Muster)**  `@FIELD:twist_kapitel_muster`
    
   [Perspektivwechsel | Verlust wichtiger Figur | Enthüllung falscher Infos | Rückblende mit neuer Bedeutung | abruptes Ende in scheinbar gelöster Szene]
 
-- **Twist-Kapitel (Generisch)**  @FIELD:twist_kapitel_generisch
+- **Twist-Kapitel (Generisch)**  `@FIELD:twist_kapitel_generisch`
   
   automatisch generiert aus Genre + Themenmotive  
-  @AUTO:twist_kapitel_generisch mode=synth from=genre,themenmotive k=2 output=bullets format=list locale=de
+  `@AUTO:twist_kapitel_generisch mode=synth from=genre,themenmotive k=2 output=bullets format=list`
 
 
 ---
 
 ## 2.6 Scenes
-@SECTION:Scenes
+`@SECTION:Scenes`
 
-### **MUSS** @REQUIRED
-- **Ort & Timebox**  @FIELD:ort_timebox
+### **MUSS** `@REQUIRED`
+- **Ort & Timebox**  `@FIELD:ort_timebox`
   
   automatisch generiert: Szene erhält einen Ort und eine Zeitspanne  
-  @AUTO:ort_timebox mode=synth from=kapitelstruktur,epoche_setting k=1 output=text format=text locale=de
+  `@AUTO:ort_timebox mode=synth from=kapitelstruktur,epoche_setting k=1 output=text format=text`
 
-- **Intent**  @FIELD:intent
+- **Intent**  `@FIELD:intent`
   
   automatisch generiert: Absicht/Ziel der Szene  
-  @AUTO:intent mode=synth from=hauptarc,kapitelstruktur k=1 output=text format=text locale=de
+  `@AUTO:intent mode=synth from=hauptarc,kapitelstruktur k=1 output=text format=text`
 
-- **Konflikt / Hindernis**  @FIELD:konflikt_hindernis
+- **Konflikt / Hindernis**  `@FIELD:konflikt_hindernis`
   
   automatisch generiert: Konflikt oder Hindernis für die Figuren  
-  @AUTO:konflikt_hindernis mode=synth from=protagonist_ziel,antagonist_gegenziel,kapitelstruktur k=1 output=text format=text locale=de
+  `@AUTO:konflikt_hindernis mode=synth from=protagonist_ziel,antagonist_gegenziel,kapitelstruktur k=1 output=text format=text`
 
-- **Stakes (Auswahl)**  @FIELD:stakes
+- **Stakes (Auswahl)**  `@FIELD:stakes`
   
   [Leben/Gefahr | Beziehung/Vertrauen | Ressourcen | Moral/Integrität]
 
-- **Hook / Mini-Cliff**  @FIELD:hook
+- **Hook / Mini-Cliff**  `@FIELD:hook`
   
   automatisch generiert: Spannungsanker am Szenenende  
-  @AUTO:hook mode=synth from=konflikt_hindernis,stakes k=1 output=text format=text locale=de
+  `@AUTO:hook mode=synth from=konflikt_hindernis,stakes k=1 output=text format=text`
 
 
 
 ### *OPTIONAL* @OPTIONAL
-- **Figureneinführung/-entwicklung**  @FIELD:figurenentwicklung
+- **Figureneinführung/-entwicklung**  `@FIELD:figurenentwicklung`
   
   automatisch generiert: Einführung oder Entwicklung einer Figur  
-  @AUTO:figurenentwicklung mode=synth from=protagonist_ziel,nebenfiguren,kapitelstruktur k=1 output=text format=text locale=de
+  `@AUTO:figurenentwicklung mode=synth from=protagonist_ziel,nebenfiguren,kapitelstruktur k=1 output=text format=text`
 
-- **Emotionale Farbe (Auswahl)**  @FIELD:emotionale_farbe
+- **Emotionale Farbe (Auswahl)**  `@FIELD:emotionale_farbe`
   
   [Humorvoll | Romantisch | Bedrohlich | Tragisch | Hoffnungsvoll | Spannend | Düster | Inspirierend]
 
-- **Symbolik / Leitmotiv**  @FIELD:symbolik
+- **Symbolik / Leitmotiv**  `@FIELD:symbolik`
    
   automatisch generiert: symbolische Elemente passend zur Szene  
-  @AUTO:symbolik mode=synth from=themenmotive,weltmotive k=1 output=text format=text locale=de
+  `@AUTO:symbolik mode=synth from=themenmotive,weltmotive k=1 output=text format=text`
 
-- **Foreshadowing**  @FIELD:foreshadowing
+- **Foreshadowing**  `@FIELD:foreshadowing`
   
   automatisch generiert: Andeutung auf spätere Ereignisse  
-  @AUTO:foreshadowing mode=synth from=hauptarc,kapitelstruktur k=1 output=text format=text locale=de
+  `@AUTO:foreshadowing mode=synth from=hauptarc,kapitelstruktur k=1 output=text format=text`
 
-- **Parallelität**  @FIELD:parallelitaet
+- **Parallelität**  `@FIELD:parallelitaet`
   
   automatisch generiert: Parallele Szenenstränge  
-  @AUTO:parallelitaet mode=synth from=parallelarcs,kapitelstraenge k=1 output=bullets format=list locale=de
+  `@AUTO:parallelitaet mode=synth from=parallelarcs,kapitelstraenge k=1 output=bullets format=list`
 
-- **Twist-Szenen (Allgemeine Muster)**  @FIELD:twist_szenen_muster
+- **Twist-Szenen (Allgemeine Muster)**  `@FIELD:twist_szenen_muster`
   
   [Sicherheit → Gefahr | Verrat | Vertrauter Ort bedrohlich | Retter = Bedrohung | Naturereignis bricht Konflikt | Perspektivwechsel]
 
-- **Twist-Szenen (Generisch)**  @FIELD:twist_szenen_generisch
+- **Twist-Szenen (Generisch)**  `@FIELD:twist_szenen_generisch`
   
   automatisch generiert aus Genre + Themenmotive  
-  @AUTO:twist_szenen_generisch mode=synth from=genre,themenmotive k=2 output=bullets format=list locale=de
+  `@AUTO:twist_szenen_generisch mode=synth from=genre,themenmotive k=2 output=bullets format=list`
 
 
 ---
 
 ## 2.7 DecisionPoints
-@SECTION:DecisionPoints
+`@SECTION:DecisionPoints`
 
 ### **MUSS** @REQUIRED
-- **Optionenanzahl**  @FIELD:optionenanzahl
+- **Optionenanzahl**  `@FIELD:optionenanzahl`
   
   automatisch generiert: 2–4 valide Optionen  
-  @AUTO:optionenanzahl mode=synth from=konflikt_hindernis,stakes k=1 output=number format=text locale=de
+  `@AUTO:optionenanzahl mode=synth from=konflikt_hindernis,stakes k=1 output=number format=text`
 
-- **Optionsvielfalt**  @FIELD:optionsvielfalt
+- **Optionsvielfalt**  `@FIELD:optionsvielfalt`
   
   automatisch generiert: Optionen spiegeln unterschiedliche Werte (z. B. Risiko vs. Sicherheit, Moral vs. Pragmatik, Nähe vs. Distanz, Egoismus vs. Opfer, Tradition vs. Wandel, Wahrheit vs. Lüge)  
-  @AUTO:optionsvielfalt mode=synth from=themenmotive,konflikt_hindernis k=3 output=bullets format=list locale=de
+  `@AUTO:optionsvielfalt mode=synth from=themenmotive,konflikt_hindernis k=3 output=bullets format=list`
 
-- **Konsequenzen**  @FIELD:konsequenzen
+- **Konsequenzen**  `@FIELD:konsequenzen`
   
   automatisch generiert: jede Option hat klare Konsequenzen  
-  @AUTO:konsequenzen mode=synth from=optionsvielfalt,stakes k=3 output=bullets format=list locale=de
+  `@AUTO:konsequenzen mode=synth from=optionsvielfalt,stakes k=3 output=bullets format=list`
 
-- **Relevanz**  @FIELD:relevanz
+- **Relevanz**  `@FIELD:relevanz`
   
   automatisch generiert: Entscheidung verändert den State  
-  @AUTO:relevanz mode=synth from=optionsvielfalt,konsequenzen k=1 output=text format=text locale=de
+  `@AUTO:relevanz mode=synth from=optionsvielfalt,konsequenzen k=1 output=text format=text`
 
 
 
-### *OPTIONAL* @OPTIONAL
-- **Entscheidungsarten (Auswahl)**  @FIELD:entscheidungsarten
+### *OPTIONAL* `@OPTIONAL`
+- **Entscheidungsarten (Auswahl)**  `@FIELD:entscheidungsarten`
   
   [Strategisch | Moralisch | Beziehungsorientiert | Ressourcenorientiert | Emotional]
 
-- **Twist-Entscheidungen (Allgemeine Muster)**  @FIELD:twist_entscheidungen_muster
+- **Twist-Entscheidungen (Allgemeine Muster)**  `@FIELD:twist_entscheidungen_muster`
    
   [Verdeckte Konsequenz | Doppelte Bedeutung | Falsche Sicherheit | Verzögerte Wirkung | Entscheidung unter Unsicherheit]
 
-- **Twist-Entscheidungen (Generisch)**  @FIELD:twist_entscheidungen_generisch
+- **Twist-Entscheidungen (Generisch)**  `@FIELD:twist_entscheidungen_generisch`
   
   automatisch generiert aus Genre + Themenmotive  
-  @AUTO:twist_entscheidungen_generisch mode=synth from=genre,themenmotive k=2 output=bullets format=list locale=de
+  `@AUTO:twist_entscheidungen_generisch mode=synth from=genre,themenmotive k=2 output=bullets format=list`
 
 
 ---
 
 ## 2.8 Outcomes
-@SECTION:Outcomes
+`@SECTION:Outcomes`
 
 ### **MUSS** @REQUIRED
-- **Direkte Folgen (Kurztext 1–2 Sätze)**  @FIELD:direkte_folgen
+- **Direkte Folgen (Kurztext 1–2 Sätze)**  `@FIELD:direkte_folgen`
   
   automatisch generiert für jede Entscheidung  
-  @AUTO:direkte_folgen mode=synth from=konsequenzen,relevanz k=1 output=text format=text locale=de
+  `@AUTO:direkte_folgen mode=synth from=konsequenzen,relevanz k=1 output=text format=text`
 
-- **State-Veränderung (Auswahl)**  @FIELD:state_veraenderung
+- **State-Veränderung (Auswahl)**  `@FIELD:state_veraenderung`
   
   [Vertrauen ± | Beziehung ± | Ressourcen ± | Gesundheit ± | Hinweis/Spur ± | Bekanntheit ±]
 
-- **Kausalität**  @FIELD:kausalitaet
+- **Kausalität**  `@FIELD:kausalitaet`
   
   automatisch generiert: logische Verknüpfung zwischen Entscheidung und Folge  
-  @AUTO:kausalitaet mode=synth from=konsequenzen,state_veraenderung k=1 output=text format=text locale=de
+  `@AUTO:kausalitaet mode=synth from=konsequenzen,state_veraenderung k=1 output=text format=text`
 
-- **Fortführbarkeit**  @FIELD:fortfuehrbarkeit
+- **Fortführbarkeit**  `@FIELD:fortfuehrbarkeit`
   
   automatisch generiert: wie lässt sich die Story nach dieser Folge fortsetzen  
-  @AUTO:fortfuehrbarkeit mode=synth from=direkte_folgen,kausalitaet k=1 output=text format=text locale=de
+  `@AUTO:fortfuehrbarkeit mode=synth from=direkte_folgen,kausalitaet k=1 output=text format=text`
 
 
 
-### *OPTIONAL* @OPTIONAL
-- **Erweiterte Folgen**  @FIELD:erweiterte_folgen
+### *OPTIONAL* `@OPTIONAL`
+- **Erweiterte Folgen**  `@FIELD:erweiterte_folgen`
    
   automatisch generiert: Mehrfachwirkungen, Symbolik, Ambivalenz, Narrative Flags  
-  @AUTO:erweiterte_folgen mode=synth from=direkte_folgen,konsequenzen k=3 output=bullets format=list locale=de
+  `@AUTO:erweiterte_folgen mode=synth from=direkte_folgen,konsequenzen k=3 output=bullets format=list`
 
-- **Twist-Folgen (Allgemeine Muster)**  @FIELD:twist_folgen_muster
+- **Twist-Folgen (Allgemeine Muster)**  `@FIELD:twist_folgen_muster`
    
   [Verdeckte Wirkung | Unerwartete Belohnung | Kettenreaktion | Opfer = Gewinn | Täuschung]
 
-- **Twist-Folgen (Generisch)**  @FIELD:twist_folgen_generisch
+- **Twist-Folgen (Generisch)**  `@FIELD:twist_folgen_generisch`
   
   automatisch generiert aus Genre + Themenmotive  
-  @AUTO:twist_folgen_generisch mode=synth from=genre,themenmotive k=2 output=bullets format=list locale=de
+  `@AUTO:twist_folgen_generisch mode=synth from=genre,themenmotive k=2 output=bullets format=list`
 
 
 ---
