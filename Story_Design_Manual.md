@@ -219,3 +219,22 @@ Es ist KI-modellunabhängig und wird als lebendes Dokument gepflegt.
 - Modularer Kodex mit Alters- und Plattformregeln → Flexibilität + Kontrolle  
 - Twists integriert: über **Allgemeine Muster** oder **Generisch erzeugt**  
 - Dokument ist lebendiges Manual → erweiterbar für spätere Versionen
+
+
+<details> <summary>Maschinenblock: StoryFrame (aufklappen)</summary> <!-- DATA:BEGIN StoryFrame -->
+version: "2.0"
+locale: "de"
+section: "StoryFrame"
+must:
+  titel: "<frei>"
+  genre: [Abenteuer, Fantasy, Science-Fiction, Mystery, Krimi, Thriller, Horror, Drama, Liebesgeschichte, Komödie, Historisch, Western, Kriegsstory, Sport, Slice-of-Life, Familiengeschichte, Coming-of-Age, Politisches Drama, Justiz/Anwaltsstory, Medizin/Spital]
+  tonalität: [Episch, Düster, Hoffnungsvoll, Humorvoll, Tragisch, Leichtfüßig, Spannend, Beklemmend, Gritty, Warmherzig, Melancholisch, Satirisch, Ominös, Inspirierend, Gelassen]
+  zielgruppe: [Kinder, Mittelstufe, Teen, Young Adult, Erwachsene, All Ages]
+  dauer_umfang: ["Kurz (3–5 Szenen)", "Mittel (3 Kapitel)", "Lang (10 Kapitel)", "Staffel/Endlos"]
+optional:
+  themenmotive: [Freiheit vs. Kontrolle, Vertrauen vs. Misstrauen, Identität, Gerechtigkeit, Opfer, Verrat, Loyalität, Macht, Erlösung, Rache, Hoffnung vs. Verzweiflung, Tradition vs. Wandel, Schicksal vs. freier Wille, Wahrheit vs. Lüge, Liebe vs. Hass, Leben vs. Tod]
+  tabus: [Explizite Gewalt, Sexualisierte Inhalte, Kindeswohlgefährdung, Diskriminierung, Suizid, Religion, Politik, Terrorismus, Kriegsverherrlichung, Folter, Drogenmissbrauch, Alkohol-Glorifizierung, Glücksspiel, Vulgärsprache]
+  inspirationsanker: "auto(Genre+Themenmotive) → mehrere reale Werke als Vergleich"
+  darstellungsstil: ["Kurz & knapp", "Detailliert", "Kreativ/poetisch"]
+
+<!-- DATA:END StoryFrame --> </details>
