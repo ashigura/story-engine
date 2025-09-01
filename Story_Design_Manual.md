@@ -29,29 +29,79 @@ Es ist KI-modellunabhängig und wird als lebendes Dokument gepflegt.
    - `@FIELD:<id>` markiert ein Feld
    - ASCII-IDs (z. B. `tonalitaet` statt `Tonalität`)
    - Werte folgen als Freitext oder in `[...]`-Listen
+   - **Hinweis:** Tags können zur Lesbarkeit in Backticks stehen; der Parser ignoriert Backticks.
 
 4. **Listen**
    - Syntax: `[A | B | C]`
    - Parser: split on `|`, trim whitespace
    - `|` darf in Werten nicht vorkommen
+   - Zeilenumbruch nach einem `@FIELD:` ist erlaubt: die **nächste** Zeile muss mit `[` beginnen und mit `]` enden (Mehrzeilenlisten unterstützt).
 
 5. **Auto-Direktiven**
-   - `@AUTO:<field_id> key=value …` auf eigener Zeile
-   - Pflicht:
-     - `mode`: `synth` (erfinden), `lookup` (reale Werke), `hybrid`
-     - `from`: Eingabefelder
-     - `k`: Anzahl Elemente
-     - `output`: Typ (`works-real`, `works-generic`, `bullets`, `tags`)
-     - `format`: Ausgabeformat (`list`, `json`, `text`)
-   - Optionale Keys: `locale`, `seed`, `policy`
+   - `@AUTO:<field_id> key=value …` auf **eigener Zeile**
+   - **Pflichtkeys:**  
+     - `mode`: `synth` (erfinden), `lookup` (reale Werke), `hybrid`  
+     - `from`: kommagetrennte Eingabefelder (z. B. `genre,themenmotive`)  
+     - `k`: Anzahl Elemente  
+     - `output`: `works-real` | `works-generic` | `bullets` | `tags` | `number` | `json` | `text`  
+     - `format`: `list` | `json` | `text`
+   - **Optionale Keys:** `seed`, `policy`
+   - **Zeichensetzung:** nur ASCII; Zahlenbereiche als `3-5`.
 
 6. **Zeichenregeln**
-   - Pfeile `->` oder Sonderzeichen sind nur Deko, Parser ignoriert sie
+   - Pfeile `->`/Dekozeichen sind zulässig; Parser ignoriert sie
    - Zahlenbereiche: ASCII `3-5` statt `3–5`
 
 7. **Eindeutigkeit**
    - Feld-IDs pro Sektion eindeutig
    - Duplikate → Warnung
+
+---
+
+#### Kodex-Operatoren (K1–K8)
+- `@FORBID: <Begriff>` → strikt verboten (Hard Ban)
+- `@ALLOW_ONLY: <feld> = {wert1, wert2, ...}` → Whitelist (nur diese Werte erlaubt)
+- `@ALLOW: <feld> = <wert>` → Wert ist explizit erlaubt (sofern nicht durch Whitelist/FORBID ausgeschlossen)
+- `@SET: <key> = <value>` → setzt ein Kontext-Flag (z. B. `freigabe = PG-16`)
+- `@CONTEXT: <aspekt> = {vorgabe1, ...}` → inhaltliche/tonale Leitplanke (weich, prüfbar)
+- `@GUIDE: <hinweis>` → stilistische Leitlinie (weich, nicht hart prüfbar)
+
+**Bedingungen:**  
+- Regeln können Felder konditionieren, z. B.:  
+  `@RULE: if @FIELD:age=16 then @ALLOW: ...`  
+- Vergleich nur gegen **exakte** Feldwerte der Definitionen aus dem Manual (z. B. `age ∈ {12,16,18}`).
+
+---
+
+#### Priorität & Aggregation
+- **Priorität (von stark nach schwach):**  
+  `FORBID` ➜ `ALLOW_ONLY` ➜ `ALLOW` ➜ `SET` ➜ `CONTEXT/GUIDE`
+- **Aggregation über alle Kapitel (inkl. Plattform-Regeln):**  
+  Effektiv erlaubt = **Schnittmenge** aller Erlaubnisse; alles per `FORBID` ist **immer** ausgeschlossen.  
+  `ALLOW_ONLY` verengt die erlaubte Menge; mehrere `ALLOW_ONLY` bilden die **Schnittmenge** ihrer Mengen.
+
+---
+
+#### Wildcards & Token-Gleichheit
+- `*` (Stern) als **Wildcard** steht für „alle Werte der zugehörigen Auswahlliste“ eines Feldes.
+- **Token-Gleichheit:** Feldwerte müssen **1:1** zu den in den Listen (z. B. in 2.1) definierten Einträgen passen (Groß-/Kleinschreibung, Umlaute, Wortlaut). Abweichende Schreibweisen gelten als **nicht gematcht**.
+
+---
+
+#### Auswertungsreihenfolge (Pipeline)
+1) **Felder lesen** (`@FIELD:*`)  
+2) **AUTO ausführen** (`@AUTO:*`) und resultierende Felder/Listen auffüllen  
+3) **Kodex anwenden** (`@RULES:K*`) mit Bedingungen (`if @FIELD:...`)  
+4) **Konfliktlösung** nach Priorität & Aggregation (siehe oben)  
+5) **Weiche Vorgaben** (`@CONTEXT`/`@GUIDE`) als Stil-/Prüfhinweise beilegen
+
+---
+
+#### Fehlerbehandlung (Parser)
+- **Unbekanntes Feld** in `@AUTO: from=...` oder in `@RULE`: Warnung + Regel wird ignoriert.
+- **Wert nicht in Liste** bei `ALLOW/ALLOW_ONLY`: Warnung + Wert wird verworfen.
+- **Widerspruch** (z. B. `ALLOW` eines per `FORBID` gebannten Werts): `FORBID` gewinnt; Log schreibt Konflikt.
+
 
 ---
 # 2 Story-Builder
@@ -67,7 +117,10 @@ Es ist KI-modellunabhängig und wird als lebendes Dokument gepflegt.
 - **Alter (Auswahl)**  `@FIELD:age`
   
   [12 | 16 | 18]
-  
+
+- **Plattform (Auswahl)**  `@FIELD:platform`
+  [twitch | tiktok | youtube | other]
+
 - **Genre (Auswahl)**  `@FIELD:genre`
   
   [Abenteuer | Fantasy | Science-Fiction | Mystery | Krimi | Thriller | Horror | Drama | Liebesgeschichte | Komödie | Historisch | Western | Kriegsstory | Sport | Slice-of-Life | Familiengeschichte | Coming-of-Age | Politisches Drama | Justiz/Anwaltsstory | Medizin/Spital]
@@ -453,66 +506,94 @@ Es ist KI-modellunabhängig und wird als lebendes Dokument gepflegt.
 
 # 3. Übergreifende Normen (Kodex)
 
-# K1 Jugendschutz
-`@RULES:K1`
-> Alle Regeln sind bindend. Bezugspunkt: `@FIELD:age`.
+# K1 Gewalt & Hass `@RULES:K1`
 
 ## Regeln für age = 12
-- `@RULE: if age=12 then @FORBID: sexualisierte Inhalte`
-- `@RULE: if age=12 then @FORBID: exzessive Gewalt`
-- `@RULE: if age=12 then @FORBID: Kindeswohlgefährdung`
-- `@RULE: if age=12 then @ALLOW_ONLY: sprache = {neutral, humorvoll, ernsthaft}`
-- `@RULE: if age=12 then @ALLOW_ONLY: tonalitaet = {leicht, hoffnungsvoll, humorvoll}`
+- `@RULE: if @FIELD:age=12 then @FORBID: explizite Gewalt/Gore`
+- `@RULE: if @FIELD:age=12 then @ALLOW: Kämpfe = angedeutet`
+- `@RULE: if @FIELD:age=12 then @ALLOW_ONLY: Hass = {abstrakt}`
 
 ## Regeln für age = 16
-- `@RULE: if age=16 then @FORBID: sexualisierte Inhalte (explizit)`
-- `@RULE: if age=16 then @FORBID: exzessive Gewalt`
-- `@RULE: if age=16 then @ALLOW_ONLY: sprache = {neutral, umgangssprachlich, leichte Flüche}`
-- `@RULE: if age=16 then @ALLOW_ONLY: tonalitaet = {düster, spannend, humorvoll, tragisch}`
+- `@RULE: if @FIELD:age=16 then @ALLOW: leichte Gewalt mit Blut`
+- `@RULE: if @FIELD:age=16 then @ALLOW: psychologische Bedrohung`
+- `@RULE: if @FIELD:age=16 then @ALLOW_ONLY: Hass = {abstrakt, symbolisch}`
 
 ## Regeln für age = 18
-- `@RULE: if age=18 then @FORBID: Pornographie`
-- `@RULE: if age=18 then @FORBID: Gewaltverherrlichung`
-- `@RULE: if age=18 then @FORBID: diskriminierende Sprache`
-- `@RULE: if age=18 then @ALLOW: sprache = alle`
-- `@RULE: if age=18 then @ALLOW: tonalitaet = alle`
- 
+- `@RULE: if @FIELD:age=18 then @ALLOW: Gewalt = explizit`
+- `@RULE: if @FIELD:age=18 then @FORBID: Gewaltverherrlichung`
+- `@RULE: if @FIELD:age=18 then @FORBID: sexualisierte Gewalt`
+- `@RULE: if @FIELD:age=18 then @CONTEXT: Hass = {kritisch, verurteilend}`
 
-### K2: Altersfreigabe & Detailgrad
-- **ab 12:** PG-13 → Gewalt abstrakt, kein Sex, Sprache jugendfrei  
-- **ab 16:** PG-16 → moderate Gewalt, Sex angedeutet, moderate Schimpfwörter  
-- **ab 18:** PG-18 → explizite Gewalt (nicht verherrlichend), Sex angedeutet (keine Pornografie), Sprache frei (außer Hard Bans)  
 
-### K3: Entscheidungs-Filter
-- Keine Option darf Hard Bans (z. B. Folter, Vergewaltigung, Suizid-Anleitung) erzwingen  
-- Jede Entscheidung hat ≥ 1 ethisch vertretbare Option  
+# K2 Altersfreigabe & Detailgrad `@RULES:K2`
 
-### K4: Magie/Tech-Budget
-- Jede übernatürliche/technische Lösung hat Kosten  
-- Keine Allmacht, keine deus-ex-machina Lösungen  
+## Regeln für age = 12
+- `@RULE: if @FIELD:age=12 then @SET: freigabe = PG-13`
+- `@RULE: if @FIELD:age=12 then @ALLOW_ONLY: Gewalt = {abstrakt}`
+- `@RULE: if @FIELD:age=12 then @FORBID: Sex`
+- `@RULE: if @FIELD:age=12 then @ALLOW_ONLY: Sprache = {jugendfrei}`
 
-### K5: Bias-/Stereotypie-Limit
-- Keine Ethnie/Religion/Orientierung als Negativ-Trope  
-- Antagonisten über Motive, nicht Herkunft definieren  
-- Machtgefälle-Beziehungen nicht romantisieren  
+## Regeln für age = 16
+- `@RULE: if @FIELD:age=16 then @SET: freigabe = PG-16`
+- `@RULE: if @FIELD:age=16 then @ALLOW: Gewalt = moderat`
+- `@RULE: if @FIELD:age=16 then @ALLOW: Sex = angedeutet`
+- `@RULE: if @FIELD:age=16 then @ALLOW: Sprache = moderate Schimpfwörter`
 
-### K6: Kontinuität/Kausalität
-- Twists nur, wenn kausal logisch  
-- Entscheidungen behalten Wirkung, keine völlige Annulierung  
+## Regeln für age = 18
+- `@RULE: if @FIELD:age=18 then @SET: freigabe = PG-18`
+- `@RULE: if @FIELD:age=18 then @ALLOW: Gewalt = explizit`
+- `@RULE: if @FIELD:age=18 then @FORBID: Gewaltverherrlichung`
+- `@RULE: if @FIELD:age=18 then @ALLOW: Sex = angedeutet`  # keine Pornografie
+- `@RULE: if @FIELD:age=18 then @ALLOW: Sprache = frei`    # außer Hard Bans
 
-### K7: Sprache/Ton
-- Alters- & plattformabhängig  
-  - ab 12: keine Schimpfwörter  
-  - ab 16: leichte Schimpfwörter, keine Slurs  
-  - ab 18: starke Schimpfwörter möglich, aber keine diskriminierenden Slurs  
-- Plattformregeln setzen ggf. strengere Grenzen  
 
-### K8: Plattform-Safe
-- Plattform-AGB haben Priorität  
-- Twitch: kein Sex-Content, keine Drogen, kein „extreme gore“  
-- TikTok: strengere Sprache/Gewalt-Filter  
-- YouTube: mittlere Toleranz (zwischen Twitch & TikTok)  
-- (Weitere Plattformmodule erweiterbar)  
+# K3 Entscheidungs-Filter `@RULES:K3`
+- `@RULE: Keine Option darf Hard Bans (z. B. Folter, Vergewaltigung, Suizid-Anleitung) erzwingen`
+- `@RULE: Jede Entscheidung muss >= 1 ethisch vertretbare Option haben`
+
+
+# K4 Magie/Tech-Budget `@RULES:K4`
+- `@RULE: Jede übernatürliche/technische Lösung hat Kosten`
+- `@RULE: Keine Allmacht, keine deus-ex-machina Lösungen`
+
+
+# K5 Bias-/Stereotypie-Limit `@RULES:K5`
+- `@RULE: Keine Ethnie/Religion/Orientierung als Negativ-Trope`
+- `@RULE: Antagonisten über Motive, nicht über Herkunft definieren`
+- `@RULE: Machtgefälle-Beziehungen nicht romantisieren`
+
+
+# K6 Kontinuität/Kausalität `@RULES:K6`
+- `@RULE: Twists nur, wenn kausal logisch`
+- `@RULE: Entscheidungen behalten Wirkung, keine völlige Annulierung`
+
+
+# K7 Sprache/Ton `@RULES:K7`
+
+## Regeln für age = 12
+- `@RULE: if @FIELD:age=12 then @FORBID: Schimpfwörter`
+
+## Regeln für age = 16
+- `@RULE: if @FIELD:age=16 then @ALLOW: leichte Schimpfwörter`
+- `@RULE: if @FIELD:age=16 then @FORBID: Slurs`
+
+## Regeln für age = 18
+- `@RULE: if @FIELD:age=18 then @ALLOW: starke Schimpfwörter`
+- `@RULE: if @FIELD:age=18 then @FORBID: diskriminierende Slurs`
+
+### Plattformabhängig
+- `@RULE: Plattformregeln setzen ggf. strengere Grenzen`
+
+
+# K8 Plattform-Safe `@RULES:K8`
+- `@RULE: Plattform-AGB haben Priorität`
+- `@RULE: if @FIELD:platform=twitch then @FORBID: Sex-Content`
+- `@RULE: if @FIELD:platform=twitch then @FORBID: Drogen`
+- `@RULE: if @FIELD:platform=twitch then @FORBID: extreme Gore`
+- `@RULE: if @FIELD:platform=tiktok then @FORBID: strengere Sprache/Gewalt`
+- `@RULE: if @FIELD:platform=youtube then @ALLOW: mittlere Toleranz (zwischen Twitch & TikTok)`
+- `@RULE: (Weitere Plattformmodule erweiterbar)`
+
 
 ---
 
