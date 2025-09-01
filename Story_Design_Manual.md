@@ -451,12 +451,32 @@ Es ist KI-modellunabhängig und wird als lebendes Dokument gepflegt.
 
 ---
 
-## 3. Übergreifende Normen (Kodex)
+# 3. Übergreifende Normen (Kodex)
 
-### K1: Gewalt & Hass (altersabhängig)
-- **ab 12:** keine explizite Gewalt/Gore, Kämpfe angedeutet, Hass nur abstrakt  
-- **ab 16:** leichte Gewalt mit Blut möglich, psychologische Bedrohung, Hass abstrakt/symbolisch  
-- **ab 18:** Gewalt explizit, aber nicht verherrlichend, keine sexualisierte Gewalt, Hass nur kritisch  
+# K1 Jugendschutz
+`@RULES:K1`
+> Alle Regeln sind bindend. Bezugspunkt: `@FIELD:age`.
+
+## Regeln für age = 12
+- `@RULE: if age=12 then @FORBID: sexualisierte Inhalte`
+- `@RULE: if age=12 then @FORBID: exzessive Gewalt`
+- `@RULE: if age=12 then @FORBID: Kindeswohlgefährdung`
+- `@RULE: if age=12 then @ALLOW_ONLY: sprache = {neutral, humorvoll, ernsthaft}`
+- `@RULE: if age=12 then @ALLOW_ONLY: tonalitaet = {leicht, hoffnungsvoll, humorvoll}`
+
+## Regeln für age = 16
+- `@RULE: if age=16 then @FORBID: sexualisierte Inhalte (explizit)`
+- `@RULE: if age=16 then @FORBID: exzessive Gewalt`
+- `@RULE: if age=16 then @ALLOW_ONLY: sprache = {neutral, umgangssprachlich, leichte Flüche}`
+- `@RULE: if age=16 then @ALLOW_ONLY: tonalitaet = {düster, spannend, humorvoll, tragisch}`
+
+## Regeln für age = 18
+- `@RULE: if age=18 then @FORBID: Pornographie`
+- `@RULE: if age=18 then @FORBID: Gewaltverherrlichung`
+- `@RULE: if age=18 then @FORBID: diskriminierende Sprache`
+- `@RULE: if age=18 then @ALLOW: sprache = alle`
+- `@RULE: if age=18 then @ALLOW: tonalitaet = alle`
+ 
 
 ### K2: Altersfreigabe & Detailgrad
 - **ab 12:** PG-13 → Gewalt abstrakt, kein Sex, Sprache jugendfrei  
