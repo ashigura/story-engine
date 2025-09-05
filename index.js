@@ -103,23 +103,38 @@ function parseManualChapters(md) {
       assignOpt(group.options, currentSection, optInline.key, optInline.items);
     }
 
-    // B) FIELD-Zeilen
-    const mField = raw.match(/^\s*(?:[-*>]\s*)?`?@FIELD\s*:\s*([^`]+?)`?\s*(?:\([^)]+\))?\s*:\s*(.*)$/i);
-    if (mField) {
-      lastFieldKey = String(mField[1]).trim();
-      const key = mField[1];
-      const val = mField[2];
-      assignTo(group.data, currentSection, key, val);
-      continue;
-    }
+    // B1) FIELD-Zeilen (mit Wert direkt dahinter): @FIELD:key : value
+const mFieldWithValue = raw.match(/^\s*(?:[-*>]\s*)?`?@FIELD\s*:\s*([^`:\]]+?)`?\s*(?:\([^)]+\))?\s*:\s*(.+)$/i);
+if (mFieldWithValue) {
+  lastFieldKey = String(mFieldWithValue[1]).trim();
+  const key = mFieldWithValue[1];
+  const val = mFieldWithValue[2];
+  assignTo(group.data, currentSection, key, val);
+  continue;
+}
 
-    // C) Mehrzeilen-Options
-    const optMulti = extractOptionsMultiline(lastFieldKey, raw);
-    if (optMulti && group.options) {
-      assignOpt(group.options, currentSection, optMulti.key, optMulti.items);
-      lastFieldKey = null;
-      continue;
-    }
+// B2) FIELD-Definition OHNE Wert (nur „@FIELD:key“ – Definition für folgende [ ... ]-Zeile)
+const mFieldDefOnly = raw.match(/^\s*(?:[-*>]\s*)?`?@FIELD\s*:\s*([^`:\]]+?)`?(?:\s|$)/i);
+if (mFieldDefOnly) {
+  // nur merken, nicht in data schreiben
+  lastFieldKey = String(mFieldDefOnly[1]).trim();
+  // kein continue – denn die Zeile könnte zusätzlich Inline-Options enthalten
+}
+
+// C) Mehrzeilige Options direkt nach einem FIELD (egal ob mit/ohne Wert)
+const optMulti = extractOptionsMultiline(lastFieldKey, raw);
+if (optMulti && group.options) {
+  assignOpt(group.options, currentSection, optMulti.key, optMulti.items);
+  lastFieldKey = null;
+  continue;
+}
+
+// D) Inline-Options (bleibt wie bisher)
+const optInline = extractOptionsInline(raw);
+if (optInline && group.options) {
+  assignOpt(group.options, currentSection, optInline.key, optInline.items);
+}
+
 
     // Andere Zeile → Kette abbrechen
     if (!/^\s*\[/.test(raw)) lastFieldKey = null;
