@@ -1,66 +1,97 @@
-// ==== Manual Parser & Endpoint (drop-in) ====
-// direkt unter deinen require(...) Aufrufen einfügen:
+// ==== Manual Parser & Endpoint (mit Auswahlwerten) ====
 const fs = require("fs").promises;
 
-// @SECTION/@FIELD Parser – KEINE Normalisierung der Feldnamen
-function parseManual(md) {
+// Whitelist & Section-Kanonisierung (Kapitel 2.x nur)
+function canonSection(rawLine) {
+  if (!rawLine) return null;
+  const mInline = String(rawLine).match(/@SECTION\s*:\s*([A-Za-z0-9/_-]+)/i);
+  const id = (mInline ? mInline[1] : String(rawLine)).toLowerCase();
+  if (id.includes("storyframe"))     return "storyframe";
+  if (id.includes("canonworld") || id.includes("canon/world") || id.includes("canon")) return "canon";
+  if (id.includes("cast"))           return "cast";
+  if (id.includes("arcs"))           return "arcs";
+  if (id.includes("chapters"))       return "chapters";
+  if (id.includes("scenes"))         return "scenes";
+  if (id.includes("decisionpoints")) return "decisionpoints";
+  if (id.includes("outcomes"))       return "outcomes";
+  // alles andere (z. B. ParsingRules, Kodex) ignorieren
+  return null;
+}
+
+// KEY: Instanzdaten setzen – KEINE Umbenennung der Field-Namen
+function setKV(obj, keyRaw, valRaw) {
+  if (!obj) return;
+  const key = String(keyRaw).trim();
+  const val = String(valRaw).trim();
+  if (val === "") { obj[key] = ""; return; }
+  obj[key] = val.includes(",")
+    ? val.split(",").map(s => s.trim()).filter(Boolean)
+    : val;
+}
+
+// Extrahiert Auswahlwerte in [ … ] hinter @FIELD:…
+// Beispiel-Zeile: @FIELD:sprache: [deutsch | englisch]
+function extractOptionsLine(line) {
+  const m = line.match(/@FIELD\s*:\s*([^`:\]]+?)\s*(?:\([^)]+\))?\s*:\s*.*?\[([^\]]+)\]/i);
+  if (!m) return null;
+  const key = String(m[1]).trim();
+  const items = m[2].split(/[\|,]/).map(s => s.trim()).filter(Boolean);
+  return { key, items };
+}
+
+// Parser: Instanzdaten + Auswahlwerte
+function parseManualWithOptions(md) {
   const out = {
     policy_version: "1.0.0",
     storyframe: {},
     canon: {},
     limits: {},
     visual: {},
-    taboos: []
+    taboos: [],
+    options: { storyframe:{}, canon:{}, limits:{}, visual:{}, cast:{}, arcs:{}, chapters:{}, scenes:{}, decisionpoints:{}, outcomes:{} }
   };
 
   const lines = String(md || "").split(/\r?\n/);
   let currentSection = null;
-
-  // Zuordnung der SECTION → Zielobjekt
-  const targetForSection = (raw) => {
-    if (!raw) return null;
-    const s = raw.toLowerCase();
-    if (s.includes("2.1") || s.includes("storyframe")) return "storyframe";
-    if (s.includes("2.2") || s.includes("canon/world") || s.includes("canon")) return "canon";
-    if (s.includes("limits")) return "limits";
-    if (s.includes("visual")) return "visual";
-    if (s.includes("tabu")) return "taboos";
-    return null;
-  };
-
-  const setKV = (obj, keyRaw, valRaw) => {
-    if (!obj) return;
-    const key = String(keyRaw).trim();     // Feldnamen bleiben exakt wie im Manual
-    const val = String(valRaw).trim();
-    if (val === "") { obj[key] = ""; return; }
-    obj[key] = val.includes(",")
-      ? val.split(",").map(s => s.trim()).filter(Boolean)
-      : val;
-  };
+  let sectionKey = null;
 
   for (const raw of lines) {
     const line = raw.trim();
     if (!line) continue;
 
-    // SECTION: @SECTION:<name> oder Markdown-Heading "## …"
-    let m = line.match(/^@SECTION\s*:\s*(.+)$/i);
-    if (m) { currentSection = m[1].trim(); continue; }
-    m = line.match(/^#{1,6}\s+(.+)$/);
-    if (m) { currentSection = m[1].trim(); continue; }
+    // SECTION (eigene Zeile)
+    let m = raw.match(/^\s*@SECTION\s*:\s*(.+)$/i);
+    if (m) { currentSection = m[1].trim(); sectionKey = canonSection(currentSection); continue; }
 
-    // FIELD: `@FIELD:key` (optional) : value
-    m = line.match(/^`?@FIELD\s*:\s*([^`]+?)`?\s*(?:\([^)]+\))?\s*:\s*(.*)$/i);
-    if (m) {
-      const tgtName = targetForSection(currentSection);
+    // MD-Heading (## …) – holt auch inline @SECTION:… aus der Zeile
+    m = raw.match(/^\s*#{1,6}\s+(.+)$/);
+    if (m) { currentSection = m[1].trim(); sectionKey = canonSection(currentSection); }
+
+    // Auswahlwerte (Schema) – unabhängig davon, ob Instanzdaten in derselben Section stehen
+    const opt = extractOptionsLine(raw);
+    if (opt && sectionKey && out.options[sectionKey] && !out.options[sectionKey][opt.key]) {
+      out.options[sectionKey][opt.key] = opt.items;
+    }
+
+    // FIELD-Zeilen (Instanzdaten)
+    m = raw.match(/^\s*(?:[-*>]\s*)?`?@FIELD\s*:\s*([^`]+?)`?\s*(?:\([^)]+\))?\s*:\s*(.*)$/i);
+    if (m && sectionKey) {
       const tgt =
-        tgtName === "storyframe" ? out.storyframe :
-        tgtName === "canon"      ? out.canon :
-        tgtName === "limits"     ? out.limits :
-        tgtName === "visual"     ? out.visual :
-        tgtName === "taboos"     ? out : null;
+        sectionKey === "storyframe"     ? out.storyframe :
+        sectionKey === "canon"          ? out.canon :
+        sectionKey === "limits"         ? out.limits :
+        sectionKey === "visual"         ? out.visual :
+        sectionKey === "cast"           ? (out.cast ||= {}) :
+        sectionKey === "arcs"           ? (out.arcs ||= {}) :
+        sectionKey === "chapters"       ? (out.chapters ||= {}) :
+        sectionKey === "scenes"         ? (out.scenes ||= {}) :
+        sectionKey === "decisionpoints" ? (out.decisionpoints ||= {}) :
+        sectionKey === "outcomes"       ? (out.outcomes ||= {}) :
+        null;
 
-      if (tgtName === "taboos") {
-        const val = m[2].trim();
+      // Sonderfall: taboos als Liste (wenn es bei euch so vorkommt)
+      if (sectionKey === "taboos") {
+        const val = String(m[2]).trim();
         if (val) {
           const arr = val.includes(",") ? val.split(",").map(s=>s.trim()).filter(Boolean) : [val];
           out.taboos.push(...arr);
@@ -71,7 +102,7 @@ function parseManual(md) {
     }
   }
 
-  // Komfort: pitch_auto, wenn pitch leer oder fehlt
+  // Komfort: pitch_auto, wenn pitch leer/fehlt (nur in StoryFrame)
   if ("pitch" in out.storyframe) {
     const pv = String(out.storyframe["pitch"] || "").trim();
     if (!pv) { out.storyframe["pitch_auto"] = true; delete out.storyframe["pitch"]; }
@@ -81,6 +112,9 @@ function parseManual(md) {
 
   return out;
 }
+
+
+
 
 
 
@@ -2016,12 +2050,12 @@ app.get("/bridge/token", async (req, res) => {
   }
 });
 
-// GET /manual/json – liefert kompiliertes JSON aus der .md neben index.js
+// Endpoint liefert Instanzdaten + Auswahlwerte
 app.get("/manual/json", async (_req, res) => {
   try {
     const manualPath = process.env.MANUAL_PATH || path.join(__dirname, "Story_Design_Manual.md");
     const md = await fs.readFile(manualPath, "utf8");
-    const json = parseManual(md);
+    const json = parseManualWithOptions(md);
     res.json(json);
   } catch (err) {
     console.error("manual/json parse_failed:", err);
