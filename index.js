@@ -82,19 +82,7 @@ function parseManual(md) {
   return out;
 }
 
-// GET /manual/json – liefert kompiliertes JSON aus der .md neben index.js
-app.get("/manual/json", async (_req, res) => {
-  try {
-    const manualPath = process.env.MANUAL_PATH || path.join(__dirname, "Story_Design_Manual.md");
-    const md = await fs.readFile(manualPath, "utf8");
-    const json = parseManual(md);
-    res.json(json);
-  } catch (err) {
-    console.error("manual/json parse_failed:", err);
-    res.status(500).json({ error: "parse_failed", detail: String(err) });
-  }
-});
-// ==== /Manual Parser & Endpoint ====
+
 
 
 
@@ -2028,6 +2016,19 @@ app.get("/bridge/token", async (req, res) => {
   }
 });
 
+// GET /manual/json – liefert kompiliertes JSON aus der .md neben index.js
+app.get("/manual/json", async (_req, res) => {
+  try {
+    const manualPath = process.env.MANUAL_PATH || path.join(__dirname, "Story_Design_Manual.md");
+    const md = await fs.readFile(manualPath, "utf8");
+    const json = parseManual(md);
+    res.json(json);
+  } catch (err) {
+    console.error("manual/json parse_failed:", err);
+    res.status(500).json({ error: "parse_failed", detail: String(err) });
+  }
+});
+// ==== /Manual Parser & Endpoint ====
 
 
 // Bridge Start – nutzt DB-Token + Auto-Refresh
