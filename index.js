@@ -1,5 +1,5 @@
-// ==== Manual Parser & Endpoint (Kapitel-Whitelist 2–5, freie Sektionen) ====
-const fs = require("fs").promises; // "path" ist bereits im File vorhanden
+// ==== Manual Parser & Endpoint (Kapitel 2–5, freie Sektionen, Options + Kodex) ====
+const fs = require("fs").promises; // "path" existiert bereits in deiner index.js
 
 // CSV → Array; sonst String. Keys bleiben 1:1
 function kvAssign(obj, keyRaw, valRaw) {
@@ -27,9 +27,9 @@ function assignOpt(groupOpts, sectionKey, key, items) {
   if (!groupOpts[sect][key]) groupOpts[sect][key] = items;
 }
 
-// Inline-Options: @FIELD:... : ... [A | B, C]
+// Inline-Options: @FIELD:... : ... [A | B, C]  (kann irgendwo in der Zeile stehen)
 function extractOptionsInline(line) {
-  const m = String(line).match(/@FIELD\s*:\s*([^`:\]]+?)\s*(?:\([^)]+\))?\s*:\s*.*?\[([^\]]+)\]/i);
+  const m = String(line).match(/`?@FIELD\s*:\s*([^`:\]]+?)`?\s*(?:\([^)]+\))?\s*:\s*.*?\[([^\]]+)\]/i);
   if (!m) return null;
   const key = String(m[1]).trim();
   const items = m[2].split(/[\|,]/).map(s => s.trim()).filter(Boolean);
@@ -48,26 +48,35 @@ function extractOptionsMultiline(prevFieldKey, line) {
 function groupForChapter(out, chap) {
   switch (chap) {
     case 2: return out.story_frame;       // data, options
-    case 3: return out.story_limits;      // data, options
+    case 3: return out.story_limits;      // data, options (Regeln)
     case 4: return out.story_algorithmus; // data
     case 5: return out.story_visuals;     // data, options
     default: return null;
   }
 }
 
+// Kodex-Regeln (Kapitel 3) sammeln
+function pushRule(groupData, ruleset, op, payload) {
+  const sect = ruleset || "_rules";
+  if (!groupData[sect]) groupData[sect] = {};
+  if (!groupData[sect]._rules) groupData[sect]._rules = [];
+  groupData[sect]._rules.push({ op, value: payload });
+}
+
 function parseManualChapters(md) {
   const out = {
     policy_version: "1.1.0",
-    story_frame:       { data: {}, options: {} },
-    story_limits:      { data: {}, options: {} },
-    story_algorithmus: { data: {} },
-    story_visuals:     { data: {}, options: {} }
+    story_frame:       { data: {}, options: {} }, // Kapitel 2
+    story_limits:      { data: {}, options: {} }, // Kapitel 3 (Kodex)
+    story_algorithmus: { data: {} },              // Kapitel 4
+    story_visuals:     { data: {}, options: {} }  // Kapitel 5
   };
 
   const lines = String(md || "").split(/\r?\n/);
-  let currentChapter = null;     // 2..5
-  let currentSection = null;     // frei wählbar (oder _default)
-  let lastFieldKey = null;
+  let currentChapter = null;      // 2..5
+  let currentSection  = null;     // frei (oder _default)
+  let lastFieldKey    = null;     // für Mehrzeilen-Options
+  let currentRuleset  = null;     // z. B. "K1", "K2" in Kap.3
 
   const allowedChapters = new Set([2,3,4,5]);
 
@@ -82,61 +91,74 @@ function parseManualChapters(md) {
     // Nur Kapitel 2–5 parsen
     if (!allowedChapters.has(currentChapter)) continue;
 
-    // SECTION erkennen (eigene Zeile oder Heading mit Inline-Tag)
+    const group = groupForChapter(out, currentChapter);
+    if (!group) continue;
+
+    // SECTION erkennen (eigene Zeile oder Heading mit Inline-@SECTION)
     let m = raw.match(/^\s*@SECTION\s*:\s*(.+)$/i);
     if (m) { currentSection = m[1].trim(); continue; }
 
     m = raw.match(/^\s*#{1,6}\s+(.+)$/);
     if (m) {
-      // Heading kann einen Inline-@SECTION enthalten, wenn du das nutzt
-      const inline = m[1].match(/@SECTION\s*:\s*([A-Za-z0-9/_-]+)/i);
-      currentSection = inline ? inline[1].trim() : currentSection;
-      // (kein continue — die Zeile könnte auch Options enthalten)
+      const inlineSec = m[1].match(/@SECTION\s*:\s*([A-Za-z0-9/_-]+)/i);
+      if (inlineSec) currentSection = inlineSec[1].trim();
+      // kein continue; Zeile könnte außerdem Options/RULES enthalten
     }
 
-    const group = groupForChapter(out, currentChapter);
-    if (!group) continue;
+    // ---- Kapitel 3: Kodex-Regeln ----------------------------------------------------------------
+    if (currentChapter === 3) {
+      // @RULES:<id> (z. B. @RULES:K1)
+      const rulesHdr = raw.match(/@RULES\s*:\s*([A-Za-z0-9_-]+)/i);
+      if (rulesHdr) { currentRuleset = rulesHdr[1].trim(); /* weiter lesen */ }
 
-    // A) Inline Options
+      // @RULE / @FORBID / @ALLOW_ONLY / @ALLOW / @SET / @CONTEXT / @GUIDE
+      const ruleLine = raw.match(/@(RULE|FORBID|ALLOW_ONLY|ALLOW|SET|CONTEXT|GUIDE)\s*:\s*(.+)$/i);
+      if (ruleLine) {
+        const op = ruleLine[1].toUpperCase();
+        const payload = ruleLine[2].trim();
+        pushRule(group.data, currentRuleset, op, payload);
+        continue; // Regelzeile verarbeitet
+      }
+      // (fällt ansonsten durch zu Feldern/Optionen; selten in Kap.3)
+    }
+
+    // ---- Optionen (inline) – kann überall in der Zeile stehen -----------------------------------
     const optInline = extractOptionsInline(raw);
     if (optInline && group.options) {
       assignOpt(group.options, currentSection, optInline.key, optInline.items);
     }
 
-    // B1) FIELD-Zeilen (mit Wert direkt dahinter): @FIELD:key : value
-const mFieldWithValue = raw.match(/^\s*(?:[-*>]\s*)?`?@FIELD\s*:\s*([^`:\]]+?)`?\s*(?:\([^)]+\))?\s*:\s*(.+)$/i);
-if (mFieldWithValue) {
-  lastFieldKey = String(mFieldWithValue[1]).trim();
-  const key = mFieldWithValue[1];
-  const val = mFieldWithValue[2];
-  assignTo(group.data, currentSection, key, val);
-  continue;
-}
+    // ---- Felder (mit WERT): @FIELD:key : value – kann überall in der Zeile stehen ---------------
+    const mFieldWithValue = raw.match(/`?@FIELD\s*:\s*([^`:\]]+?)`?\s*(?:\([^)]+\))?\s*:\s*(.+)$/i);
+    if (mFieldWithValue) {
+      lastFieldKey = String(mFieldWithValue[1]).trim();
+      const key = mFieldWithValue[1];
+      const val = mFieldWithValue[2];
+      assignTo(group.data, currentSection, key, val);
+      continue;
+    }
 
-// B2) FIELD-Definition OHNE Wert (nur „@FIELD:key“ – Definition für folgende [ ... ]-Zeile)
-const mFieldDefOnly = raw.match(/^\s*(?:[-*>]\s*)?`?@FIELD\s*:\s*([^`:\]]+?)`?(?:\s|$)/i);
-if (mFieldDefOnly) {
-  // nur merken, nicht in data schreiben
-  lastFieldKey = String(mFieldDefOnly[1]).trim();
-  // kein continue – denn die Zeile könnte zusätzlich Inline-Options enthalten
-}
+    // ---- Feld-Definition OHNE Wert (nur @FIELD:key), für folgende [ ... ]-Zeile ------------------
+    const mFieldDefOnly = raw.match(/`?@FIELD\s*:\s*([^`:\]]+?)`?(?:\s|$)/i);
+    if (mFieldDefOnly) {
+      lastFieldKey = String(mFieldDefOnly[1]).trim();
+      // kein continue – Zeile könnte zusätzlich inline Options haben (bereits oben geparst)
+    }
 
-// C) Mehrzeilige Options direkt nach einem FIELD (egal ob mit/ohne Wert)
-const optMulti = extractOptionsMultiline(lastFieldKey, raw);
-if (optMulti && group.options) {
-  assignOpt(group.options, currentSection, optMulti.key, optMulti.items);
-  lastFieldKey = null;
-  continue;
-}
+    // ---- Mehrzeilen-Options (Zeile nach @FIELD) --------------------------------------------------
+    const optMulti = extractOptionsMultiline(lastFieldKey, raw);
+    if (optMulti && group.options) {
+      assignOpt(group.options, currentSection, optMulti.key, optMulti.items);
+      lastFieldKey = null;
+      continue;
+    }
 
-
-
-    // Andere Zeile → Kette abbrechen
+    // andere Zeile → Kette abbrechen
     if (!/^\s*\[/.test(raw)) lastFieldKey = null;
   }
 
-  // Komfortregel für Pitch in Kapitel 2 → SECTION "StoryFrame" (falls vorhanden)
-  const sf = out.story_frame.data["StoryFrame"] || out.story_frame.data["storyframe"] || out.story_frame.data["_default"];
+  // Komfortregel für Pitch in Kapitel 2 → SECTION "StoryFrame" (so wie es im Manual steht)
+  const sf = out.story_frame.data["StoryFrame"] || out.story_frame.data["_default"];
   if (sf) {
     if ("pitch" in sf) {
       const pv = String(sf["pitch"] || "").trim();
@@ -148,8 +170,6 @@ if (optMulti && group.options) {
 
   return out;
 }
-
-
 
 
 
@@ -2100,6 +2120,8 @@ app.get("/manual/json", async (_req, res) => {
   }
 });
 // ==== /Manual Parser & Endpoint ====
+
+
 
 
 
