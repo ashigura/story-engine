@@ -1,7 +1,6 @@
 // ==== Manual Parser & Endpoint (drop-in) ====
 // direkt unter deinen require(...) Aufrufen einfügen:
 const fs = require("fs").promises;
-const path = require("path");
 
 // @SECTION/@FIELD Parser – KEINE Normalisierung der Feldnamen
 function parseManual(md) {
