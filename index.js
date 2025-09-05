@@ -129,11 +129,6 @@ if (optMulti && group.options) {
   continue;
 }
 
-// D) Inline-Options (bleibt wie bisher)
-const optInline = extractOptionsInline(raw);
-if (optInline && group.options) {
-  assignOpt(group.options, currentSection, optInline.key, optInline.items);
-}
 
 
     // Andere Zeile → Kette abbrechen
