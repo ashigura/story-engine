@@ -5,7 +5,7 @@ Es ist KI-modellunabhängig und wird als lebendes Dokument gepflegt.
 
 ---
 
-## 1. Allgemeine Hinweise
+## 1. Allgemeine Hinweise @CHAPTER:1
 
 ### 1.1 Zweck
 - Generischer Baukasten für Stories
@@ -104,7 +104,7 @@ Es ist KI-modellunabhängig und wird als lebendes Dokument gepflegt.
 
 
 ---
-# 2 Story-Builder
+# 2 Storyframe-Builder @CHAPTER:2
 ## 2.1 StoryFrame `@SECTION:StoryFrame`
 
 ### **MUSS** `@REQUIRED`
@@ -504,7 +504,7 @@ Es ist KI-modellunabhängig und wird als lebendes Dokument gepflegt.
 
 ---
 
-# 3. Übergreifende Normen (Kodex)
+# 3. Übergreifende Normen (Kodex) @CHAPTER:3
 
 # K1 Gewalt & Hass `@RULES:K1`
 
@@ -610,3 +610,11 @@ Es ist KI-modellunabhängig und wird als lebendes Dokument gepflegt.
 - Modularer Kodex mit Alters- und Plattformregeln → Flexibilität + Kontrolle  
 - Twists integriert: über **Allgemeine Muster** oder **Generisch erzeugt**  
 - Dokument ist lebendiges Manual → erweiterbar für spätere Versionen
+
+---
+
+# 4. Story-Algorithmus Builder @CHAPTER:4
+
+---
+
+# 5. Story-Visuals Builder @CHAPTER:5
