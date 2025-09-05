@@ -1,3 +1,101 @@
+// ==== Manual Parser & Endpoint (drop-in) ====
+// direkt unter deinen require(...) Aufrufen einfügen:
+const fs = require("fs").promises;
+const path = require("path");
+
+// @SECTION/@FIELD Parser – KEINE Normalisierung der Feldnamen
+function parseManual(md) {
+  const out = {
+    policy_version: "1.0.0",
+    storyframe: {},
+    canon: {},
+    limits: {},
+    visual: {},
+    taboos: []
+  };
+
+  const lines = String(md || "").split(/\r?\n/);
+  let currentSection = null;
+
+  // Zuordnung der SECTION → Zielobjekt
+  const targetForSection = (raw) => {
+    if (!raw) return null;
+    const s = raw.toLowerCase();
+    if (s.includes("2.1") || s.includes("storyframe")) return "storyframe";
+    if (s.includes("2.2") || s.includes("canon/world") || s.includes("canon")) return "canon";
+    if (s.includes("limits")) return "limits";
+    if (s.includes("visual")) return "visual";
+    if (s.includes("tabu")) return "taboos";
+    return null;
+  };
+
+  const setKV = (obj, keyRaw, valRaw) => {
+    if (!obj) return;
+    const key = String(keyRaw).trim();     // Feldnamen bleiben exakt wie im Manual
+    const val = String(valRaw).trim();
+    if (val === "") { obj[key] = ""; return; }
+    obj[key] = val.includes(",")
+      ? val.split(",").map(s => s.trim()).filter(Boolean)
+      : val;
+  };
+
+  for (const raw of lines) {
+    const line = raw.trim();
+    if (!line) continue;
+
+    // SECTION: @SECTION:<name> oder Markdown-Heading "## …"
+    let m = line.match(/^@SECTION\s*:\s*(.+)$/i);
+    if (m) { currentSection = m[1].trim(); continue; }
+    m = line.match(/^#{1,6}\s+(.+)$/);
+    if (m) { currentSection = m[1].trim(); continue; }
+
+    // FIELD: `@FIELD:key` (optional) : value
+    m = line.match(/^`?@FIELD\s*:\s*([^`]+?)`?\s*(?:\([^)]+\))?\s*:\s*(.*)$/i);
+    if (m) {
+      const tgtName = targetForSection(currentSection);
+      const tgt =
+        tgtName === "storyframe" ? out.storyframe :
+        tgtName === "canon"      ? out.canon :
+        tgtName === "limits"     ? out.limits :
+        tgtName === "visual"     ? out.visual :
+        tgtName === "taboos"     ? out : null;
+
+      if (tgtName === "taboos") {
+        const val = m[2].trim();
+        if (val) {
+          const arr = val.includes(",") ? val.split(",").map(s=>s.trim()).filter(Boolean) : [val];
+          out.taboos.push(...arr);
+        }
+      } else {
+        setKV(tgt, m[1], m[2]);
+      }
+    }
+  }
+
+  // Komfort: pitch_auto, wenn pitch leer oder fehlt
+  if ("pitch" in out.storyframe) {
+    const pv = String(out.storyframe["pitch"] || "").trim();
+    if (!pv) { out.storyframe["pitch_auto"] = true; delete out.storyframe["pitch"]; }
+  } else {
+    out.storyframe["pitch_auto"] = true;
+  }
+
+  return out;
+}
+
+// GET /manual/json – liefert kompiliertes JSON aus der .md neben index.js
+app.get("/manual/json", async (_req, res) => {
+  try {
+    const manualPath = process.env.MANUAL_PATH || path.join(__dirname, "Story_Design_Manual.md");
+    const md = await fs.readFile(manualPath, "utf8");
+    const json = parseManual(md);
+    res.json(json);
+  } catch (err) {
+    console.error("manual/json parse_failed:", err);
+    res.status(500).json({ error: "parse_failed", detail: String(err) });
+  }
+});
+// ==== /Manual Parser & Endpoint ====
 
 
 
