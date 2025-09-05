@@ -1,25 +1,8 @@
-// ==== Manual Parser & Endpoint (mit Auswahlwerten) ====
-const fs = require("fs").promises;
+// ==== Manual Parser & Endpoint (Kapitel-Whitelist 2–5, freie Sektionen) ====
+const fs = require("fs").promises; // "path" ist bereits im File vorhanden
 
-// Whitelist & Section-Kanonisierung (Kapitel 2.x nur)
-function canonSection(rawLine) {
-  if (!rawLine) return null;
-  const mInline = String(rawLine).match(/@SECTION\s*:\s*([A-Za-z0-9/_-]+)/i);
-  const id = (mInline ? mInline[1] : String(rawLine)).toLowerCase();
-  if (id.includes("storyframe"))     return "storyframe";
-  if (id.includes("canonworld") || id.includes("canon/world") || id.includes("canon")) return "canon";
-  if (id.includes("cast"))           return "cast";
-  if (id.includes("arcs"))           return "arcs";
-  if (id.includes("chapters"))       return "chapters";
-  if (id.includes("scenes"))         return "scenes";
-  if (id.includes("decisionpoints")) return "decisionpoints";
-  if (id.includes("outcomes"))       return "outcomes";
-  // alles andere (z. B. ParsingRules, Kodex) ignorieren
-  return null;
-}
-
-// KEY: Instanzdaten setzen – KEINE Umbenennung der Field-Namen
-function setKV(obj, keyRaw, valRaw) {
+// CSV → Array; sonst String. Keys bleiben 1:1
+function kvAssign(obj, keyRaw, valRaw) {
   if (!obj) return;
   const key = String(keyRaw).trim();
   const val = String(valRaw).trim();
@@ -29,89 +12,133 @@ function setKV(obj, keyRaw, valRaw) {
     : val;
 }
 
-// Extrahiert Auswahlwerte in [ … ] hinter @FIELD:…
-// Beispiel-Zeile: @FIELD:sprache: [deutsch | englisch]
-function extractOptionsLine(line) {
-  const m = line.match(/@FIELD\s*:\s*([^`:\]]+?)\s*(?:\([^)]+\))?\s*:\s*.*?\[([^\]]+)\]/i);
+// data[section][key] = value
+function assignTo(groupData, sectionKey, key, val) {
+  const sect = sectionKey || "_default";
+  if (!groupData[sect]) groupData[sect] = {};
+  kvAssign(groupData[sect], key, val);
+}
+
+// options[section][key] = items[]
+function assignOpt(groupOpts, sectionKey, key, items) {
+  if (!Array.isArray(items) || !key) return;
+  const sect = sectionKey || "_default";
+  if (!groupOpts[sect]) groupOpts[sect] = {};
+  if (!groupOpts[sect][key]) groupOpts[sect][key] = items;
+}
+
+// Inline-Options: @FIELD:... : ... [A | B, C]
+function extractOptionsInline(line) {
+  const m = String(line).match(/@FIELD\s*:\s*([^`:\]]+?)\s*(?:\([^)]+\))?\s*:\s*.*?\[([^\]]+)\]/i);
   if (!m) return null;
   const key = String(m[1]).trim();
   const items = m[2].split(/[\|,]/).map(s => s.trim()).filter(Boolean);
   return { key, items };
 }
 
-// Parser: Instanzdaten + Auswahlwerte
-function parseManualWithOptions(md) {
+// Mehrzeilen-Options: (Zeile N: @FIELD:...)  (Zeile N+1: [A | B | C])
+function extractOptionsMultiline(prevFieldKey, line) {
+  if (!prevFieldKey) return null;
+  const m = String(line).match(/^\s*\[([^\]]+)\]\s*$/);
+  if (!m) return null;
+  const items = m[1].split(/[\|,]/).map(s => s.trim()).filter(Boolean);
+  return { key: prevFieldKey, items };
+}
+
+function groupForChapter(out, chap) {
+  switch (chap) {
+    case 2: return out.story_frame;       // data, options
+    case 3: return out.story_limits;      // data, options
+    case 4: return out.story_algorithmus; // data
+    case 5: return out.story_visuals;     // data, options
+    default: return null;
+  }
+}
+
+function parseManualChapters(md) {
   const out = {
-    policy_version: "1.0.0",
-    storyframe: {},
-    canon: {},
-    limits: {},
-    visual: {},
-    taboos: [],
-    options: { storyframe:{}, canon:{}, limits:{}, visual:{}, cast:{}, arcs:{}, chapters:{}, scenes:{}, decisionpoints:{}, outcomes:{} }
+    policy_version: "1.1.0",
+    story_frame:       { data: {}, options: {} },
+    story_limits:      { data: {}, options: {} },
+    story_algorithmus: { data: {} },
+    story_visuals:     { data: {}, options: {} }
   };
 
   const lines = String(md || "").split(/\r?\n/);
-  let currentSection = null;
-  let sectionKey = null;
+  let currentChapter = null;     // 2..5
+  let currentSection = null;     // frei wählbar (oder _default)
+  let lastFieldKey = null;
+
+  const allowedChapters = new Set([2,3,4,5]);
 
   for (const raw of lines) {
     const line = raw.trim();
     if (!line) continue;
 
-    // SECTION (eigene Zeile)
+    // Kapitel erkennen: @CHAPTER:<n> ODER MD-Heading "## 2. ..."
+    const mChap = raw.match(/^\s*@CHAPTER\s*:\s*(\d+)/i) || raw.match(/^\s*#{1,6}\s+(\d+)[\.\s]/);
+    if (mChap) { currentChapter = parseInt(mChap[1], 10); continue; }
+
+    // Nur Kapitel 2–5 parsen
+    if (!allowedChapters.has(currentChapter)) continue;
+
+    // SECTION erkennen (eigene Zeile oder Heading mit Inline-Tag)
     let m = raw.match(/^\s*@SECTION\s*:\s*(.+)$/i);
-    if (m) { currentSection = m[1].trim(); sectionKey = canonSection(currentSection); continue; }
+    if (m) { currentSection = m[1].trim(); continue; }
 
-    // MD-Heading (## …) – holt auch inline @SECTION:… aus der Zeile
     m = raw.match(/^\s*#{1,6}\s+(.+)$/);
-    if (m) { currentSection = m[1].trim(); sectionKey = canonSection(currentSection); }
-
-    // Auswahlwerte (Schema) – unabhängig davon, ob Instanzdaten in derselben Section stehen
-    const opt = extractOptionsLine(raw);
-    if (opt && sectionKey && out.options[sectionKey] && !out.options[sectionKey][opt.key]) {
-      out.options[sectionKey][opt.key] = opt.items;
+    if (m) {
+      // Heading kann einen Inline-@SECTION enthalten, wenn du das nutzt
+      const inline = m[1].match(/@SECTION\s*:\s*([A-Za-z0-9/_-]+)/i);
+      currentSection = inline ? inline[1].trim() : currentSection;
+      // (kein continue — die Zeile könnte auch Options enthalten)
     }
 
-    // FIELD-Zeilen (Instanzdaten)
-    m = raw.match(/^\s*(?:[-*>]\s*)?`?@FIELD\s*:\s*([^`]+?)`?\s*(?:\([^)]+\))?\s*:\s*(.*)$/i);
-    if (m && sectionKey) {
-      const tgt =
-        sectionKey === "storyframe"     ? out.storyframe :
-        sectionKey === "canon"          ? out.canon :
-        sectionKey === "limits"         ? out.limits :
-        sectionKey === "visual"         ? out.visual :
-        sectionKey === "cast"           ? (out.cast ||= {}) :
-        sectionKey === "arcs"           ? (out.arcs ||= {}) :
-        sectionKey === "chapters"       ? (out.chapters ||= {}) :
-        sectionKey === "scenes"         ? (out.scenes ||= {}) :
-        sectionKey === "decisionpoints" ? (out.decisionpoints ||= {}) :
-        sectionKey === "outcomes"       ? (out.outcomes ||= {}) :
-        null;
+    const group = groupForChapter(out, currentChapter);
+    if (!group) continue;
 
-      // Sonderfall: taboos als Liste (wenn es bei euch so vorkommt)
-      if (sectionKey === "taboos") {
-        const val = String(m[2]).trim();
-        if (val) {
-          const arr = val.includes(",") ? val.split(",").map(s=>s.trim()).filter(Boolean) : [val];
-          out.taboos.push(...arr);
-        }
-      } else {
-        setKV(tgt, m[1], m[2]);
-      }
+    // A) Inline Options
+    const optInline = extractOptionsInline(raw);
+    if (optInline && group.options) {
+      assignOpt(group.options, currentSection, optInline.key, optInline.items);
     }
+
+    // B) FIELD-Zeilen
+    const mField = raw.match(/^\s*(?:[-*>]\s*)?`?@FIELD\s*:\s*([^`]+?)`?\s*(?:\([^)]+\))?\s*:\s*(.*)$/i);
+    if (mField) {
+      lastFieldKey = String(mField[1]).trim();
+      const key = mField[1];
+      const val = mField[2];
+      assignTo(group.data, currentSection, key, val);
+      continue;
+    }
+
+    // C) Mehrzeilen-Options
+    const optMulti = extractOptionsMultiline(lastFieldKey, raw);
+    if (optMulti && group.options) {
+      assignOpt(group.options, currentSection, optMulti.key, optMulti.items);
+      lastFieldKey = null;
+      continue;
+    }
+
+    // Andere Zeile → Kette abbrechen
+    if (!/^\s*\[/.test(raw)) lastFieldKey = null;
   }
 
-  // Komfort: pitch_auto, wenn pitch leer/fehlt (nur in StoryFrame)
-  if ("pitch" in out.storyframe) {
-    const pv = String(out.storyframe["pitch"] || "").trim();
-    if (!pv) { out.storyframe["pitch_auto"] = true; delete out.storyframe["pitch"]; }
-  } else {
-    out.storyframe["pitch_auto"] = true;
+  // Komfortregel für Pitch in Kapitel 2 → SECTION "StoryFrame" (falls vorhanden)
+  const sf = out.story_frame.data["StoryFrame"] || out.story_frame.data["storyframe"] || out.story_frame.data["_default"];
+  if (sf) {
+    if ("pitch" in sf) {
+      const pv = String(sf["pitch"] || "").trim();
+      if (!pv) { sf["pitch_auto"] = true; delete sf["pitch"]; }
+    } else {
+      sf["pitch_auto"] = true;
+    }
   }
 
   return out;
 }
+
 
 
 
@@ -2050,12 +2077,12 @@ app.get("/bridge/token", async (req, res) => {
   }
 });
 
-// Endpoint liefert Instanzdaten + Auswahlwerte
+// Endpoint
 app.get("/manual/json", async (_req, res) => {
   try {
     const manualPath = process.env.MANUAL_PATH || path.join(__dirname, "Story_Design_Manual.md");
     const md = await fs.readFile(manualPath, "utf8");
-    const json = parseManualWithOptions(md);
+    const json = parseManualChapters(md);
     res.json(json);
   } catch (err) {
     console.error("manual/json parse_failed:", err);
@@ -2063,6 +2090,7 @@ app.get("/manual/json", async (_req, res) => {
   }
 });
 // ==== /Manual Parser & Endpoint ====
+
 
 
 // Bridge Start – nutzt DB-Token + Auto-Refresh
