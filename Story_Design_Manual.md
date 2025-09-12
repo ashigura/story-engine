@@ -668,7 +668,142 @@ Es ist KI-modellunabhängig und wird als lebendes Dokument gepflegt.
 
 ---
 
-# 4. Story-Algorithmus Builder @CHAPTER:4
+#4. Story-Algorithmus Builder @CHAPTER:4
+
+##4.1 Baustein 1 – Einleitung / Hook @SECTION:Hook
+
+### **MUSS** @REQUIRED
+- **Hook (1 Satz, frei)** @FIELD:hook
+- **Setup – Alltag des Protagonisten** @FIELD:setup  
+  automatisch generiert aus Cast‑ und Canon‑Feldern  
+  @AUTO:setup mode=synth from=protagonist_ziel,protagonist_need,protagonist_schwaeche,epoche_setting k=1 output=text format=text
+- **Zuschauerfrage (frei)** @FIELD:zuschauerfrage  
+  @TEXT_LENGTH: zuschauerfrage = 12  
+  @GUIDE: Zuschauerfrage offen formulieren; keine Lösung vorwegnehmen.
+
+### OPTIONAL @OPTIONAL
+- **Hook‑Stil (Auswahl)** @FIELD:hook_stil  
+  [Überraschend | Fragend | Bildhaft | Aktion | Zitat | Humor]
+- **Hook‑Inspiration (Liste)** @FIELD:hook_inspiration  
+  automatisch generiert aus Genre, Tonalität und Themenmotive  
+  @AUTO:hook_inspiration mode=lookup from=genre,tonalitaet,themenmotive k=3 output=bullets format=list
+
+---
+
+##4.2 Baustein 2 – Charaktere & Setting @SECTION:CharactersSetting
+
+### **MUSS** @REQUIRED
+- **Protagonisten‑Vorstellung (1–2 Sätze)** @FIELD:char_intro  
+  automatisch generiert aus Cast‑Feldern  
+  @AUTO:char_intro mode=synth from=protagonist_ziel,protagonist_need,protagonist_schwaeche k=1 output=text format=text
+- **Antagonisten‑Vorstellung (1–2 Sätze)** @FIELD:antagonist_intro  
+  automatisch generiert aus Cast‑Feldern  
+  @AUTO:antagonist_intro mode=synth from=antagonist_gegenziel,antagonist_bedrohung,antagonist_limit k=1 output=text format=text
+- **Orts‑ und Zeitrahmen (1 Satz)** @FIELD:setting_description  
+  automatisch generiert aus Canon/World  
+  @AUTO:setting_description mode=synth from=epoche_setting,tech_magie_level,weltregeln k=1 output=text format=text
+
+### OPTIONAL @OPTIONAL
+- **Nebenfiguren (Liste)** @FIELD:side_characters  
+  automatisch generiert oder manuell ergänzbar  
+  @AUTO:side_characters mode=synth from=genre,themenmotive k=3 output=bullets format=list
+- **Setting‑Details (Liste)** @FIELD:setting_details  
+  automatisch generiert aus Canon/World  
+  @AUTO:setting_details mode=synth from=epoche_setting,tech_magie_level,weltmotive k=3 output=bullets format=list
+
+@GUIDE: Beschreibungen sollen klar sein und neugierig machen, ohne spätere Wendungen vorwegzunehmen.
+
+---
+
+##4.3 Baustein 3 – Konflikt / Auslöser @SECTION:Conflict
+
+### **MUSS** @REQUIRED
+- **Auslöser (1–2 Sätze)** @FIELD:ausloeser  
+  automatisch generiert aus Cast‑Konflikt und Storyframe  
+  @AUTO:ausloeser mode=synth from=konflikt,protagonist_ziel,antagonist_gegenziel k=1 output=text format=text
+- **Zentrale Bedrohung oder Zielkonflikt (1 Satz)** @FIELD:hauptkonflikt  
+  automatisch generiert aus Cast‑Feldern  
+  @AUTO:hauptkonflikt mode=synth from=konflikt,antagonist_bedrohung,antagonist_limit k=1 output=text format=text
+- **Einsatz / Stakes (1 Satz)** @FIELD:stakes  
+  automatisch generiert aus Protagonist‑Ziel, Need und Weltregeln  
+  @AUTO:stakes mode=synth from=protagonist_ziel,protagonist_need,weltregeln k=1 output=text format=text
+
+### OPTIONAL @OPTIONAL
+- **Foreshadowing‑Elemente (Liste)** @FIELD:foreshadowing  
+  automatisch generiert aus Genre und Themenmotive  
+  @AUTO:foreshadowing mode=synth from=genre,themenmotive k=2 output=bullets format=list
+
+@GUIDE: Der Auslöser sollte klar den normalen Alltag beenden und die Handlung in Gang setzen, ohne den gesamten Plot vorwegzunehmen.
+
+---
+
+##4.4 Baustein 4 – Steigende Aktion / Twists @SECTION:RisingAction
+
+### **MUSS** @REQUIRED
+- **Steigende Handlung (Bullets)** @FIELD:rising_action  
+  automatisch generiert aus Haupt‑ und Nebenarcs  
+  @AUTO:rising_action mode=synth from=hauptarc,nebenarcs,konflikt k=3 output=bullets format=list
+- **Twists / Wendepunkte (Liste)** @FIELD:twist_points  
+  automatisch generiert aus Twist‑Arcs (Muster + generisch) und Konflikt  
+  @AUTO:twist_points mode=synth from=twist_arcs_muster,twist_arcs_generisch,konflikt k=2 output=bullets format=list
+- **Eskalationslevel (Zahl)** @FIELD:escalation_level  
+  automatisch bestimmt anhand der Anzahl und Intensität der Konflikte  
+  @AUTO:escalation_level mode=number from=rising_action,twist_points k=1 output=number format=number
+
+### OPTIONAL @OPTIONAL
+- **Entscheidungspunkte (Liste)** @FIELD:choice_points  
+  automatisch generiert aus den Twist‑Arcs und Zuschauerbeteiligung  
+  @AUTO:choice_points mode=synth from=twist_arcs_generisch,genre k=2 output=bullets format=list
+- **Twist‑Teaser (optional)** @FIELD:twist_teaser  
+  automatisch generiert aus Genre und Themenmotive, um Neugier zu wecken  
+  @AUTO:twist_teaser mode=lookup from=genre,themenmotive k=2 output=text format=text
+
+@GUIDE: Die steigende Handlung soll die Spannung kontinuierlich erhöhen; jeder Twist sollte logisch auf zuvor etablierten Konflikten aufbauen, ohne deus‑ex‑machina‑Lösungen.
+
+---
+
+##4.5 Baustein 5 – Klimax / Höhepunkt @SECTION:Climax
+
+### **MUSS** @REQUIRED
+- **Klimax‑Szene (1–2 Sätze)** @FIELD:climax_scene  
+  automatisch generiert aus Hauptarc, Stakes und Twist‑Punkten  
+  @AUTO:climax_scene mode=synth from=hauptarc,stakes,twist_points k=1 output=text format=text
+- **Entscheidender Schlag / Finale Konfrontation** @FIELD:finale_konfrontation  
+  automatisch generiert aus Konflikt und Antagonisten‑Feldern  
+  @AUTO:finale_konfrontation mode=synth from=konflikt,antagonist_bedrohung,antagonist_limit k=1 output=text format=text
+- **Ergebnis / Auflösung des Konflikts** @FIELD:conflict_resolution  
+  automatisch generiert aus Klimax‑Szene und Zielen von Protagonist und Antagonist  
+  @AUTO:conflict_resolution mode=synth from=climax_scene,protagonist_ziel,antagonist_gegenziel k=1 output=text format=text
+
+### OPTIONAL @OPTIONAL
+- **Letzter Twist (optional)** @FIELD:last_twist  
+  automatisch generiert aus Twist‑Arcs und Stakes  
+  @AUTO:last_twist mode=synth from=twist_arcs_generisch,stakes k=1 output=text format=text
+
+@GUIDE: Die Klimax‑Szene sollte den höchsten Spannungszustand der Story darstellen; sie muss aus der bisher aufgebauten Handlung hervorgehen und den Konflikt klar entscheiden.
+
+---
+
+##4.6 Baustein 6 – Auflösung / Denouement @SECTION:Resolution
+
+### **MUSS** @REQUIRED
+- **Auflösungs‑Szene (1–2 Sätze)** @FIELD:resolution_scene  
+  automatisch generiert aus der Konfliktauflösung und dem Hauptarc  
+  @AUTO:resolution_scene mode=synth from=conflict_resolution,hauptarc k=1 output=text format=text
+- **Endzustand der Figuren (1 Satz)** @FIELD:end_state  
+  automatisch generiert aus Protagonisten‑Zielen, Antagonisten‑Limit und Stakes  
+  @AUTO:end_state mode=synth from=protagonist_ziel,antagonist_limit,stakes k=1 output=text format=text
+
+### OPTIONAL @OPTIONAL
+- **Epilog / Ausblick** @FIELD:epilog  
+  automatisch generiert aus Genre und Themenmotive, optional mit Cliffhanger  
+  @AUTO:epilog mode=synth from=genre,themenmotive k=1 output=text format=text
+- **Letztes Bild / Symbol** @FIELD:closing_image  
+  automatisch generiert aus Setting‑Motiven oder dem Leitmotiv der Story  
+  @AUTO:closing_image mode=lookup from=weltmotive,themenmotive k=1 output=text format=text
+
+@GUIDE: Die Auflösung sollte offene Fragen beantworten oder bewusst offen lassen, je nach Genre; sie bildet den emotionalen Schlusspunkt der Geschichte.
+
 
 ---
 
