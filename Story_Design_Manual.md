@@ -814,9 +814,9 @@ Es ist KI-modellunabhängig und wird als lebendes Dokument gepflegt.
 
 ### **MUSS** `@REQUIRED`
 - **Stabiles Fundament** `@FIELD:foundation = [hook, setup, konflikt]`
-- **Pflichtbeats (pro Story; 1–2 empfohlen)** `@FIELD:mandatory_beats`
-  Auswahl (Mehrfachwahl erlaubt):  
-  [Protagonist verlässt Heimat | Mentor fällt aus | Auftrag wird erteilt | Einladung in neue Welt | Verrat durch Vertrauensperson]
+- **Pflichtbeats (pro Story; 1–2 empfohlen)** `@FIELD:mandatory_beats`  
+  Auswahl (Mehrfachwahl erlaubt): [Protagonist verlässt Heimat | Mentor fällt aus | Auftrag wird erteilt | Einladung in neue Welt | Verrat durch Vertrauensperson | Verlust einer wichtigen Figur | Antagonist offenbart sich | Erste große Niederlage | Erster großer Sieg | Unerwartete Begegnung | Geheimnis wird enthüllt | Verrat innerhalb der Gruppe | Opfer für das größere Ganze | Konfrontation mit innerer Schwäche | Weltregel wird aktiv sichtbar | Entscheidungspunkt ohne Rückkehr | Antagonist kurz vor Sieg | Rettung in letzter Minute | Wiederkehr einer totgeglaubten Figur | Finale Entscheidung des Helden]
+
 
 - **Verknüpfung zu Kap. 2/4**  
   `@AUTO:foundation mode=assert from=4.1,4.2,4.3 k=3 output=flag format=bool`
@@ -835,16 +835,16 @@ Es ist KI-modellunabhängig und wird als lebendes Dokument gepflegt.
 - **Nebenfiguren-Slots** `@FIELD:sidechar_slots = {min:1, max:3}`
 - **Flavor/Micro-Events** `@FIELD:flavor_slots = {min:1, max:2}`
 
-- **Twist-Katalog (generisch)** `@FIELD:twist_catalog`
-  Auswahl (Mehrfachwahl erlaubt):  
-  [Verrat | Falscher Verdacht | Verdeckter Antagonist | Innere Sabotage | Unerwartete Hilfe | Zeitdruck plötzlich erhöht | Ressourcen fallen aus]
+- **Twist-Katalog (generisch)** `@FIELD:twist_catalog`  
+  Auswahl (Mehrfachwahl erlaubt): [Verrat durch Vertrauensperson | Falscher Verdacht | Verdeckter Antagonist | Innere Sabotage | Unerwartete Hilfe | Zeitdruck plötzlich erhöht | Ressourcen fallen aus | Wiederkehr einer totgeglaubten Figur | Geheimnis wird enthüllt | Falsche Identität | Machtwechsel | Verlagerung des Ziels | Verrückte Enthüllung über die Weltregeln | Opfer für das größere Ganze | Innere Verbindung | Neue Bedrohung | Doppelte Täuschung | Verlorene Hoffnung | Kettenreaktion | Moralisches Dilemma]
+
 
 - **Surprise-Branch-Rate** `@FIELD:surprise_branch_rate = 0.10`  # 10%
 
 ### OPTIONAL `@OPTIONAL`
-- **Sidekick-Funktionen (Gewichtung)** `@FIELD:sidekick_roles`
-  Auswahl (Mehrfachwahl + Gewichtung):  
-  [Humor | Welterklärung | Plot-Hilfe | Moralischer Kompass]
+- **Sidekick-Funktionen (Gewichtung)** `@FIELD:sidekick_roles`  
+  Auswahl (Mehrfachwahl + Gewichtung): [Humor | Welterklärung | Plot-Hilfe | Moralischer Kompass | Kämpferische Unterstützung | Mentorenrolle | Technisches/ Magisches Wissen | Spion/Informationsbeschaffer | Loyaler Begleiter | Skeptiker/Realist | Love-Interest | Verräter (potenziell) | Stimme der Vernunft | Beschützer | Verbindung zur Außenwelt | Emotionaler Spiegel | Schwächling (der Witzfigur) | Anführer-Ersatz | Komischer Zufallsgenerator | Unerwarteter Held]
+
 
 ### Verknüpfung/Generierung
 - `@AUTO:twist_points mode=synth from=genre,konflikt,twist_catalog k=twist_slots.max output=bullets format=list`
