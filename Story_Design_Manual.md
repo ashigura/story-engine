@@ -58,13 +58,15 @@ Es ist KI-modellunabhängig und wird als lebendes Dokument gepflegt.
 
 ---
 
-#### Kodex-Operatoren (K1–K8)
+#### Operatoren
 - `@FORBID: <Begriff>` → strikt verboten (Hard Ban)
 - `@ALLOW_ONLY: <feld> = {wert1, wert2, ...}` → Whitelist (nur diese Werte erlaubt)
 - `@ALLOW: <feld> = <wert>` → Wert ist explizit erlaubt (sofern nicht durch Whitelist/FORBID ausgeschlossen)
 - `@SET: <key> = <value>` → setzt ein Kontext-Flag (z. B. `freigabe = PG-16`)
 - `@CONTEXT: <aspekt> = {vorgabe1, ...}` → inhaltliche/tonale Leitplanke (weich, prüfbar)
 - `@GUIDE: <hinweis>` → stilistische Leitlinie (weich, nicht hart prüfbar)
+- `@LENGTH: <feld> = <value>` → Begrenzt die Länge eines Feldes
+- `@TEXTLENGTH: <feld> = <value>` → Begrenzt die Anzahl der Wörter eines Textes. 
 
 **Bedingungen:**  
 - Regeln können Felder konditionieren, z. B.:  
@@ -90,10 +92,11 @@ Es ist KI-modellunabhängig und wird als lebendes Dokument gepflegt.
 
 #### Auswertungsreihenfolge (Pipeline)
 1) **Felder lesen** (`@FIELD:*`)  
-2) **AUTO ausführen** (`@AUTO:*`) und resultierende Felder/Listen auffüllen  
-3) **Kodex anwenden** (`@RULES:K*`) mit Bedingungen (`if @FIELD:...`)  
-4) **Konfliktlösung** nach Priorität & Aggregation (siehe oben)  
-5) **Weiche Vorgaben** (`@CONTEXT`/`@GUIDE`) als Stil-/Prüfhinweise beilegen
+2) **AUTO ausführen** (`@AUTO:*`) und resultierende Felder/Listen auffüllen
+3) **Längenregeln** (@LENGTH:*`, @TEXT_LENGTH:*`) prüfen und überlange Feldinhalte kürzen oder kennzeichnen“
+4) **Kodex anwenden** (`@RULES:K*`) mit Bedingungen (`if @FIELD:...`)  
+5) **Konfliktlösung** nach Priorität & Aggregation (siehe oben)  
+6) **Weiche Vorgaben** (`@CONTEXT`/`@GUIDE`) als Stil-/Prüfhinweise beilegen
 
 ---
 
