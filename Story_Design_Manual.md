@@ -600,6 +600,68 @@ Es ist KI-modellunabhängig und wird als lebendes Dokument gepflegt.
 - `@RULE: if @FIELD:platform=youtube then @ALLOW: mittlere Toleranz (zwischen Twitch & TikTok)`
 - `@RULE: (Weitere Plattformmodule erweiterbar)`
 
+---
+
+# K9 Genre-Limit und Kombinationsverbote `@RULES:K9`
+
+- `@RULE: if @FIELD:genre[3]=* then @FORBID:genre[3]=*`
+
+- `@RULE: if @FIELD:genre[0]=Abenteuer then @FORBID:genre[1]=Justiz/Anwaltsstory`
+- `@RULE: if @FIELD:genre[0]=Justiz/Anwaltsstory then @FORBID:genre[1]=Abenteuer`
+
+- `@RULE: if @FIELD:genre[0]=Abenteuer then @FORBID:genre[1]=Medizin/Spital`
+- `@RULE: if @FIELD:genre[0]=Medizin/Spital then @FORBID:genre[1]=Abenteuer`
+
+- `@RULE: if @FIELD:genre[0]=Fantasy then @FORBID:genre[1]=Justiz/Anwaltsstory`
+- `@RULE: if @FIELD:genre[0]=Justiz/Anwaltsstory then @FORBID:genre[1]=Fantasy`
+
+- `@RULE: if @FIELD:genre[0]=Fantasy then @FORBID:genre[1]=Medizin/Spital`
+- `@RULE: if @FIELD:genre[0]=Medizin/Spital then @FORBID:genre[1]=Fantasy`
+
+- `@RULE: if @FIELD:genre[0]=Fantasy then @FORBID:genre[1]=Politisches Drama`
+- `@RULE: if @FIELD:genre[0]=Politisches Drama then @FORBID:genre[1]=Fantasy`
+
+- `@RULE: if @FIELD:genre[0]=Horror then @FORBID:genre[1]=Sport`
+- `@RULE: if @FIELD:genre[0]=Sport then @FORBID:genre[1]=Horror`
+
+- `@RULE: if @FIELD:genre[0]=Horror then @FORBID:genre[1]=Western`
+- `@RULE: if @FIELD:genre[0]=Western then @FORBID:genre[1]=Horror`
+
+- `@RULE: if @FIELD:genre[0]=Komödie then @FORBID:genre[1]=Justiz/Anwaltsstory`
+- `@RULE: if @FIELD:genre[0]=Justiz/Anwaltsstory then @FORBID:genre[1]=Komödie`
+
+- `@RULE: if @FIELD:genre[0]=Komödie then @FORBID:genre[1]=Kriegsstory`
+- `@RULE: if @FIELD:genre[0]=Kriegsstory then @FORBID:genre[1]=Komödie`
+
+- `@RULE: if @FIELD:genre[0]=Komödie then @FORBID:genre[1]=Medizin/Spital`
+- `@RULE: if @FIELD:genre[0]=Medizin/Spital then @FORBID:genre[1]=Komödie`
+
+- `@RULE: if @FIELD:genre[0]=Komödie then @FORBID:genre[1]=Politisches Drama`
+- `@RULE: if @FIELD:genre[0]=Politisches Drama then @FORBID:genre[1]=Komödie`
+
+- `@RULE: if @FIELD:genre[0]=Liebesgeschichte then @FORBID:genre[1]=Kriegsstory`
+- `@RULE: if @FIELD:genre[0]=Kriegsstory then @FORBID:genre[1]=Liebesgeschichte`
+
+- `@RULE: if @FIELD:genre[0]=Liebesgeschichte then @FORBID:genre[1]=Sport`
+- `@RULE: if @FIELD:genre[0]=Sport then @FORBID:genre[1]=Liebesgeschichte`
+
+- `@RULE: if @FIELD:genre[0]=Western then @FORBID:genre[1]=Medizin/Spital`
+- `@RULE: if @FIELD:genre[0]=Medizin/Spital then @FORBID:genre[1]=Western`
+
+- `@RULE: if @FIELD:genre[0]=Fantasy then @FORBID:genre[1]=Kriegsstory`
+- `@RULE: if @FIELD:genre[0]=Kriegsstory then @FORBID:genre[1]=Fantasy`
+
+- `@RULE: if @FIELD:genre[0]=Horror then @FORBID:genre[1]=Justiz/Anwaltsstory`
+- `@RULE: if @FIELD:genre[0]=Justiz/Anwaltsstory then @FORBID:genre[1]=Horror`
+
+- `@RULE: if @FIELD:genre[0]=Horror then @FORBID:genre[1]=Politisches Drama`
+- `@RULE: if @FIELD:genre[0]=Politisches Drama then @FORBID:genre[1]=Horror`
+
+- `@RULE: if @FIELD:genre[0]=Kriegsstory then @FORBID:genre[1]=Medizin/Spital`
+- `@RULE: if @FIELD:genre[0]=Medizin/Spital then @FORBID:genre[1]=Kriegsstory`
+
+- `@RULE: if @FIELD:genre[0]=Sport then @FORBID:genre[1]=Medizin/Spital`
+- `@RULE: if @FIELD:genre[0]=Medizin/Spital then @FORBID:genre[1]=Sport`
 
 ---
 
