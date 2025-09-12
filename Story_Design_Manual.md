@@ -668,9 +668,9 @@ Es ist KI-modellunabhängig und wird als lebendes Dokument gepflegt.
 
 ---
 
-#4. Story-Algorithmus Builder @CHAPTER:4
+# 4. Story-Algorithmus Builder @CHAPTER:4
 
-##4.1 Baustein 1 – Einleitung / Hook @SECTION:Hook
+## 4.1 Baustein 1 – Einleitung / Hook @SECTION:Hook
 
 ### **MUSS** @REQUIRED
 - **Hook (1 Satz, frei)** @FIELD:hook
@@ -690,7 +690,7 @@ Es ist KI-modellunabhängig und wird als lebendes Dokument gepflegt.
 
 ---
 
-##4.2 Baustein 2 – Charaktere & Setting @SECTION:CharactersSetting
+## 4.2 Baustein 2 – Charaktere & Setting @SECTION:CharactersSetting
 
 ### **MUSS** @REQUIRED
 - **Protagonisten‑Vorstellung (1–2 Sätze)** @FIELD:char_intro  
@@ -715,7 +715,7 @@ Es ist KI-modellunabhängig und wird als lebendes Dokument gepflegt.
 
 ---
 
-##4.3 Baustein 3 – Konflikt / Auslöser @SECTION:Conflict
+## 4.3 Baustein 3 – Konflikt / Auslöser @SECTION:Conflict
 
 ### **MUSS** @REQUIRED
 - **Auslöser (1–2 Sätze)** @FIELD:ausloeser  
@@ -737,7 +737,7 @@ Es ist KI-modellunabhängig und wird als lebendes Dokument gepflegt.
 
 ---
 
-##4.4 Baustein 4 – Steigende Aktion / Twists @SECTION:RisingAction
+## 4.4 Baustein 4 – Steigende Aktion / Twists @SECTION:RisingAction
 
 ### **MUSS** @REQUIRED
 - **Steigende Handlung (Bullets)** @FIELD:rising_action  
@@ -762,7 +762,7 @@ Es ist KI-modellunabhängig und wird als lebendes Dokument gepflegt.
 
 ---
 
-##4.5 Baustein 5 – Klimax / Höhepunkt @SECTION:Climax
+## 4.5 Baustein 5 – Klimax / Höhepunkt @SECTION:Climax
 
 ### **MUSS** @REQUIRED
 - **Klimax‑Szene (1–2 Sätze)** @FIELD:climax_scene  
@@ -784,7 +784,7 @@ Es ist KI-modellunabhängig und wird als lebendes Dokument gepflegt.
 
 ---
 
-##4.6 Baustein 6 – Auflösung / Denouement @SECTION:Resolution
+## 4.6 Baustein 6 – Auflösung / Denouement @SECTION:Resolution
 
 ### **MUSS** @REQUIRED
 - **Auflösungs‑Szene (1–2 Sätze)** @FIELD:resolution_scene  
