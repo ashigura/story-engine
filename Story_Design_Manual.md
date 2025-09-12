@@ -808,4 +808,103 @@ Es ist KI-modellunabhängig und wird als lebendes Dokument gepflegt.
 
 ---
 
-# 5. Story-Visuals Builder @CHAPTER:5
+#5. Story-Aufbau & Variabilität @CHAPTER:5
+
+##5.1 Rahmen & Pflichtbeats @SECTION:StructureFrame
+
+### **MUSS** `@REQUIRED`
+- **Stabiles Fundament** `@FIELD:foundation = [hook, setup, konflikt]`
+- **Pflichtbeats (pro Story; 1–2 empfohlen)** `@FIELD:mandatory_beats`
+  Auswahl (Mehrfachwahl erlaubt):  
+  [Protagonist verlässt Heimat | Mentor fällt aus | Auftrag wird erteilt | Einladung in neue Welt | Verrat durch Vertrauensperson]
+
+- **Verknüpfung zu Kap. 2/4**  
+  `@AUTO:foundation mode=assert from=4.1,4.2,4.3 k=3 output=flag format=bool`
+
+### Regeln `@RULES:StructureFrame`
+- `@RULE: if not all(foundation in StoryState) then @FORCE:generate:foundation`
+- `@RULE: each @FIELD:mandatory_beats must be inserted before @FIELD:rising_action`
+- `@RULE: if count(@FIELD:mandatory_beats) = 0 then @FORBID:rising_action`
+
+---
+
+##5.2 Generische Slots @SECTION:GenericSlots
+
+### **MUSS** `@REQUIRED`
+- **Twist-Slots** `@FIELD:twist_slots = {min:1, max:3}`
+- **Nebenfiguren-Slots** `@FIELD:sidechar_slots = {min:1, max:3}`
+- **Flavor/Micro-Events** `@FIELD:flavor_slots = {min:1, max:2}`
+
+- **Twist-Katalog (generisch)** `@FIELD:twist_catalog`
+  Auswahl (Mehrfachwahl erlaubt):  
+  [Verrat | Falscher Verdacht | Verdeckter Antagonist | Innere Sabotage | Unerwartete Hilfe | Zeitdruck plötzlich erhöht | Ressourcen fallen aus]
+
+- **Surprise-Branch-Rate** `@FIELD:surprise_branch_rate = 0.10`  # 10%
+
+### OPTIONAL `@OPTIONAL`
+- **Sidekick-Funktionen (Gewichtung)** `@FIELD:sidekick_roles`
+  Auswahl (Mehrfachwahl + Gewichtung):  
+  [Humor | Welterklärung | Plot-Hilfe | Moralischer Kompass]
+
+### Verknüpfung/Generierung
+- `@AUTO:twist_points mode=synth from=genre,konflikt,twist_catalog k=twist_slots.max output=bullets format=list`
+- `@AUTO:side_characters mode=synth from=cast_seed,genre,sidekick_roles k=sidechar_slots.max output=bullets format=list`
+- `@AUTO:flavor_events mode=synth from=genre,setting_details chance=low k=flavor_slots.max output=bullets format=list`
+
+### Regeln `@RULES:GenericSlots`
+- `@RULE: if count(@FIELD:twist_points) < @FIELD:twist_slots.min then @FORCE:generate:twist_points`
+- `@RULE: if count(@FIELD:side_characters) < @FIELD:sidechar_slots.min then @FORCE:generate:side_characters`
+- `@RULE: if count(@FIELD:flavor_events) < @FIELD:flavor_slots.min then @FORCE:generate:flavor_events`
+- `@RULE: if random() < @FIELD:surprise_branch_rate and @FIELD:escalation_level <= 3 then @ALLOW:surprise_branch`
+
+---
+
+##5.3 Stakes & Weltregeln @SECTION:StakesWorld
+
+### **MUSS** `@REQUIRED`
+- **Globale Stakes** `@FIELD:stakes_global`
+- **Persönliche Stakes** `@FIELD:stakes_personal`
+- **Weltregel-Ereignis (mind. 1×)** `@FIELD:worldrule_event`
+
+### Verknüpfung/Generierung
+- `@AUTO:stakes_global mode=synth from=weltregeln,konflikt k=1 output=text format=text`
+- `@AUTO:stakes_personal mode=synth from=protagonist_ziel,protagonist_need k=1 output=text format=text`
+- `@AUTO:worldrule_event mode=lookup from=weltregeln,weltmotive k=1 output=text format=text`
+
+### Regeln `@RULES:StakesWorld`
+- `@RULE: if not (@FIELD:stakes_global and @FIELD:stakes_personal) then @FORBID:resolution_scene`
+- `@RULE: if count(@FIELD:worldrule_event) < 1 then @FORCE:generate:worldrule_event`
+
+---
+
+##5.4 Auflösungsprüfung & Outcomes @SECTION:ResolutionCheck
+
+### **MUSS** `@REQUIRED`
+- **Struktur-Checklist** `@FIELD:structure_required = [hook, setup, konflikt, rising_action, climax, resolution]`
+- **Outcome-Modus** `@FIELD:outcome_mode`
+  Auswahl (genau 1): [Positiv | Negativ | Ambiguös]
+- **Dark-Path erlaubt** `@FIELD:dark_path_possible = true`
+
+### Verknüpfung/Validierung
+- `@AUTO:structure_scan mode=assert from=4.1,4.2,4.3,4.4,4.5,4.6 k=6 output=flag format=bool`
+
+### Regeln `@RULES:ResolutionCheck`
+- `@RULE: if not all(@FIELD:structure_required in StoryState) then @FORBID:resolution_scene`
+- `@RULE: if @FIELD:dark_path_possible = true then @ALLOW:negative_or_ambiguous_outcome`
+- `@RULE: if @FIELD:outcome_mode = Ambiguös then @FORCE:closing_image`  # klares Schlussbild trotz Ambiguität
+
+---
+
+##5.5 Längen & Benennungen (global anwendbar) @SECTION:GlobalLengths
+
+### **MUSS** `@REQUIRED`
+- `@TEXT_LENGTH: hook = 25`
+- `@TEXT_LENGTH: zuschauerfrage = 12`
+- `@LENGTH: protagonist_name = 30`
+
+### Regeln `@RULES:GlobalLengths`
+- `@RULE: apply LENGTH/TEXT_LENGTH before K-Kodex evaluation`
+
+---
+
+# 6. Story-Visuals Builder @CHAPTER:5
