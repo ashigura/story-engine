@@ -819,7 +819,7 @@ Es ist KI-modellunabhängig und wird als lebendes Dokument gepflegt.
 
 
 - **Verknüpfung zu Kap. 2/4**  
-  `@AUTO:foundation mode=assert from=4.1,4.2,4.3 k=3 output=flag format=bool`
+  `@AUTO:foundation mode=assert from=hook,setup,konflikt k=3 output=flag format=bool`
 
 ### Regeln `@RULES:StructureFrame`
 - `@RULE: if not all(foundation in StoryState) then @FORCE:generate:foundation`
@@ -835,27 +835,26 @@ Es ist KI-modellunabhängig und wird als lebendes Dokument gepflegt.
 - **Nebenfiguren-Slots** `@FIELD:sidechar_slots = {min:1, max:3}`
 - **Flavor/Micro-Events** `@FIELD:flavor_slots = {min:1, max:2}`
 
-- **Twist-Katalog (generisch)** `@FIELD:twist_catalog`  
+- **Twist-Katalog (generisch)** `@FIELD:twist_catalog`
   Auswahl (Mehrfachwahl erlaubt): [Verrat durch Vertrauensperson | Falscher Verdacht | Verdeckter Antagonist | Innere Sabotage | Unerwartete Hilfe | Zeitdruck plötzlich erhöht | Ressourcen fallen aus | Wiederkehr einer totgeglaubten Figur | Geheimnis wird enthüllt | Falsche Identität | Machtwechsel | Verlagerung des Ziels | Verrückte Enthüllung über die Weltregeln | Opfer für das größere Ganze | Innere Verbindung | Neue Bedrohung | Doppelte Täuschung | Verlorene Hoffnung | Kettenreaktion | Moralisches Dilemma]
-
 
 - **Surprise-Branch-Rate** `@FIELD:surprise_branch_rate = 0.10`  # 10%
 
 ### OPTIONAL `@OPTIONAL`
-- **Sidekick-Funktionen (Gewichtung)** `@FIELD:sidekick_roles`  
+- **Sidekick-Funktionen (Gewichtung)** `@FIELD:sidekick_roles`
   Auswahl (Mehrfachwahl + Gewichtung): [Humor | Welterklärung | Plot-Hilfe | Moralischer Kompass | Kämpferische Unterstützung | Mentorenrolle | Technisches/ Magisches Wissen | Spion/Informationsbeschaffer | Loyaler Begleiter | Skeptiker/Realist | Love-Interest | Verräter (potenziell) | Stimme der Vernunft | Beschützer | Verbindung zur Außenwelt | Emotionaler Spiegel | Schwächling (der Witzfigur) | Anführer-Ersatz | Komischer Zufallsgenerator | Unerwarteter Held]
-
 
 ### Verknüpfung/Generierung
 - `@AUTO:twist_points mode=synth from=genre,konflikt,twist_catalog k=twist_slots.max output=bullets format=list`
 - `@AUTO:side_characters mode=synth from=cast_seed,genre,sidekick_roles k=sidechar_slots.max output=bullets format=list`
-- `@AUTO:flavor_events mode=synth from=genre,setting_details chance=low k=flavor_slots.max output=bullets format=list`
+- `@AUTO:flavor_events mode=synth from=genre,[setting_details?] chance=low k=flavor_slots.max output=bullets format=list`
 
 ### Regeln `@RULES:GenericSlots`
 - `@RULE: if count(@FIELD:twist_points) < @FIELD:twist_slots.min then @FORCE:generate:twist_points`
 - `@RULE: if count(@FIELD:side_characters) < @FIELD:sidechar_slots.min then @FORCE:generate:side_characters`
 - `@RULE: if count(@FIELD:flavor_events) < @FIELD:flavor_slots.min then @FORCE:generate:flavor_events`
 - `@RULE: if random() < @FIELD:surprise_branch_rate and @FIELD:escalation_level <= 3 then @ALLOW:surprise_branch`
+
 
 ---
 
@@ -907,4 +906,4 @@ Es ist KI-modellunabhängig und wird als lebendes Dokument gepflegt.
 
 ---
 
-# 6. Story-Visuals Builder @CHAPTER:5
+# 6. Story-Visuals Builder @CHAPTER:6
