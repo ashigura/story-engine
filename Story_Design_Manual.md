@@ -66,7 +66,7 @@ Es ist KI-modellunabhängig und wird als lebendes Dokument gepflegt.
 - `@CONTEXT: <aspekt> = {vorgabe1, ...}` → inhaltliche/tonale Leitplanke (weich, prüfbar)
 - `@GUIDE: <hinweis>` → stilistische Leitlinie (weich, nicht hart prüfbar)
 - `@LENGTH: <feld> = <value>` → Begrenzt die Länge eines Feldes
-- `@TEXTLENGTH: <feld> = <value>` → Begrenzt die Anzahl der Wörter eines Textes. 
+- `@TEXT_LENGTH: <feld> = <value>` → Begrenzt die Anzahl der Wörter eines Textes. 
 
 **Bedingungen:**  
 - Regeln können Felder konditionieren, z. B.:  
@@ -157,7 +157,7 @@ Es ist KI-modellunabhängig und wird als lebendes Dokument gepflegt.
   
   [Explizite Gewalt | Sexualisierte Inhalte | Kindeswohlgefährdung | Diskriminierung | Suizid | Religion | Politik | Terrorismus | Kriegsverherrlichung | Folter | Drogenmissbrauch | Alkohol-Glorifizierung | Glücksspiel | Vulgärsprache]
 
-- **Inspirationsanker**  `@FIELD:inspirationsanker`
+- **Inspirationsanker**  `@FIELD:inspirationsanker_frame`
   
   automatisch generiert aus Genre + Themenmotive → liefert reale Werke als Vergleich  
   `@AUTO:inspirationsanker mode=lookup from=genre,themenmotive k=5 output=works-real format=list`
@@ -204,7 +204,7 @@ Es ist KI-modellunabhängig und wird als lebendes Dokument gepflegt.
   
   [Normal | Verändert (ewige Nacht, toxische Luft) | Übernatürlich (sprechende Tiere, lebendige Elemente)]
 
-- **Inspirationsanker**  `@FIELD:inspirationsanker`
+- **Inspirationsanker**  `@FIELD:inspirationsanker_canon`
   
   automatisch generiert aus Setting + Tech/Magie-Level + Motiven → liefert reale Werke als Vergleich  
   `@AUTO:inspirationsanker mode=lookup from=epoche_setting,tech_magie_level,weltmotive k=5 output=works-real format=list`
@@ -607,7 +607,7 @@ Es ist KI-modellunabhängig und wird als lebendes Dokument gepflegt.
 
 # K9 Genre-Limit und Kombinationsverbote `@RULES:K9`
 
-- `@RULE: if @FIELD:genre[3]=* then @FORBID:genre[3]=*`
+- `@RULE: if count(@FIELD:genre) > 3 then @FORBID: genre`
 
 - `@RULE: if @FIELD:genre[0]=Abenteuer then @FORBID:genre[1]=Justiz/Anwaltsstory`
 - `@RULE: if @FIELD:genre[0]=Justiz/Anwaltsstory then @FORBID:genre[1]=Abenteuer`
