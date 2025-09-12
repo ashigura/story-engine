@@ -808,9 +808,9 @@ Es ist KI-modellunabhängig und wird als lebendes Dokument gepflegt.
 
 ---
 
-#5. Story-Aufbau & Variabilität @CHAPTER:5
+# 5. Story-Aufbau & Variabilität @CHAPTER:5
 
-##5.1 Rahmen & Pflichtbeats @SECTION:StructureFrame
+## 5.1 Rahmen & Pflichtbeats @SECTION:StructureFrame
 
 ### **MUSS** `@REQUIRED`
 - **Stabiles Fundament** `@FIELD:foundation = [hook, setup, konflikt]`
@@ -828,7 +828,7 @@ Es ist KI-modellunabhängig und wird als lebendes Dokument gepflegt.
 
 ---
 
-##5.2 Generische Slots @SECTION:GenericSlots
+## 5.2 Generische Slots @SECTION:GenericSlots
 
 ### **MUSS** `@REQUIRED`
 - **Twist-Slots** `@FIELD:twist_slots = {min:1, max:3}`
@@ -859,7 +859,7 @@ Es ist KI-modellunabhängig und wird als lebendes Dokument gepflegt.
 
 ---
 
-##5.3 Stakes & Weltregeln @SECTION:StakesWorld
+## 5.3 Stakes & Weltregeln @SECTION:StakesWorld
 
 ### **MUSS** `@REQUIRED`
 - **Globale Stakes** `@FIELD:stakes_global`
@@ -877,7 +877,7 @@ Es ist KI-modellunabhängig und wird als lebendes Dokument gepflegt.
 
 ---
 
-##5.4 Auflösungsprüfung & Outcomes @SECTION:ResolutionCheck
+## 5.4 Auflösungsprüfung & Outcomes @SECTION:ResolutionCheck
 
 ### **MUSS** `@REQUIRED`
 - **Struktur-Checklist** `@FIELD:structure_required = [hook, setup, konflikt, rising_action, climax, resolution]`
@@ -895,7 +895,7 @@ Es ist KI-modellunabhängig und wird als lebendes Dokument gepflegt.
 
 ---
 
-##5.5 Längen & Benennungen (global anwendbar) @SECTION:GlobalLengths
+## 5.5 Längen & Benennungen (global anwendbar) @SECTION:GlobalLengths
 
 ### **MUSS** `@REQUIRED`
 - `@TEXT_LENGTH: hook = 25`
