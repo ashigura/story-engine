@@ -102,6 +102,12 @@ Es ist KI-modellunabhängig und wird als lebendes Dokument gepflegt.
 - **Wert nicht in Liste** bei `ALLOW/ALLOW_ONLY`: Warnung + Wert wird verworfen.
 - **Widerspruch** (z. B. `ALLOW` eines per `FORBID` gebannten Werts): `FORBID` gewinnt; Log schreibt Konflikt.
 
+### 1.3. Gültigkeit & Beispiele
+- 5 universelle Themenfelder: Abenteuer/Quest · Konflikt/Machtspiel · Beziehung/Emotion · Überleben/Gefahr · Transformation/Erkenntnis
+- Validierungsstories:  
+  - **Herr der Ringe** (Abenteuer/Quest + Überleben)  
+  - **Romeo & Julia** (Beziehung/Emotion + Konflikt)
+
 
 ---
 # 2 Storyframe-Builder @CHAPTER:2
@@ -594,22 +600,6 @@ Es ist KI-modellunabhängig und wird als lebendes Dokument gepflegt.
 - `@RULE: if @FIELD:platform=youtube then @ALLOW: mittlere Toleranz (zwischen Twitch & TikTok)`
 - `@RULE: (Weitere Plattformmodule erweiterbar)`
 
-
----
-
-## 4. Gültigkeit & Beispiele
-- 5 universelle Themenfelder: Abenteuer/Quest · Konflikt/Machtspiel · Beziehung/Emotion · Überleben/Gefahr · Transformation/Erkenntnis
-- Validierungsstories:  
-  - **Herr der Ringe** (Abenteuer/Quest + Überleben)  
-  - **Romeo & Julia** (Beziehung/Emotion + Konflikt)
-
----
-
-## 5. Fazit
-- Vollständiges, generisches Grundgerüst (Version 2.0)  
-- Modularer Kodex mit Alters- und Plattformregeln → Flexibilität + Kontrolle  
-- Twists integriert: über **Allgemeine Muster** oder **Generisch erzeugt**  
-- Dokument ist lebendiges Manual → erweiterbar für spätere Versionen
 
 ---
 
