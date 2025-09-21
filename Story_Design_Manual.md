@@ -668,6 +668,71 @@ Es ist KI-modellunabhängig und wird als lebendes Dokument gepflegt.
 
 ---
 
+## K10 – Struktur & Vollständigkeit @SECTION:K10_StructureGuard`
+
+### **MUSS** @REQUIRED`
+- @FIELD:structure_required = [hook, setup, konflikt, rising_action, climax, resolution]`
+- @FIELD:slot_twist_min = 1`
+- @FIELD:slot_twist_max = 3`
+- @FIELD:slot_sidechar_min = 1`
+- @FIELD:slot_flavor_min = 1`
+- @FIELD:surprise_branch_rate = 0.10`
+
+- ### Regeln @RULES:K10`
+- @RULE: if not all(@FIELD:structure_required in StoryState) then @FORCE:insert_missing_beats`
+- @RULE: if count(@FIELD:twist_points) < @FIELD:slot_twist_min then @FORCE:generate:twist_points`
+- @RULE: if count(@FIELD:side_characters) < @FIELD:slot_sidechar_min then @FORCE:generate:side_characters`
+- @RULE: if count(@FIELD:flavor_events) < @FIELD:slot_flavor_min then @FORCE:generate:flavor_events`
+- @RULE: if random() < @FIELD:surprise_branch_rate and @FIELD:escalation_level <= 3 then @ALLOW:surprise_branch`
+- @RULE: if @FIELD:resolution_scene set and not all(@FIELD:structure_required in StoryState) then @FORBID:resolution_scene`
+
+---
+
+## K11 – Zeitfluss & Immersion @SECTION:K11_Time`
+
+### **MUSS** @REQUIRED`
+- @FIELD:timeflow_mode = Echtzeitnah`      # Auswahl: [Echtzeitnah, Montage, Sprung]
+- @FIELD:timeskip_allowed = false`         # bool
+- @FIELD:time_skip_limit_days = 1`         # max. erlaubter Sprung in Tagen (wirkt nur wenn timeskip_allowed=true)
+
+### Regeln @RULES:K11`
+- @RULE: if @FIELD:timeflow_mode = Echtzeitnah then @SET:detail_level = hoch`
+- @RULE: if @FIELD:timeflow_mode = Echtzeitnah then @FORBID:timeskip > 0d`
+
+- @RULE: if @FIELD:timeflow_mode = Montage then require @FIELD:montage_summary`
+- @RULE: if @FIELD:timeflow_mode = Montage and (active(conflict) or active(twist)) then @FORBID:montage`
+- @RULE: if @FIELD:timeflow_mode = Montage and @FIELD:timeskip_allowed = true then allow timeskip <= @FIELD:time_skip_limit_days d`
+- @RULE: if @FIELD:timeflow_mode = Montage and @FIELD:timeskip_allowed = false then @FORBID:timeskip > 0d`
+
+- @RULE: if @FIELD:timeflow_mode = Sprung and @FIELD:timeskip_allowed = true then allow timeskip <= @FIELD:time_skip_limit_days d`
+- @RULE: if @FIELD:timeflow_mode = Sprung and @FIELD:timeskip_allowed = false then @FORBID:timeskip > 0d`
+- @RULE: if @FIELD:timeflow_mode = Sprung and timeskip > @FIELD:time_skip_limit_days d then @FORBID:scene`
+
+- @RULE: each scene must reference protagonist_presence = true`
+
+---
+
+## K12 – Entscheidungsdichte & Überraschung @SECTION:K12_Choices`
+
+### **MUSS** @REQUIRED`
+- @FIELD:decision_frequency = gemischt`     # Auswahl: [nur_beats, gemischt, hoch]
+- @FIELD:decision_surprise = true`          # bool
+- @FIELD:decision_min_per_scene = 0`       # Mindestanzahl Entscheidungen pro Szene
+- @FIELD:decision_max_per_scene = 3`        # Maximalanzahl Entscheidungen pro Szene
+
+### Regeln @RULES:K12`
+- @RULE: if @FIELD:decision_frequency = nur_beats then allow decisions only_at structure_beats`
+- @RULE: if @FIELD:decision_frequency = gemischt then insert random_decision_events between structure_beats`
+- @RULE: if @FIELD:decision_frequency = hoch then require >=1 decision per scene`
+
+- @RULE: if @FIELD:decision_surprise = true then allow decisions on trivial or comic events`
+
+- @RULE: if count(decisions in scene) < @FIELD:decision_min_per_scene then @FORCE:generate:decision_event`
+- @RULE: if count(decisions in scene) > @FIELD:decision_max_per_scene then @FORBID:new_decision_event`
+
+
+
+
 # 4. Story-Algorithmus Builder @CHAPTER:4
 
 ## 4.1 Baustein 1 – Einleitung / Hook @SECTION:Hook
